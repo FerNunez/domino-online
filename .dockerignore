@@ -1,0 +1,5 @@
+node_modules
+web/.next
+web/node_modules
+.git
+docs
