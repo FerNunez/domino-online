@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+package lobby;
+
+option go_package = "shared/proto/lobby;lobby";
+
+service LobbyService{
+  rpc CreateLobby(CreateLobbyRequest) returns (CreateLobbyResponse);
+  rpc JoinLobby(JoinLobbyRequest) returns (JoinLobbyResponse);
+  rpc StartGame(StartGameRequest) returns (StartGameResponse);
+}
+
+message CreateLobbyRequest{
+  string userID = 1;
+  int32 maxPlayers = 2;
+}
+
+message CreateLobbyResponse{
+  Lobby lobby = 1;
+}
+
+message JoinLobbyRequest{
+  string userID = 1;
+  string lobbyID = 2;
+}
+
+message JoinLobbyResponse{
+  Lobby lobby = 2;
+}
+
+message StartGameRequest{
+  string lobbyID = 1;
+  string hostID = 2;
+}
+
+message StartGameResponse{
+  string gameID = 1;
+}
+
+// Should I do something like returning a Lobby?
+message Lobby{
+  string id = 1;
+  string host_id = 2;
+  repeated Player players = 3;
+  int32 max_players = 4;
+  LobbyStatus status = 5;
+  LobbySettings settings = 6;
+}
+
+message Player{
+  string id = 1;
+  string name = 2;
+  int32 slot = 3;
+}
+
+enum LobbyStatus{
+  LOBBY_STATUS_WAITING = 0;
+  LOBBY_STATUS_IN_GAME = 1;
+  LOBBY_STATUS_FINISHED = 2;
+}
+
+message LobbySettings{
+  int32 max_score = 1;
+  int32 turn_timer_seconds =2;
+}

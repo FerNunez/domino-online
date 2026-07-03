@@ -49,6 +49,97 @@ func handleTripPreview(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, contracts.APIResponse{Data: preview})
 }
 
+func handleCreateLobby(w http.ResponseWriter, r *http.Request) {
+	ctx, span := tracer.Start(r.Context(), "handleCreateLobby")
+	defer span.End()
+
+	var req createLobbyRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "failed to parse JSON", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	lobbySvc, err := grpc_clients.NewLobbyServiceClient()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	lobby, err := lobbySvc.Client.CreateLobby(ctx, req.toProto())
+	if err != nil {
+		http.Error(w, "failed to create lobby", http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusCreated, contracts.APIResponse{Data: lobby})
+}
+
+func handleJoinLobby(w http.ResponseWriter, r *http.Request) {
+	ctx, span := tracer.Start(r.Context(), "handleJoinLobby")
+	defer span.End()
+
+	lobbyID := r.PathValue("id")
+
+	if lobbyID == "" {
+		http.Error(w, "lobby id is required", http.StatusBadRequest)
+		return
+	}
+	var req joinLobbyRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "failed to parse JSON", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+	req.LobbyID = lobbyID
+
+	lobbySvc, err := grpc_clients.NewLobbyServiceClient()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	lobby, err := lobbySvc.Client.JoinLobby(ctx, req.toProto())
+	if err != nil {
+		http.Error(w, "failed to join lobby", http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusCreated, contracts.APIResponse{Data: lobby})
+}
+
+func handleStartGame(w http.ResponseWriter, r *http.Request) {
+	ctx, span := tracer.Start(r.Context(), "handleStartGame")
+	defer span.End()
+
+	lobbyID := r.PathValue("id")
+	if lobbyID == "" {
+		http.Error(w, "lobby id is required", http.StatusBadRequest)
+		return
+	}
+
+	var req startGameRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "failed to parse JSON", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+	req.LobbyID = lobbyID
+
+	lobbySvc, err := grpc_clients.NewLobbyServiceClient()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// TODO: This only have the game ID?
+	// Should I here call the game service grpc to get state or something?
+	game, err := lobbySvc.Client.StartGame(ctx, req.toProto())
+	if err != nil {
+		http.Error(w, "failed to start game", http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusCreated, contracts.APIResponse{Data: game})
+}
+
 func handleTripStart(w http.ResponseWriter, r *http.Request) {
 	ctx, span := tracer.Start(r.Context(), "handleTripStart")
 	defer span.End()

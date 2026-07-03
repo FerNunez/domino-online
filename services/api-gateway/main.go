@@ -42,6 +42,10 @@ func main() {
 
 	mux.Handle("POST /trip/preview", tracing.WrapHandlerFunc(enableCORS(handleTripPreview), "/trip/preview"))
 	mux.Handle("POST /trip/start", tracing.WrapHandlerFunc(enableCORS(handleTripStart), "/trip/start"))
+	mux.Handle("POST /lobbies", tracing.WrapHandlerFunc(enableCORS(handleCreateLobby), "/lobby"))
+	mux.Handle("POST /lobbies/{id}/join", tracing.WrapHandlerFunc(enableCORS(handleJoinLobby), "/lobby/join"))
+	mux.Handle("POST /lobbies/{id}/start", tracing.WrapHandlerFunc(enableCORS(handleStartGame), "/lobby/start"))
+
 	mux.Handle("/ws/drivers", tracing.WrapHandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		handleDriversWebsocket(w, r, rabbitmq)
 	}, "/trip/start"))

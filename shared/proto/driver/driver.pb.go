@@ -4,7 +4,7 @@
 // 	protoc        v3.12.4
 // source: driver.proto
 
-package sriver
+package driver
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -284,7 +284,7 @@ const file_driver_proto_rawDesc = "" +
 	"\tlongitude\x18\x02 \x01(\x01R\tlongitude2\xb3\x01\n" +
 	"\rDriverService\x12O\n" +
 	"\x0eRegisterDriver\x12\x1d.driver.RegisterDriverRequest\x1a\x1e.driver.RegisterDriverResponse\x12Q\n" +
-	"\x10UnregisterDriver\x12\x1d.driver.RegisterDriverRequest\x1a\x1e.driver.RegisterDriverResponseB\x1cZ\x1ashared/proto/driver;sriverb\x06proto3"
+	"\x10UnregisterDriver\x12\x1d.driver.RegisterDriverRequest\x1a\x1e.driver.RegisterDriverResponseB\x1cZ\x1ashared/proto/driver;driverb\x06proto3"
 
 var (
 	file_driver_proto_rawDescOnce sync.Once

@@ -4,7 +4,7 @@
 // - protoc             v3.12.4
 // source: driver.proto
 
-package sriver
+package driver
 
 import (
 	context "context"
