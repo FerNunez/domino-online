@@ -49,14 +49,16 @@ func (c *createLobbyRequest) toProto() *pbl.CreateLobbyRequest {
 
 // Join Lobby
 type joinLobbyRequest struct {
-	UserID  string `json:"userID"`
-	LobbyID string `json:"lobbyID"`
+	UserID     string `json:"userID"`
+	LobbyID    string `json:"lobbyID"`
+	SecretCode string `json:"secretCode"`
 }
 
 func (c *joinLobbyRequest) toProto() *pbl.JoinLobbyRequest {
 	return &pbl.JoinLobbyRequest{
-		UserID:  c.UserID,
-		LobbyID: c.LobbyID,
+		UserID:     c.UserID,
+		LobbyID:    c.LobbyID,
+		SecretCode: c.SecretCode,
 	}
 }
 

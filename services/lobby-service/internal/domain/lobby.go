@@ -28,14 +28,15 @@ func (ls LobbyStatus) ToProto() pbl.LobbyStatus {
 	}
 }
 
-// Lobby is the document model for a trip
 type LobbyModel struct {
-	ID         primitive.ObjectID `bson:"_id,omitempty"`
-	HostID     string             `bson:"hostID"`
-	Status     LobbyStatus        `bson:"status"`
-	Players    []*PlayerModel     `bson:"players"`
-	MaxPlayers int                `bson:"maxPlayers"`
-	Settings   LobbySettings      `bson:"settings"`
+	ID          primitive.ObjectID `bson:"_id,omitempty"`
+	HostID      string             `bson:"hostID"`
+	SecretToken string             `bson:"secretToken"`
+	Status      LobbyStatus        `bson:"status"`
+	WsURL       string             `bson:"wsURL"`
+	Players     []*PlayerModel     `bson:"players"`
+	MaxPlayers  int                `bson:"maxPlayers"`
+	Settings    LobbySettings      `bson:"settings"`
 }
 
 type PlayerModel struct {
@@ -50,20 +51,23 @@ type LobbySettings struct {
 	TurnTimerSeconds int `bson:"TurnTimerSeconds"`
 }
 
-// ToProto converts the trip to the proto representation for grpc responses
 func (l *LobbyModel) ToProto() *pbl.Lobby {
-
 	protoPlayers := make([]*pbl.Player, len(l.Players))
 	for i, p := range l.Players {
 		protoPlayers[i] = p.ToProto()
 	}
-
 	return &pbl.Lobby{
-		Id:         l.ID.Hex(),
-		HostId:     l.HostID,
-		Players:    protoPlayers,
-		MaxPlayers: int32(l.MaxPlayers),
-		Status:     l.Status.ToProto(),
+		Id:          l.ID.Hex(),
+		HostId:      l.HostID,
+		SecretToken: l.SecretToken,
+		Players:     protoPlayers,
+		MaxPlayers:  int32(l.MaxPlayers),
+		Status:      l.Status.ToProto(),
+		Settings: &pbl.LobbySettings{
+			MaxScore:         int32(l.Settings.MaxScore),
+			TurnTimerSeconds: int32(l.Settings.TurnTimerSeconds),
+		},
+		WsURL: l.WsURL,
 	}
 }
 
@@ -75,19 +79,19 @@ func (p *PlayerModel) ToProto() *pbl.Player {
 	}
 }
 
-// TripRepository is the persistance interface for the domain layer
-// The service layer depends on this interce; the infrastructure layer implements it
 type LobbyRepository interface {
 	CreateLobby(ctx context.Context, l *LobbyModel) (*LobbyModel, error)
-	StartLobby(ctx context.Context, id string) error
-	JoinLobby(ctx context.Context, id string, player *PlayerModel) error
+	//StartLobby(ctx context.Context, id string) error
 
 	GetLobbyByID(ctx context.Context, id string) (*LobbyModel, error)
 	// TODO: UpdateLobby(ctx context.Context, lobbyID string, status string, driver *pbd.Driver) error
+
+	UpdateLobby(ctx context.Context, id string, l *LobbyModel) (*LobbyModel, error)
+	//AddPlayer(ctx context.Context, id string, p *PlayerModel) (*LobbyModel, error)
 }
 
-type TripService interface {
-	CreateLobby(ctx context.Context, l *LobbyModel) (*LobbyModel, error)
-	StartLobby(ctx context.Context, id string, host_id string) error
-	JoinLobby(ctx context.Context, id string, player *PlayerModel) (*LobbyModel, error)
+type LobbyService interface {
+	CreateLobby(ctx context.Context, host_id string) (*LobbyModel, error)
+	JoinLobby(ctx context.Context, id string, secretToken string, player *PlayerModel) (*LobbyModel, error)
+	//StartLobby(ctx context.Context, id string, host_id string) error
 }
