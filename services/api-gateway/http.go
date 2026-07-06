@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -67,7 +68,7 @@ func handleCreateLobby(w http.ResponseWriter, r *http.Request) {
 
 	lobby, err := lobbySvc.Client.CreateLobby(ctx, req.toProto())
 	if err != nil {
-		http.Error(w, "failed to create lobby", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("failed to create lobby: %v", err), http.StatusInternalServerError)
 		return
 	}
 

@@ -22,6 +22,7 @@ message CreateLobbyResponse{
 message JoinLobbyRequest{
   string userID = 1;
   string lobbyID = 2;
+  string secretCode = 3;
 }
 
 message JoinLobbyResponse{
@@ -40,11 +41,13 @@ message StartGameResponse{
 // Should I do something like returning a Lobby?
 message Lobby{
   string id = 1;
-  string host_id = 2;
-  repeated Player players = 3;
-  int32 max_players = 4;
-  LobbyStatus status = 5;
-  LobbySettings settings = 6;
+  string hostId = 2;
+  string secretToken = 3;
+  string wsURL = 4;
+  repeated Player players = 5;
+  int32 maxPlayers = 6;
+  LobbyStatus status = 7;
+  LobbySettings settings = 8;
 }
 
 message Player{
@@ -60,6 +63,6 @@ enum LobbyStatus{
 }
 
 message LobbySettings{
-  int32 max_score = 1;
-  int32 turn_timer_seconds =2;
+  int32 maxScore = 1;
+  int32 turnTimerSeconds =2;
 }
