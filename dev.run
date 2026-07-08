@@ -1,0 +1,21 @@
+  docker run --name domino-postgres \
+    -e POSTGRES_USER=domino \
+    -e POSTGRES_PASSWORD=domino \
+    -e POSTGRES_DB=domino \
+    -p 5433:5432 \
+    -v domino-postgres-data:/var/lib/postgresql/data \
+    --restart unless-stopped \
+    -d postgres:16
+
+
+2. Build your connection string
+postgres://domino:domino@localhost:5433/domino?sslmode=disable
+
+3. Run goose against your migrations dir (sql/schema/, since 0001_user.sql is already there):
+export GOOSE_DRIVER=postgres
+export GOOSE_DBSTRING="postgres://domino:domino@localhost:5433/domino?sslmode=disable"
+goose -dir sql/schemas up
+
+# connect to docker database with psql
+docker exec -it domino-postgres psql "postgres://domino:domino@localhost:5432/domino?sslmode=disable"
+

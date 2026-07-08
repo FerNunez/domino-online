@@ -6,6 +6,9 @@ require go.mongodb.org/mongo-driver v1.17.9
 
 require (
 	github.com/felixge/httpsnoop v1.0.4 // indirect
+	github.com/jackc/pgpassfile v1.0.0 // indirect
+	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
+	github.com/jackc/pgx/v5 v5.10.0 // indirect
 	github.com/mmcloughlin/geohash v0.10.0 // indirect
 	github.com/redis/go-redis/v9 v9.21.0 // indirect
 	github.com/stripe/stripe-go/v81 v81.4.0 // indirect

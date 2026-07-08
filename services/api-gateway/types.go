@@ -74,3 +74,7 @@ func (c *startGameRequest) toProto() *pbl.StartGameRequest {
 		HostID:  c.HostID,
 	}
 }
+
+// Create Lobby
+type createGuestRequest struct {
+}

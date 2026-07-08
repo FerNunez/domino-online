@@ -10,6 +10,7 @@ import (
 	"rebu/shared/contracts"
 	"rebu/shared/env"
 	"rebu/shared/messaging"
+	"rebu/shared/proto/user"
 	"rebu/shared/tracing"
 
 	"github.com/stripe/stripe-go/v81"
@@ -75,12 +76,55 @@ func handleCreateLobby(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, contracts.APIResponse{Data: lobby})
 }
 
+func handleCreateGuest(w http.ResponseWriter, r *http.Request) {
+	ctx, span := tracer.Start(r.Context(), "handleCreateGuest")
+	defer span.End()
+
+	userSvc, err := grpc_clients.NewUserServiceClient()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	user, err := userSvc.Client.CreateGuest(ctx, &user.CreateGuestRequest{})
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to create guest user: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusCreated, contracts.APIResponse{Data: user})
+}
+
+func handleGetUser(w http.ResponseWriter, r *http.Request) {
+	ctx, span := tracer.Start(r.Context(), "handleGetUser")
+	defer span.End()
+
+	userSvc, err := grpc_clients.NewUserServiceClient()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	userID := r.PathValue("id")
+	if userID == "" {
+		http.Error(w, "user id is required", http.StatusBadRequest)
+		return
+	}
+
+	user, err := userSvc.Client.GetUser(ctx, &user.GetUserRequest{
+		UserID: userID,
+	})
+	if err != nil {
+		http.Error(w, fmt.Sprintf("ailed to get user: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusCreated, contracts.APIResponse{Data: user})
+}
+
 func handleJoinLobby(w http.ResponseWriter, r *http.Request) {
 	ctx, span := tracer.Start(r.Context(), "handleJoinLobby")
 	defer span.End()
 
 	lobbyID := r.PathValue("id")
-
 	if lobbyID == "" {
 		http.Error(w, "lobby id is required", http.StatusBadRequest)
 		return
