@@ -20,6 +20,9 @@ func main() {
 
 	mux := http.NewServeMux()
 
+	mux.Handle("POST /users", tracing.WrapHandlerFunc(enableCORS(handleCreateGuest), "/users"))
+	mux.Handle("GET /users/{id}", tracing.WrapHandlerFunc(enableCORS(handleGetUser), "/users"))
+
 	mux.Handle("POST /lobbies", tracing.WrapHandlerFunc(enableCORS(handleCreateLobby), "/lobby"))
 	mux.Handle("POST /lobbies/{id}/join", tracing.WrapHandlerFunc(enableCORS(handleJoinLobby), "/lobby/join"))
 	mux.Handle("POST /lobbies/{id}/start", tracing.WrapHandlerFunc(enableCORS(handleStartGame), "/lobby/start"))

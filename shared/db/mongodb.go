@@ -41,7 +41,7 @@ func NewMongoClient(ctx context.Context, cfg *MongoConfig) (*mongo.Client, error
 		return nil, fmt.Errorf("mongodb databese is required")
 	}
 
-	connCtx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	connCtx, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()
 
 	client, err := mongo.Connect(connCtx, options.Client().ApplyURI(cfg.URI))
