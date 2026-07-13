@@ -20,6 +20,9 @@ func main() {
 
 	mux := http.NewServeMux()
 
+	mux.Handle("POST /auth/guest", tracing.WrapHandlerFunc(enableCORS(handleAuthGuest), "/auth/guest"))
+	mux.Handle("POST /auth/register", tracing.WrapHandlerFunc(enableCORS(authMiddleware(handleAuthRegiter)), "/auth/register"))
+
 	mux.Handle("POST /users", tracing.WrapHandlerFunc(enableCORS(handleCreateGuest), "/users"))
 	mux.Handle("GET /users/{id}", tracing.WrapHandlerFunc(enableCORS(handleGetUser), "/users"))
 

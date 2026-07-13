@@ -1,6 +1,6 @@
--- name: CreateGuest :one
-INSERT INTO users (id, display_name, type)
-VALUES ( $1, $2, $3)
+-- name: CreateUser :one
+INSERT INTO users (id, email, hashed_password, display_name)
+VALUES ( $1, $2, $3, $4)
 RETURNING *;
 
 

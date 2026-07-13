@@ -9,7 +9,8 @@ import (
 )
 
 type User struct {
-	ID          pgtype.UUID
-	DisplayName string
-	Type        string
+	ID             pgtype.UUID
+	Email          string
+	HashedPassword string
+	DisplayName    string
 }

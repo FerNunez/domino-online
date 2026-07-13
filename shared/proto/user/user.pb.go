@@ -164,7 +164,6 @@ func (x *RegisterRequest) GetDisplayName() string {
 type AuthResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	User          *User                  `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
-	AccessToken   string                 `protobuf:"bytes,2,opt,name=accessToken,proto3" json:"accessToken,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -204,13 +203,6 @@ func (x *AuthResponse) GetUser() *User {
 		return x.User
 	}
 	return nil
-}
-
-func (x *AuthResponse) GetAccessToken() string {
-	if x != nil {
-		return x.AccessToken
-	}
-	return ""
 }
 
 type LoginRequest struct {
@@ -337,11 +329,10 @@ const file_user_proto_rawDesc = "" +
 	"\x0fRegisterRequest\x12\x16\n" +
 	"\x06userID\x18\x01 \x01(\tR\x06userID\x12\x1a\n" +
 	"\bpassword\x18\x02 \x01(\tR\bpassword\x12 \n" +
-	"\vdisplayName\x18\x03 \x01(\tR\vdisplayName\"P\n" +
+	"\vdisplayName\x18\x03 \x01(\tR\vdisplayName\".\n" +
 	"\fAuthResponse\x12\x1e\n" +
 	"\x04user\x18\x01 \x01(\v2\n" +
-	".user.UserR\x04user\x12 \n" +
-	"\vaccessToken\x18\x02 \x01(\tR\vaccessToken\"@\n" +
+	".user.UserR\x04user\"@\n" +
 	"\fLoginRequest\x12\x14\n" +
 	"\x05email\x18\x01 \x01(\tR\x05email\x12\x1a\n" +
 	"\bpassword\x18\x02 \x01(\tR\bpassword\"L\n" +

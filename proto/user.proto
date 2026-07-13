@@ -25,7 +25,6 @@ message RegisterRequest{
 
 message AuthResponse{
   User user = 1;
-  string accessToken = 2;
 }
 
 message LoginRequest{

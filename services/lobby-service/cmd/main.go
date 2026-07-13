@@ -23,7 +23,7 @@ const grpcAddr = ":9094"
 func main() {
 	// 1. Initialice Tracer
 	sh, err := tracing.InitTracer(tracing.Config{
-		ServiceName:    "trip-service",
+		ServiceName:    "lobby-service",
 		Environment:    env.GetString("ENVIRONMENT", "development"),
 		JaegerEndpoint: env.GetString("JAEGER_ENDPOINT", "http://jaeger:14268/api/traces"),
 	})
@@ -34,6 +34,7 @@ func main() {
 	defer cancel()
 	defer sh(ctx)
 
+	// 3. Redis Client
 	redisClient := db.NewRedisClient(db.NewRedisDefaultConfig())
 
 	// 4.  Wire the dependency graph (innermost first)
@@ -48,7 +49,7 @@ func main() {
 	server := grpcserver.NewServer(tracing.WithTracingInterceptors()...)
 	grpchandler.NewGRPCHandler(server, svc)
 
-	log.Printf("Trip service listening on %s", grpcAddr)
+	log.Printf("Lobby service listening on %s", grpcAddr)
 	go func() {
 		if err := server.Serve(lis); err != nil {
 			log.Printf("gRPC server error: %v", err)

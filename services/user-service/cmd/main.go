@@ -23,7 +23,7 @@ const grpcAddr = ":9095"
 func main() {
 	// 1. Initialice Tracer
 	sh, err := tracing.InitTracer(tracing.Config{
-		ServiceName:    "trip-service",
+		ServiceName:    "user-service",
 		Environment:    env.GetString("ENVIRONMENT", "development"),
 		JaegerEndpoint: env.GetString("JAEGER_ENDPOINT", "http://jaeger:14268/api/traces"),
 	})
@@ -53,7 +53,7 @@ func main() {
 	server := grpcserver.NewServer(tracing.WithTracingInterceptors()...)
 	grpchandler.NewGRPCHandler(server, svc)
 
-	log.Printf("Trip service listening on %s", grpcAddr)
+	log.Printf("User service listening on %s", grpcAddr)
 	go func() {
 		if err := server.Serve(lis); err != nil {
 			log.Printf("gRPC server error: %v", err)

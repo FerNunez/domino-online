@@ -20,6 +20,15 @@ func NewService(repo domain.UserRepository) *Service {
 func (u *Service) CreateGuest(ctx context.Context) (*domain.User, error) {
 	return u.repo.CreateGuest(ctx)
 }
+
+func (u *Service) CreateUser(ctx context.Context, userID, email, hashedPassword, displayName string) (*domain.User, error) {
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		return nil, err
+	}
+	return u.repo.CreateUser(ctx, userUUID, email, hashedPassword, displayName)
+}
+
 func (u *Service) GetUserByID(ctx context.Context, userID string) (*domain.User, error) {
 	userUUID, err := uuid.Parse(userID)
 	if err != nil {

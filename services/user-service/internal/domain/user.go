@@ -10,29 +10,23 @@ import (
 type User struct {
 	ID          string
 	DisplayName string
-	Type        string
 }
 
 func (u User) ToProto() *pbu.User {
 	return &pbu.User{
 		Id:          u.ID,
 		DisplayName: u.DisplayName,
-		Type:        u.Type,
 	}
 }
 
 type UserRepository interface {
 	CreateGuest(ctx context.Context) (*User, error)
 	GetUserByID(ctx context.Context, userUUID uuid.UUID) (*User, error)
-	//UpdateUser(ctx context.Context, user User)
+	CreateUser(ctx context.Context, userUUID uuid.UUID, email, hashedPassword, displayName string) (*User, error)
 }
 
 type UserService interface {
 	CreateGuest(ctx context.Context) (*User, error)
 	GetUserByID(ctx context.Context, userID string) (*User, error)
-
-	// RegisterUser(ctx context.Context)
-	// Login(ctx context.Context)
-
-	//ValidateToken(ctx context.Context)
+	CreateUser(ctx context.Context, userID, email, hashedPassword, displayName string) (*User, error)
 }
