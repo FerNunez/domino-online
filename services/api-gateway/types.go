@@ -78,3 +78,8 @@ func (c *startGameRequest) toProto() *pbl.StartGameRequest {
 // Create Lobby
 type createGuestRequest struct {
 }
+
+type AuthResponse struct {
+	UserID string `json:"userID"`
+	Type   string `json:"type"`
+}

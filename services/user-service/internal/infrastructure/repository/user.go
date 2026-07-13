@@ -18,10 +18,11 @@ func NewSqlRepository(queries *sql.Queries) *SqlRepository {
 }
 
 func (s *SqlRepository) CreateGuest(ctx context.Context) (*domain.User, error) {
-	dbUser, err := s.queries.CreateGuest(ctx, sql.CreateGuestParams{
-		ID:          pgtype.UUID{Bytes: uuid.New(), Valid: true},
-		DisplayName: "guest",
-		Type:        "guest",
+	dbUser, err := s.queries.CreateUser(ctx, sql.CreateUserParams{
+		ID:             pgtype.UUID{Bytes: uuid.New(), Valid: true},
+		DisplayName:    "guest",
+		Email:          "guest",
+		HashedPassword: "guest",
 	})
 	if err != nil {
 		return nil, err
@@ -29,7 +30,6 @@ func (s *SqlRepository) CreateGuest(ctx context.Context) (*domain.User, error) {
 	return &domain.User{
 		ID:          uuid.UUID(dbUser.ID.Bytes).String(),
 		DisplayName: dbUser.DisplayName,
-		Type:        dbUser.Type,
 	}, nil
 }
 
@@ -44,6 +44,21 @@ func (s *SqlRepository) GetUserByID(ctx context.Context, userUUID uuid.UUID) (*d
 	return &domain.User{
 		ID:          uuid.UUID(dbUser.ID.Bytes).String(),
 		DisplayName: dbUser.DisplayName,
-		Type:        dbUser.Type,
+	}, nil
+}
+
+func (s *SqlRepository) CreateUser(ctx context.Context, userUUID uuid.UUID, email, hashedPassword, displayName string) (*domain.User, error) {
+	dbUser, err := s.queries.CreateUser(ctx, sql.CreateUserParams{
+		ID:             pgtype.UUID{Bytes: userUUID, Valid: true},
+		Email:          email,
+		HashedPassword: hashedPassword,
+		DisplayName:    displayName,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &domain.User{
+		ID:          uuid.UUID(dbUser.ID.Bytes).String(),
+		DisplayName: dbUser.DisplayName,
 	}, nil
 }

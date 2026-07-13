@@ -11,33 +11,49 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const createGuest = `-- name: CreateGuest :one
-INSERT INTO users (id, display_name, type)
-VALUES ( $1, $2, $3)
-RETURNING id, display_name, type
+const createUser = `-- name: CreateUser :one
+INSERT INTO users (id, email, hashed_password, display_name)
+VALUES ( $1, $2, $3, $4)
+RETURNING id, email, hashed_password, display_name
 `
 
-type CreateGuestParams struct {
-	ID          pgtype.UUID
-	DisplayName string
-	Type        string
+type CreateUserParams struct {
+	ID             pgtype.UUID
+	Email          string
+	HashedPassword string
+	DisplayName    string
 }
 
-func (q *Queries) CreateGuest(ctx context.Context, arg CreateGuestParams) (User, error) {
-	row := q.db.QueryRow(ctx, createGuest, arg.ID, arg.DisplayName, arg.Type)
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
+	row := q.db.QueryRow(ctx, createUser,
+		arg.ID,
+		arg.Email,
+		arg.HashedPassword,
+		arg.DisplayName,
+	)
 	var i User
-	err := row.Scan(&i.ID, &i.DisplayName, &i.Type)
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.HashedPassword,
+		&i.DisplayName,
+	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, display_name, type FROM users
+SELECT id, email, hashed_password, display_name FROM users
 WHERE id = $1 LIMIT 1
 `
 
 func (q *Queries) GetUserByID(ctx context.Context, id pgtype.UUID) (User, error) {
 	row := q.db.QueryRow(ctx, getUserByID, id)
 	var i User
-	err := row.Scan(&i.ID, &i.DisplayName, &i.Type)
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.HashedPassword,
+		&i.DisplayName,
+	)
 	return i, err
 }

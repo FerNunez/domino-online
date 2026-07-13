@@ -9,8 +9,9 @@ import (
 	"rebu/services/api-gateway/grpc_clients"
 	"rebu/shared/contracts"
 	"rebu/shared/env"
+	"rebu/shared/jwt"
 	"rebu/shared/messaging"
-	"rebu/shared/proto/user"
+	pbu "rebu/shared/proto/user"
 	"rebu/shared/tracing"
 
 	"github.com/stripe/stripe-go/v81"
@@ -85,7 +86,7 @@ func handleCreateGuest(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 
-	user, err := userSvc.Client.CreateGuest(ctx, &user.CreateGuestRequest{})
+	user, err := userSvc.Client.CreateGuest(ctx, &pbu.CreateGuestRequest{})
 	if err != nil {
 		http.Error(w, fmt.Sprintf("failed to create guest user: %v", err), http.StatusInternalServerError)
 		return
@@ -109,9 +110,10 @@ func handleGetUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := userSvc.Client.GetUser(ctx, &user.GetUserRequest{
+	user, err := userSvc.Client.GetUser(ctx, &pbu.GetUserRequest{
 		UserID: userID,
 	})
+
 	if err != nil {
 		http.Error(w, fmt.Sprintf("ailed to get user: %v", err), http.StatusInternalServerError)
 		return
@@ -269,4 +271,56 @@ func handleStripeWebhook(w http.ResponseWriter, r *http.Request, rb *messaging.R
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func handleAuthGuest(w http.ResponseWriter, r *http.Request) {
+	_, span := tracer.Start(r.Context(), "handleAuthGuest")
+	defer span.End()
+
+	// Guest
+	token, err := jwt.NewGuestToken()
+	if err != nil {
+		http.Error(w, "guest jwt generation failed", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Authorization", fmt.Sprintf("Bearer %v", token))
+
+	writeJSON(w, http.StatusOK, contracts.APIResponse{Data: map[string]string{
+		"token": token,
+	}})
+}
+
+func handleAuthRegiter(w http.ResponseWriter, r *http.Request) {
+	ctx, span := tracer.Start(r.Context(), "handleAuthRegister")
+	defer span.End()
+
+	userID, ok := r.Context().Value("userID").(string)
+	if !ok {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	// NOTE: Do I need to check the userType == guest?
+
+	userSvc, err := grpc_clients.NewUserServiceClient()
+	if err != nil {
+		fmt.Printf("couldnt reach user service: %v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	auth, err := userSvc.Client.Register(ctx, &pbu.RegisterRequest{
+		UserID:      userID,
+		Password:    "password",
+		DisplayName: "displayNmae",
+	})
+	if err != nil {
+		fmt.Printf("couldnt register user: %v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Printf("User: %v", auth.User)
+	w.WriteHeader(http.StatusCreated)
+
+	writeJSON(w, http.StatusCreated, contracts.APIResponse{Data: auth.User})
 }
