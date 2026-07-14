@@ -56,6 +56,12 @@ func handleCreateLobby(w http.ResponseWriter, r *http.Request) {
 	ctx, span := tracer.Start(r.Context(), "handleCreateLobby")
 	defer span.End()
 
+	userID, ok := ctx.Value("userID").(string)
+	if !ok || userID == "" {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
 	var req createLobbyRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "failed to parse JSON", http.StatusBadRequest)
@@ -68,7 +74,8 @@ func handleCreateLobby(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 
-	lobby, err := lobbySvc.Client.CreateLobby(ctx, req.toProto())
+	protoReq := newProtoCreateLobbyRequest(&req, userID)
+	lobby, err := lobbySvc.Client.CreateLobby(ctx, protoReq)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("failed to create lobby: %v", err), http.StatusInternalServerError)
 		return
@@ -108,6 +115,12 @@ func handleJoinLobby(w http.ResponseWriter, r *http.Request) {
 	ctx, span := tracer.Start(r.Context(), "handleJoinLobby")
 	defer span.End()
 
+	userID, ok := ctx.Value("userID").(string)
+	if !ok {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
 	lobbyID := r.PathValue("id")
 	if lobbyID == "" {
 		http.Error(w, "lobby id is required", http.StatusBadRequest)
@@ -126,7 +139,8 @@ func handleJoinLobby(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 
-	lobby, err := lobbySvc.Client.JoinLobby(ctx, req.toProto())
+	protoReq := newProtoJoinLobbyRequest(&req, userID)
+	lobby, err := lobbySvc.Client.JoinLobby(ctx, protoReq)
 	if err != nil {
 		http.Error(w, "failed to join lobby", http.StatusInternalServerError)
 		return
@@ -276,8 +290,8 @@ func handleAuthRegiter(w http.ResponseWriter, r *http.Request) {
 	ctx, span := tracer.Start(r.Context(), "handleAuthRegister")
 	defer span.End()
 
-	userID, ok := r.Context().Value("userID").(string)
-	if !ok {
+	userID, ok := ctx.Value("userID").(string)
+	if !ok || userID == "" {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}

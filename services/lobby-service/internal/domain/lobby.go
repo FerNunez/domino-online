@@ -91,7 +91,7 @@ type LobbyRepository interface {
 }
 
 type LobbyService interface {
-	CreateLobby(ctx context.Context, host_id string) (*LobbyModel, error)
+	CreateLobby(ctx context.Context, hostID string, maxPlayers int) (*LobbyModel, error)
 	JoinLobby(ctx context.Context, id string, secretToken string, player *PlayerModel) (*LobbyModel, error)
 	//StartLobby(ctx context.Context, id string, host_id string) error
 }

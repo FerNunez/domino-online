@@ -26,7 +26,7 @@ func NewGRPCHandler(server *grpc.Server, service domain.LobbyService) *gRPCHandl
 }
 
 func (h *gRPCHandler) CreateLobby(ctx context.Context, req *pbl.CreateLobbyRequest) (*pbl.CreateLobbyResponse, error) {
-	lobby, err := h.service.CreateLobby(ctx, req.UserID)
+	lobby, err := h.service.CreateLobby(ctx, req.UserID, int(req.MaxPlayers))
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to create lobby : %v", err)
 	}

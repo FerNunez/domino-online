@@ -203,6 +203,8 @@ minikube stop
 - Add RefreshTokens: 
   - Creates a redis/sql database with user_id <-> SessionToken. If SessionToken in header is Ok to userID, then refresh JWT automatically
 
+- createLobbyRequest could also include a lobbySettings struct that then is passed to create lobby. It could change duration of match? or difficulty? or more domino settings like can skip
+
 
 
 
