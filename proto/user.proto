@@ -5,13 +5,11 @@ package user;
 option go_package = "shared/proto/user;user";
 
 service UserService{
-  rpc CreateGuest(CreateGuestRequest) returns (AuthResponse);
   rpc Register(RegisterRequest) returns (AuthResponse);
   rpc Login(LoginRequest) returns (AuthResponse);
   rpc GetUser(GetUserRequest) returns (AuthResponse);
 }
 
-message CreateGuestRequest{}
 
 message GetUserRequest{
   string userID = 1;
@@ -19,8 +17,9 @@ message GetUserRequest{
 
 message RegisterRequest{
   string userID = 1;
-  string password = 2;
-  string displayName = 3;
+  string displayName = 2;
+  string password = 3;
+  string email = 4;
 }
 
 message AuthResponse{

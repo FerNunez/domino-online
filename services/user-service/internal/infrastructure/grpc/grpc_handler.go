@@ -2,7 +2,6 @@ package grpc_handler
 
 import (
 	"context"
-	"fmt"
 	"rebu/services/user-service/internal/domain"
 	pbu "rebu/shared/proto/user"
 
@@ -25,17 +24,6 @@ func NewGRPCHandler(server *grpc.Server, service domain.UserService) *gRPCHandle
 	return h
 }
 
-func (h *gRPCHandler) CreateGuest(ctx context.Context, req *pbu.CreateGuestRequest) (*pbu.AuthResponse, error) {
-	guestUser, err := h.service.CreateUser(ctx, "", "", "", "")
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to create guest user : %v", err)
-	}
-
-	return &pbu.AuthResponse{
-		User: guestUser.ToProto(),
-	}, nil
-}
-
 func (h *gRPCHandler) GetUser(ctx context.Context, req *pbu.GetUserRequest) (*pbu.AuthResponse, error) {
 	guestUser, err := h.service.GetUserByID(ctx, req.UserID)
 	if err != nil {
@@ -48,9 +36,8 @@ func (h *gRPCHandler) GetUser(ctx context.Context, req *pbu.GetUserRequest) (*pb
 }
 
 func (h *gRPCHandler) Register(ctx context.Context, req *pbu.RegisterRequest) (*pbu.AuthResponse, error) {
-	guestUser, err := h.service.CreateUser(ctx, req.UserID, "an email", req.Password, req.DisplayName)
+	guestUser, err := h.service.CreateUser(ctx, req.UserID, req.Email, req.Password, req.DisplayName)
 	if err != nil {
-		fmt.Print("erorr here?")
 		return nil, status.Errorf(codes.Internal, "failed to create user : %v", err)
 	}
 

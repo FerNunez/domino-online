@@ -17,22 +17,6 @@ func NewSqlRepository(queries *sql.Queries) *SqlRepository {
 	return &SqlRepository{queries: queries}
 }
 
-func (s *SqlRepository) CreateGuest(ctx context.Context) (*domain.User, error) {
-	dbUser, err := s.queries.CreateUser(ctx, sql.CreateUserParams{
-		ID:             pgtype.UUID{Bytes: uuid.New(), Valid: true},
-		DisplayName:    "guest",
-		Email:          "guest",
-		HashedPassword: "guest",
-	})
-	if err != nil {
-		return nil, err
-	}
-	return &domain.User{
-		ID:          uuid.UUID(dbUser.ID.Bytes).String(),
-		DisplayName: dbUser.DisplayName,
-	}, nil
-}
-
 func (s *SqlRepository) GetUserByID(ctx context.Context, userUUID uuid.UUID) (*domain.User, error) {
 	dbUser, err := s.queries.GetUserByID(ctx, pgtype.UUID{
 		Bytes: userUUID,
