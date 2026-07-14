@@ -40,25 +40,27 @@ func (c *startTripRequest) toProto() *pb.CreateTripRequest {
 
 // Create Lobby
 type createLobbyRequest struct {
-	UserID string `json:"userID"`
+	MaxPlayers int `json:"MaxPlayers"`
 }
 
-func (c *createLobbyRequest) toProto() *pbl.CreateLobbyRequest {
-	return &pbl.CreateLobbyRequest{UserID: c.UserID}
+func newProtoCreateLobbyRequest(req *createLobbyRequest, userID string) *pbl.CreateLobbyRequest {
+	return &pbl.CreateLobbyRequest{
+		UserID:     userID,
+		MaxPlayers: int32(req.MaxPlayers),
+	}
 }
 
-// Join Lobby
+// Join Lobby http request
 type joinLobbyRequest struct {
-	UserID     string `json:"userID"`
 	LobbyID    string `json:"lobbyID"`
 	SecretCode string `json:"secretCode"`
 }
 
-func (c *joinLobbyRequest) toProto() *pbl.JoinLobbyRequest {
+func newProtoJoinLobbyRequest(req *joinLobbyRequest, userID string) *pbl.JoinLobbyRequest {
 	return &pbl.JoinLobbyRequest{
-		UserID:     c.UserID,
-		LobbyID:    c.LobbyID,
-		SecretCode: c.SecretCode,
+		UserID:     userID,
+		LobbyID:    req.LobbyID,
+		SecretCode: req.SecretCode,
 	}
 }
 

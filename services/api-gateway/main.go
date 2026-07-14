@@ -25,8 +25,8 @@ func main() {
 
 	mux.Handle("GET /users/{id}", tracing.WrapHandlerFunc(enableCORS(handleGetUser), "/users"))
 
-	mux.Handle("POST /lobbies", tracing.WrapHandlerFunc(enableCORS(handleCreateLobby), "/lobby"))
-	mux.Handle("POST /lobbies/{id}/join", tracing.WrapHandlerFunc(enableCORS(handleJoinLobby), "/lobby/join"))
+	mux.Handle("POST /lobbies", tracing.WrapHandlerFunc(enableCORS(authMiddleware(handleCreateLobby)), "/lobby"))
+	mux.Handle("POST /lobbies/{id}/join", tracing.WrapHandlerFunc(enableCORS(authMiddleware(handleJoinLobby)), "/lobby/join"))
 	mux.Handle("POST /lobbies/{id}/start", tracing.WrapHandlerFunc(enableCORS(handleStartGame), "/lobby/start"))
 
 	server := &http.Server{
