@@ -20,13 +20,11 @@ func (u User) ToProto() *pbu.User {
 }
 
 type UserRepository interface {
-	CreateGuest(ctx context.Context) (*User, error)
 	GetUserByID(ctx context.Context, userUUID uuid.UUID) (*User, error)
 	CreateUser(ctx context.Context, userUUID uuid.UUID, email, hashedPassword, displayName string) (*User, error)
 }
 
 type UserService interface {
-	CreateGuest(ctx context.Context) (*User, error)
 	GetUserByID(ctx context.Context, userID string) (*User, error)
 	CreateUser(ctx context.Context, userID, email, hashedPassword, displayName string) (*User, error)
 }

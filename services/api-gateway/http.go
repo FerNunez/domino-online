@@ -77,24 +77,6 @@ func handleCreateLobby(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, contracts.APIResponse{Data: lobby})
 }
 
-func handleCreateGuest(w http.ResponseWriter, r *http.Request) {
-	ctx, span := tracer.Start(r.Context(), "handleCreateGuest")
-	defer span.End()
-
-	userSvc, err := grpc_clients.NewUserServiceClient()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	user, err := userSvc.Client.CreateGuest(ctx, &pbu.CreateGuestRequest{})
-	if err != nil {
-		http.Error(w, fmt.Sprintf("failed to create guest user: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	writeJSON(w, http.StatusCreated, contracts.APIResponse{Data: user})
-}
-
 func handleGetUser(w http.ResponseWriter, r *http.Request) {
 	ctx, span := tracer.Start(r.Context(), "handleGetUser")
 	defer span.End()
@@ -299,7 +281,13 @@ func handleAuthRegiter(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
-	// NOTE: Do I need to check the userType == guest?
+
+	var req RegisterRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "couldnt register", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
 
 	userSvc, err := grpc_clients.NewUserServiceClient()
 	if err != nil {
@@ -310,17 +298,14 @@ func handleAuthRegiter(w http.ResponseWriter, r *http.Request) {
 
 	auth, err := userSvc.Client.Register(ctx, &pbu.RegisterRequest{
 		UserID:      userID,
-		Password:    "password",
-		DisplayName: "displayNmae",
+		Password:    req.Password,
+		DisplayName: req.DisplayName,
+		Email:       req.Email,
 	})
 	if err != nil {
 		fmt.Printf("couldnt register user: %v\n", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-
-	fmt.Printf("User: %v", auth.User)
-	w.WriteHeader(http.StatusCreated)
-
 	writeJSON(w, http.StatusCreated, contracts.APIResponse{Data: auth.User})
 }

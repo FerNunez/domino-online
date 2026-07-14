@@ -2,6 +2,9 @@
 # Load the restart_process extension which enables in-place binary replacement
 load('ext://restart_process', 'docker_build_with_restart')
 
+### Secrets
+k8s_yaml('./infra/development/k8s/secrets.yaml')
+
 ### RabbitMQ
 k8s_yaml('./infra/development/k8s/rabbitmq-deployment.yaml')
 k8s_resource('rabbitmq', port_forwards=['5672', '15672'], labels='tooling')
@@ -106,6 +109,34 @@ docker_build_with_restart(
 k8s_yaml('./infra/development/k8s/driver-service-deployment.yaml')
 k8s_resource('driver-service', resource_deps=['driver-service-compile', 'rabbitmq'], labels="services")
 
+### User Service
+user_compile_cmd = 'CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o build/user-service ./services/user-service/cmd/main.go'
+if os.name == 'nt':
+    user_compile_cmd= './infra/development/docker/user-build.bat'
+
+local_resource(
+    'user-service-compile',
+    user_compile_cmd,
+    deps=['./services/user-service/'],
+    labels="compiles"
+)
+
+docker_build_with_restart(
+    'rebu/user-service',
+    '.',
+    entrypoint=['./build/user-service'],
+    dockerfile='./infra/development/docker/user-service.Dockerfile',
+    only=[
+       './build/user-service',
+    ],
+    live_update=[
+        sync('./build', '/app/build'),
+    ],
+)
+
+k8s_yaml('./infra/development/k8s/user-service-deployment.yaml')
+k8s_resource('user-service', resource_deps=['user-service-compile'], labels="services")
+
 ### Payment Service 
 payment_compile_cmd = 'CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o build/payment-service ./services/payment-service/cmd/main.go'
 if os.name == 'nt':
@@ -146,3 +177,4 @@ docker_build(
 k8s_yaml('./infra/development/k8s/web-deployment.yaml')
 k8s_resource('web', port_forwards='3001:3000', labels="frontend")
 
+### PostgreSQL DB 'domino'

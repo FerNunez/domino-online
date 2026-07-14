@@ -83,3 +83,9 @@ type AuthResponse struct {
 	UserID string `json:"userID"`
 	Type   string `json:"type"`
 }
+
+type RegisterRequest struct {
+	DisplayName string `json:"displayName"`
+	Email       string `json:"email"`
+	Password    string `json:"password"`
+}
