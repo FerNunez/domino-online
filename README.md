@@ -197,3 +197,12 @@ You can also stop the cluster when you're done:
 ```bash
 minikube stop
 ```
+
+#NEXT STEPS:
+
+- Add RefreshTokens: 
+  - Creates a redis/sql database with user_id <-> SessionToken. If SessionToken in header is Ok to userID, then refresh JWT automatically
+
+
+
+
