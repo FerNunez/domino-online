@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"rebu/services/user-service/internal/domain"
+	"rebu/shared/hash"
 
 	"github.com/google/uuid"
 )
@@ -17,11 +18,17 @@ func NewService(repo domain.UserRepository) *Service {
 	}
 }
 
-func (u *Service) CreateUser(ctx context.Context, userID, email, hashedPassword, displayName string) (*domain.User, error) {
+func (u *Service) CreateUser(ctx context.Context, userID, email, password, displayName string) (*domain.User, error) {
 	userUUID, err := uuid.Parse(userID)
 	if err != nil {
 		return nil, err
 	}
+
+	hashedPassword, err := hash.HashPassword(password)
+	if err != nil {
+		return nil, err
+	}
+
 	return u.repo.CreateUser(ctx, userUUID, email, hashedPassword, displayName)
 }
 

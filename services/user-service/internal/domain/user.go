@@ -26,5 +26,5 @@ type UserRepository interface {
 
 type UserService interface {
 	GetUserByID(ctx context.Context, userID string) (*User, error)
-	CreateUser(ctx context.Context, userID, email, hashedPassword, displayName string) (*User, error)
+	CreateUser(ctx context.Context, userID, email, password, displayName string) (*User, error)
 }
