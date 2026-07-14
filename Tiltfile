@@ -117,7 +117,7 @@ if os.name == 'nt':
 local_resource(
     'user-service-compile',
     user_compile_cmd,
-    deps=['./services/user-service/'],
+    deps=['./services/user-service/', './shared'],
     labels="compiles"
 )
 
@@ -128,9 +128,11 @@ docker_build_with_restart(
     dockerfile='./infra/development/docker/user-service.Dockerfile',
     only=[
        './build/user-service',
+       './shared',
     ],
     live_update=[
         sync('./build', '/app/build'),
+        sync('./shared', '/app/shared'),
     ],
 )
 
