@@ -1,6 +1,6 @@
 # Domino
 
-Local dev setup for running `api-gateway`, `user-service`, and `lobby-service` directly with `go run` (no Tilt/Kubernetes required).
+Local dev setup for running `api-gateway`, `user-service`, and `lobby-service` directly with `go run` (no Tilt/Kubernetes required). There's also a Tilt-based workflow that runs the services in a local Kubernetes cluster instead — see [Running with Tilt](#running-with-tilt) below.
 
 ## Prerequisites
 
@@ -138,4 +138,62 @@ If you change a `.proto` file under `proto/`:
 
 ```bash
 make generate-proto
+```
+
+## Running with Tilt
+
+As an alternative to running each service with `go run`, [Tilt](https://tilt.dev) builds and deploys everything into a local Kubernetes cluster (via `minikube`), with live-reload on code changes.
+
+> **Note:** the `Tiltfile` at the repo root still has leftovers from an earlier template (`trip-service`, `driver-service`, `payment-service`) that aren't part of this project's current stack, and it doesn't yet wire up `lobby-service`. It needs cleanup before it fully matches the `go run` workflow above — treat this section as how to get Tilt running, not a guarantee every resource in it is meaningful yet.
+
+### Prerequisites
+
+- Docker Desktop, with the WSL2 integration enabled for your distro (Docker Desktop → Settings → Resources → WSL Integration)
+- [minikube](https://minikube.sigs.k8s.io/docs/start/)
+- [Tilt](https://docs.tilt.dev/install.html)
+- `kubectl` (installed automatically as a minikube dependency, or separately)
+
+### 1. Start Docker
+
+In WSL, make sure the Docker daemon is reachable — with Docker Desktop's WSL integration this just means Docker Desktop is running on Windows. Check with:
+
+```bash
+docker info
+```
+
+### 2. Start minikube
+
+`minikube` spins up a local, single-node Kubernetes cluster (not a VPC — a VPC is a cloud networking construct; minikube gives you an actual cluster to deploy into):
+
+```bash
+minikube start
+```
+
+Check it's up:
+
+```bash
+minikube status
+kubectl get nodes
+```
+
+### 3. Run Tilt
+
+From the repo root:
+
+```bash
+tilt up
+```
+
+This opens the Tilt web UI (default `http://localhost:10350`) showing build/deploy status for each resource. Tilt watches your source files and rebuilds/redeploys automatically on change.
+
+To tear everything down:
+
+```bash
+tilt down
+```
+
+You can also stop the cluster when you're done:
+
+```bash
+minikube stop
 ```
