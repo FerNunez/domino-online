@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"rebu/services/lobby-service/internal/domain"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"github.com/google/uuid"
 )
 
 type service struct {
@@ -21,10 +21,15 @@ func NewService(repo domain.LobbyRepository) *service {
 
 func (s *service) CreateLobby(ctx context.Context, hostID string, maxPlayers int) (*domain.LobbyModel, error) {
 	lobby := domain.LobbyModel{
-		ID:         primitive.NewObjectID(),
-		HostID:     hostID,
-		Status:     domain.LobbyStatusWaiting,
-		Players:    []*domain.PlayerModel{},
+		ID:     uuid.NewString(),
+		HostID: hostID,
+		Status: domain.LobbyStatusWaiting,
+		Players: []*domain.PlayerModel{{
+			ID:          hostID,
+			Name:        hostID, // FIX:
+			Slot:        1,
+			IsConnected: false,
+		}},
 		MaxPlayers: maxPlayers,
 		Settings: domain.LobbySettings{
 			MaxScore:         100,
@@ -34,15 +39,22 @@ func (s *service) CreateLobby(ctx context.Context, hostID string, maxPlayers int
 	return s.repo.CreateLobby(ctx, &lobby)
 }
 
-func (s *service) JoinLobby(ctx context.Context, id string, secretToken string, player *domain.PlayerModel) (*domain.LobbyModel, error) {
-	lobby, err := s.repo.GetLobbyByID(ctx, id)
+func (s *service) JoinLobby(ctx context.Context, lobbyID string, userID string) (*domain.LobbyModel, error) {
+	lobby, err := s.repo.GetLobbyByID(ctx, lobbyID)
 	if err != nil {
-		return nil, fmt.Errorf("getting lobby: %w", err)
+		return nil, fmt.Errorf("couldn't get lobby: %w", err)
 	}
+
 	if len(lobby.Players) >= lobby.MaxPlayers {
 		return nil, fmt.Errorf("full lobby: %w", err)
 	}
-	lobby.Players = append(lobby.Players, player)
 
-	return s.repo.UpdateLobby(ctx, id, lobby)
+	player := &domain.PlayerModel{
+		ID:          userID,
+		Name:        userID, // FIX:
+		Slot:        lobby.MaxPlayers + 1,
+		IsConnected: false,
+	}
+	lobby.Players = append(lobby.Players, player)
+	return s.repo.UpdateLobby(ctx, lobbyID, lobby)
 }

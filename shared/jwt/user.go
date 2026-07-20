@@ -18,7 +18,7 @@ const (
 	UserTypeRegistered UserType = "registered"
 )
 
-type Claims struct {
+type UserClaims struct {
 	UserID   string `json:"userID"`
 	UserType string `json:"userType"`
 	jwt.RegisteredClaims
@@ -33,7 +33,7 @@ func NewUserToken(userID string) (string, error) {
 }
 
 func generate(userID string, userType UserType, ttlMinutes int32) (string, error) {
-	claims := Claims{
+	claims := UserClaims{
 		UserID:   userID,
 		UserType: string(userType),
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -48,10 +48,10 @@ func generate(userID string, userType UserType, ttlMinutes int32) (string, error
 }
 
 // Parse valiudates the token's signature and expiring date and return its claimls
-func Parse(tokenString string) (*Claims, error) {
+func Parse(tokenString string) (*UserClaims, error) {
 	// NOTE: If you provide a custom claim implementation that embeds one of the standard claims (such as RegisteredClaims), make sure that a) you either embed a non-pointer version of the claims or b) if you are using a pointer, allocate the proper memory for it before passing in the overall claims, otherwise you might run into a panic.
 
-	claims := &Claims{}
+	claims := &UserClaims{}
 	token, err := jwt.ParseWithClaims(tokenString, claims,
 		//When a client sends a JWT, the library first decodes the Header of the token. The header contains unverified information, such as the algorithm used to sign it (e.g., HS256, RS256). The library does not trust this header yet. It passes the unverified token structure (t) into your callback function so you can run safety checks before it attempts to verify the signature.
 

@@ -62,15 +62,10 @@ func newProtoCreateLobbyResponse(lobbyID, WsToken string) createLobbyResponse {
 	}
 }
 
-// Join Lobby http request
-type joinLobbyRequest struct {
-	LobbyID string `json:"lobbyID"`
-}
-
-func newProtoJoinLobbyRequest(req *joinLobbyRequest, userID string) *pbl.JoinLobbyRequest {
+func newProtoJoinLobbyRequest(userID, lobbyID string) *pbl.JoinLobbyRequest {
 	return &pbl.JoinLobbyRequest{
 		UserID:  userID,
-		LobbyID: req.LobbyID,
+		LobbyID: lobbyID,
 	}
 }
 
