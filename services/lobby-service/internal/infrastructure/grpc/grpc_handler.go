@@ -5,7 +5,6 @@ import (
 	"rebu/services/lobby-service/internal/domain"
 	pbl "rebu/shared/proto/lobby"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -37,12 +36,7 @@ func (h *gRPCHandler) CreateLobby(ctx context.Context, req *pbl.CreateLobbyReque
 }
 
 func (h *gRPCHandler) JoinLobby(ctx context.Context, req *pbl.JoinLobbyRequest) (*pbl.JoinLobbyResponse, error) {
-	lobby, err := h.service.JoinLobby(ctx, req.LobbyID, req.SecretCode, &domain.PlayerModel{
-		ID:      primitive.NewObjectID(), // FIX: fix me please, use player ID
-		Name:    req.UserID,              // FIX:
-		Slot:    0,                       // FIX:
-		IsReady: true,
-	})
+	lobby, err := h.service.JoinLobby(ctx, req.LobbyID, req.UserID)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to create lobby : %v", err)
 	}

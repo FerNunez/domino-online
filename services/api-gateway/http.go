@@ -81,11 +81,15 @@ func handleCreateLobby(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	tokenWs, err := jwt.NewLobbyTicket(lobby.Lobby.Id, userID)
+	if err != nil {
+		log.Printf("couldn't create jwt lobby ticket for user: %v and lobbyId: %v, err: %s\n", userID, lobby.Lobby.Id, err)
+		http.Error(w, "couldnt create lobby", http.StatusInternalServerError)
+		return
+	}
+
 	// Generate jwt from lobby
-	// So call func jwt.NewConnectionClaim(lobbyID, user or playerID)
-	//	// Do we really need player structure? cant use user + extra stuff. ask claude
-	// create the response wsToken + wsUrl
-	response := newProtoCreateLobbyResponse(lobby.Lobby.Id, "a_token_ws")
+	response := newProtoCreateLobbyResponse(lobby.Lobby.Id, tokenWs)
 
 	// Then in join, check the connection claims if they are real. when you invite a friend I guess you copy this join/ with body a wsToken and wsURL
 	// Should we encode wsURL in the token? what if someone tries to use a valid token to connect to another WsURL?
@@ -134,27 +138,27 @@ func handleJoinLobby(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "lobby id is required", http.StatusBadRequest)
 		return
 	}
-	var req joinLobbyRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "failed to parse JSON", http.StatusBadRequest)
-		return
-	}
-	defer r.Body.Close()
-	req.LobbyID = lobbyID
 
 	lobbySvc, err := grpc_clients.NewLobbyServiceClient()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	protoReq := newProtoJoinLobbyRequest(&req, userID)
+	protoReq := newProtoJoinLobbyRequest(userID, lobbyID)
 	lobby, err := lobbySvc.Client.JoinLobby(ctx, protoReq)
 	if err != nil {
 		http.Error(w, "failed to join lobby", http.StatusInternalServerError)
 		return
 	}
 
-	writeJSON(w, http.StatusCreated, contracts.APIResponse{Data: lobby})
+	tokenWs, err := jwt.NewLobbyTicket(lobby.Lobby.Id, userID)
+	if err != nil {
+		log.Printf("couldn't create jwt lobby ticket for user: %v and lobbyId: %v, err: %s\n", userID, lobby.Lobby.Id, err)
+		http.Error(w, "couldnt create lobby", http.StatusInternalServerError)
+		return
+	}
+	response := newProtoCreateLobbyResponse(lobby.Lobby.Id, tokenWs)
+	writeJSON(w, http.StatusCreated, contracts.APIResponse{Data: response})
 }
 
 func handleStartGame(w http.ResponseWriter, r *http.Request) {
