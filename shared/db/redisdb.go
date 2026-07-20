@@ -15,20 +15,13 @@ type RedisConfig struct {
 // Returns empty URI if unset. // The caller must validate/check
 func NewRedisDefaultConfig() *RedisConfig {
 	return &RedisConfig{
-		//URI: os.Getenv("REDISDB_URI"),
-		URI: env.GetString("REDISDB_URI", "localhost:6379"),
-		//Database: "ride-sharing",
+		URI: env.GetString("REDIS_URI", "localhost:6379"),
 	}
 }
 
 // NewRedisClient creates a new Redis client with the given config
 func NewRedisClient(config *RedisConfig) *redis.Client {
-	client := redis.NewClient(&redis.Options{
-		Addr:     config.URI,
-		Password: "", // FIX: NO Password
-		DB:       0,  // FIX:
-		Protocol: 2,  // FIX: Connection protocol
-
-	})
+	opt, _ := redis.ParseURL(config.URI)
+	client := redis.NewClient(opt)
 	return client
 }

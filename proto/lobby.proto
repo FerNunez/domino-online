@@ -26,7 +26,7 @@ message JoinLobbyRequest{
 }
 
 message JoinLobbyResponse{
-  Lobby lobby = 2;
+  Lobby lobby = 1;
 }
 
 message StartGameRequest{
@@ -42,12 +42,10 @@ message StartGameResponse{
 message Lobby{
   string id = 1;
   string hostId = 2;
-  string secretToken = 3;
-  string wsURL = 4;
-  repeated Player players = 5;
-  int32 maxPlayers = 6;
-  LobbyStatus status = 7;
-  LobbySettings settings = 8;
+  repeated Player players = 3;
+  int32 maxPlayers = 4;
+  LobbyStatus status = 5;
+  LobbySettings settings = 6;
 }
 
 message Player{

@@ -15,7 +15,7 @@ type lobbyServiceClient struct {
 }
 
 func NewLobbyServiceClient() (*lobbyServiceClient, error) {
-	lobbyServiceURL := env.GetString("LOBBY_SERVICE_URL", "lobby-service:9094")
+	lobbyServiceURL := env.GetString("LOBBY_SERVICE_URL", "lobby-service:9096")
 
 	dialOptions := append(
 		tracing.DialOptionsWithTracing(),

@@ -81,7 +81,15 @@ func handleCreateLobby(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusCreated, contracts.APIResponse{Data: lobby})
+	// Generate jwt from lobby
+	// So call func jwt.NewConnectionClaim(lobbyID, user or playerID)
+	//	// Do we really need player structure? cant use user + extra stuff. ask claude
+	// create the response wsToken + wsUrl
+	response := newProtoCreateLobbyResponse(lobby.Lobby.Id, "a_token_ws")
+
+	// Then in join, check the connection claims if they are real. when you invite a friend I guess you copy this join/ with body a wsToken and wsURL
+	// Should we encode wsURL in the token? what if someone tries to use a valid token to connect to another WsURL?
+	writeJSON(w, http.StatusCreated, contracts.APIResponse{Data: response})
 }
 
 func handleGetUser(w http.ResponseWriter, r *http.Request) {

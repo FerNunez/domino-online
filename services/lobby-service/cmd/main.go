@@ -18,7 +18,7 @@ import (
 	grpcserver "google.golang.org/grpc"
 )
 
-const grpcAddr = ":9094"
+const grpcAddr = ":9096"
 
 func main() {
 	// 1. Initialice Tracer
