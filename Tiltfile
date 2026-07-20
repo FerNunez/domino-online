@@ -139,6 +139,37 @@ docker_build_with_restart(
 k8s_yaml('./infra/development/k8s/user-service-deployment.yaml')
 k8s_resource('user-service', resource_deps=['user-service-compile'], labels="services")
 
+
+### lobby Service
+lobby_compile_cmd = 'CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o build/lobby-service ./services/lobby-service/cmd/main.go'
+if os.name == 'nt':
+    lobby_compile_cmd= './infra/development/docker/lobby-build.bat'
+
+local_resource(
+    'lobby-service-compile',
+    lobby_compile_cmd,
+    deps=['./services/lobby-service/', './shared'],
+    labels="compiles"
+)
+
+docker_build_with_restart(
+    'rebu/lobby-service',
+    '.',
+    entrypoint=['./build/lobby-service'],
+    dockerfile='./infra/development/docker/lobby-service.Dockerfile',
+    only=[
+       './build/lobby-service',
+       './shared',
+    ],
+    live_update=[
+        sync('./build', '/app/build'),
+        sync('./shared', '/app/shared'),
+    ],
+)
+
+k8s_yaml('./infra/development/k8s/lobby-service-deployment.yaml')
+k8s_resource('lobby-service', resource_deps=['lobby-service-compile'], labels="services")
+
 ### Payment Service 
 payment_compile_cmd = 'CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o build/payment-service ./services/payment-service/cmd/main.go'
 if os.name == 'nt':

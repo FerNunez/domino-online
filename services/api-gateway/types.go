@@ -40,7 +40,7 @@ func (c *startTripRequest) toProto() *pb.CreateTripRequest {
 
 // Create Lobby
 type createLobbyRequest struct {
-	MaxPlayers int `json:"MaxPlayers"`
+	MaxPlayers int `json:"maxPlayers"`
 }
 
 func newProtoCreateLobbyRequest(req *createLobbyRequest, userID string) *pbl.CreateLobbyRequest {
@@ -50,17 +50,27 @@ func newProtoCreateLobbyRequest(req *createLobbyRequest, userID string) *pbl.Cre
 	}
 }
 
+type createLobbyResponse struct {
+	LobbyID string `json:"lobbyID"`
+	WsToken string `json:"wsToken"`
+}
+
+func newProtoCreateLobbyResponse(lobbyID, WsToken string) createLobbyResponse {
+	return createLobbyResponse{
+		LobbyID: lobbyID,
+		WsToken: WsToken,
+	}
+}
+
 // Join Lobby http request
 type joinLobbyRequest struct {
-	LobbyID    string `json:"lobbyID"`
-	SecretCode string `json:"secretCode"`
+	LobbyID string `json:"lobbyID"`
 }
 
 func newProtoJoinLobbyRequest(req *joinLobbyRequest, userID string) *pbl.JoinLobbyRequest {
 	return &pbl.JoinLobbyRequest{
-		UserID:     userID,
-		LobbyID:    req.LobbyID,
-		SecretCode: req.SecretCode,
+		UserID:  userID,
+		LobbyID: req.LobbyID,
 	}
 }
 
@@ -78,9 +88,6 @@ func (c *startGameRequest) toProto() *pbl.StartGameRequest {
 }
 
 // Create Lobby
-type createGuestRequest struct {
-}
-
 type AuthResponse struct {
 	UserID string `json:"userID"`
 	Type   string `json:"type"`

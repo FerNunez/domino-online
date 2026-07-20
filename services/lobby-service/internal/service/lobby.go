@@ -19,19 +19,17 @@ func NewService(repo domain.LobbyRepository) *service {
 	}
 }
 
-func (s *service) CreateLobby(ctx context.Context, hostID string) (*domain.LobbyModel, error) {
+func (s *service) CreateLobby(ctx context.Context, hostID string, maxPlayers int) (*domain.LobbyModel, error) {
 	lobby := domain.LobbyModel{
 		ID:         primitive.NewObjectID(),
 		HostID:     hostID,
 		Status:     domain.LobbyStatusWaiting,
 		Players:    []*domain.PlayerModel{},
-		MaxPlayers: 4,
+		MaxPlayers: maxPlayers,
 		Settings: domain.LobbySettings{
 			MaxScore:         100,
 			TurnTimerSeconds: 30,
 		},
-		SecretToken: "abcdef",
-		WsURL:       "ws_ghijk",
 	}
 	return s.repo.CreateLobby(ctx, &lobby)
 }
@@ -40,9 +38,6 @@ func (s *service) JoinLobby(ctx context.Context, id string, secretToken string, 
 	lobby, err := s.repo.GetLobbyByID(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("getting lobby: %w", err)
-	}
-	if lobby.SecretToken != secretToken {
-		return nil, fmt.Errorf("unauthorized join: %w", err)
 	}
 	if len(lobby.Players) >= lobby.MaxPlayers {
 		return nil, fmt.Errorf("full lobby: %w", err)

@@ -228,7 +228,7 @@ func (x *JoinLobbyRequest) GetSecretCode() string {
 
 type JoinLobbyResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Lobby         *Lobby                 `protobuf:"bytes,2,opt,name=lobby,proto3" json:"lobby,omitempty"`
+	Lobby         *Lobby                 `protobuf:"bytes,1,opt,name=lobby,proto3" json:"lobby,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -371,12 +371,10 @@ type Lobby struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	HostId        string                 `protobuf:"bytes,2,opt,name=hostId,proto3" json:"hostId,omitempty"`
-	SecretToken   string                 `protobuf:"bytes,3,opt,name=secretToken,proto3" json:"secretToken,omitempty"`
-	WsURL         string                 `protobuf:"bytes,4,opt,name=wsURL,proto3" json:"wsURL,omitempty"`
-	Players       []*Player              `protobuf:"bytes,5,rep,name=players,proto3" json:"players,omitempty"`
-	MaxPlayers    int32                  `protobuf:"varint,6,opt,name=maxPlayers,proto3" json:"maxPlayers,omitempty"`
-	Status        LobbyStatus            `protobuf:"varint,7,opt,name=status,proto3,enum=lobby.LobbyStatus" json:"status,omitempty"`
-	Settings      *LobbySettings         `protobuf:"bytes,8,opt,name=settings,proto3" json:"settings,omitempty"`
+	Players       []*Player              `protobuf:"bytes,3,rep,name=players,proto3" json:"players,omitempty"`
+	MaxPlayers    int32                  `protobuf:"varint,4,opt,name=maxPlayers,proto3" json:"maxPlayers,omitempty"`
+	Status        LobbyStatus            `protobuf:"varint,5,opt,name=status,proto3,enum=lobby.LobbyStatus" json:"status,omitempty"`
+	Settings      *LobbySettings         `protobuf:"bytes,6,opt,name=settings,proto3" json:"settings,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -421,20 +419,6 @@ func (x *Lobby) GetId() string {
 func (x *Lobby) GetHostId() string {
 	if x != nil {
 		return x.HostId
-	}
-	return ""
-}
-
-func (x *Lobby) GetSecretToken() string {
-	if x != nil {
-		return x.SecretToken
-	}
-	return ""
-}
-
-func (x *Lobby) GetWsURL() string {
-	if x != nil {
-		return x.WsURL
 	}
 	return ""
 }
@@ -598,23 +582,21 @@ const file_lobby_proto_rawDesc = "" +
 	"secretCode\x18\x03 \x01(\tR\n" +
 	"secretCode\"7\n" +
 	"\x11JoinLobbyResponse\x12\"\n" +
-	"\x05lobby\x18\x02 \x01(\v2\f.lobby.LobbyR\x05lobby\"D\n" +
+	"\x05lobby\x18\x01 \x01(\v2\f.lobby.LobbyR\x05lobby\"D\n" +
 	"\x10StartGameRequest\x12\x18\n" +
 	"\alobbyID\x18\x01 \x01(\tR\alobbyID\x12\x16\n" +
 	"\x06hostID\x18\x02 \x01(\tR\x06hostID\"+\n" +
 	"\x11StartGameResponse\x12\x16\n" +
-	"\x06gameID\x18\x01 \x01(\tR\x06gameID\"\x8e\x02\n" +
+	"\x06gameID\x18\x01 \x01(\tR\x06gameID\"\xd6\x01\n" +
 	"\x05Lobby\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
-	"\x06hostId\x18\x02 \x01(\tR\x06hostId\x12 \n" +
-	"\vsecretToken\x18\x03 \x01(\tR\vsecretToken\x12\x14\n" +
-	"\x05wsURL\x18\x04 \x01(\tR\x05wsURL\x12'\n" +
-	"\aplayers\x18\x05 \x03(\v2\r.lobby.PlayerR\aplayers\x12\x1e\n" +
+	"\x06hostId\x18\x02 \x01(\tR\x06hostId\x12'\n" +
+	"\aplayers\x18\x03 \x03(\v2\r.lobby.PlayerR\aplayers\x12\x1e\n" +
 	"\n" +
-	"maxPlayers\x18\x06 \x01(\x05R\n" +
+	"maxPlayers\x18\x04 \x01(\x05R\n" +
 	"maxPlayers\x12*\n" +
-	"\x06status\x18\a \x01(\x0e2\x12.lobby.LobbyStatusR\x06status\x120\n" +
-	"\bsettings\x18\b \x01(\v2\x14.lobby.LobbySettingsR\bsettings\"@\n" +
+	"\x06status\x18\x05 \x01(\x0e2\x12.lobby.LobbyStatusR\x06status\x120\n" +
+	"\bsettings\x18\x06 \x01(\v2\x14.lobby.LobbySettingsR\bsettings\"@\n" +
 	"\x06Player\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x12\n" +

@@ -29,14 +29,12 @@ func (ls LobbyStatus) ToProto() pbl.LobbyStatus {
 }
 
 type LobbyModel struct {
-	ID          primitive.ObjectID `bson:"_id,omitempty"`
-	HostID      string             `bson:"hostID"`
-	SecretToken string             `bson:"secretToken"`
-	Status      LobbyStatus        `bson:"status"`
-	WsURL       string             `bson:"wsURL"`
-	Players     []*PlayerModel     `bson:"players"`
-	MaxPlayers  int                `bson:"maxPlayers"`
-	Settings    LobbySettings      `bson:"settings"`
+	ID         primitive.ObjectID `bson:"_id,omitempty"`
+	HostID     string             `bson:"hostID"`
+	Status     LobbyStatus        `bson:"status"`
+	Players    []*PlayerModel     `bson:"players"`
+	MaxPlayers int                `bson:"maxPlayers"`
+	Settings   LobbySettings      `bson:"settings"`
 }
 
 type PlayerModel struct {
@@ -57,17 +55,15 @@ func (l *LobbyModel) ToProto() *pbl.Lobby {
 		protoPlayers[i] = p.ToProto()
 	}
 	return &pbl.Lobby{
-		Id:          l.ID.Hex(),
-		HostId:      l.HostID,
-		SecretToken: l.SecretToken,
-		Players:     protoPlayers,
-		MaxPlayers:  int32(l.MaxPlayers),
-		Status:      l.Status.ToProto(),
+		Id:         l.ID.Hex(),
+		HostId:     l.HostID,
+		Players:    protoPlayers,
+		MaxPlayers: int32(l.MaxPlayers),
+		Status:     l.Status.ToProto(),
 		Settings: &pbl.LobbySettings{
 			MaxScore:         int32(l.Settings.MaxScore),
 			TurnTimerSeconds: int32(l.Settings.TurnTimerSeconds),
 		},
-		WsURL: l.WsURL,
 	}
 }
 

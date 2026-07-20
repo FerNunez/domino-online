@@ -4,4 +4,4 @@ WORKDIR /app
 COPY shared shared
 COPY build build
 
-ENTRYPOINT build/user-service
+ENTRYPOINT build/lobby-service
