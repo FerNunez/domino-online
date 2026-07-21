@@ -1,0 +1,166 @@
+{
+  "info": {
+    "name": "Domino API Gateway",
+    "description": "Requests for the api-gateway service (auth, lobbies). Import together with the domino-local environment.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{token}}", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "localhost:8081" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Guest login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "const token = body.data?.token || body.token;",
+                  "if (token) {",
+                  "    pm.environment.set('token', token);",
+                  "    pm.collectionVariables.set('token', token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/guest",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "guest"]
+            },
+            "description": "Creates a guest user and returns a JWT. The test script auto-saves the token to {{token}} for subsequent requests."
+          }
+        },
+        {
+          "name": "Register",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"displayName\": \"Player One\",\n    \"email\": \"player1@example.com\",\n    \"password\": \"changeme\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            },
+            "description": "Requires Authorization header (authMiddleware) in addition to registration payload."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Get user by id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userID}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{userID}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Lobbies",
+      "item": [
+        {
+          "name": "Create lobby",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "const lobbyId = body.data?.lobbyID || body.data?.id;",
+                  "const wsToken = body.data?.wsToken;",
+                  "if (lobbyId) pm.environment.set('lobbyID', lobbyId);",
+                  "if (wsToken) pm.environment.set('wsToken', wsToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"maxPlayers\": 4\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/lobbies",
+              "host": ["{{baseUrl}}"],
+              "path": ["lobbies"]
+            },
+            "description": "Requires Authorization: Bearer {{token}}. Response includes lobbyID and a wsToken used to join."
+          }
+        },
+        {
+          "name": "Join lobby",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"lobbyID\": \"{{lobbyID}}\",\n    \"wsToken\": \"{{wsToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/lobbies/{{lobbyID}}/join",
+              "host": ["{{baseUrl}}"],
+              "path": ["lobbies", "{{lobbyID}}", "join"]
+            },
+            "description": "Path {id} must match body lobbyID, and wsToken must have been issued for this user/lobby (from Create lobby response)."
+          }
+        },
+        {
+          "name": "Start game",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"hostID\": \"{{userID}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/lobbies/{{lobbyID}}/start",
+              "host": ["{{baseUrl}}"],
+              "path": ["lobbies", "{{lobbyID}}", "start"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
