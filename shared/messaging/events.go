@@ -16,6 +16,8 @@ const (
 	NotifyPaymentSessionCreatedQueue = "notify_payment_session_created_queue"
 	NotifyPaymentSuccessQueue        = "notify_payment_success_queue"
 	DeaedLetterQueue                 = "deaed_letter_queue"
+	//
+	NotifyLobby = "notify_lobby_queue"
 )
 
 // TripEventData is the payload data for trip.event.created

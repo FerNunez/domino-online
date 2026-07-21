@@ -19,6 +19,7 @@ var ErrConnectionNotFound = errors.New(" connection not found")
 // The WebSocket library is not concurrent-safe for writes — two goroutines
 // writing to the same connection simultaneously causes a data race and a panic.
 type connWrapper struct {
+	user  string
 	conn  *websocket.Conn
 	mutex sync.Mutex
 }
@@ -29,6 +30,9 @@ type connWrapper struct {
 type ConnectionManager struct {
 	connections map[string]*connWrapper
 	mutex       sync.RWMutex
+
+	lobbyMembers map[string]map[string]struct{}
+	lobbyMutex   sync.RWMutex
 }
 
 var upgrader = websocket.Upgrader{
@@ -39,14 +43,50 @@ var upgrader = websocket.Upgrader{
 
 func NewConnectionManager() *ConnectionManager {
 	return &ConnectionManager{
-		connections: make(map[string]*connWrapper),
+		connections:  make(map[string]*connWrapper),
+		lobbyMembers: make(map[string]map[string]struct{}),
 	}
 }
 
-// TODO: this does not need ot have reference to cm? or just to call it like an object func
 // Creates Websocket upgrader and upgrades request
 func (cm *ConnectionManager) Upgrade(w http.ResponseWriter, r *http.Request) (*websocket.Conn, error) {
 	return upgrader.Upgrade(w, r, nil)
+}
+
+func (cm *ConnectionManager) AddToLobby(lobbyID, userID string) {
+	cm.lobbyMutex.Lock()
+	defer cm.lobbyMutex.Unlock()
+
+	if cm.lobbyMembers[lobbyID] == nil {
+		cm.lobbyMembers[lobbyID] = make(map[string]struct{})
+	}
+	cm.lobbyMembers[lobbyID][userID] = struct{}{}
+}
+
+func (cm *ConnectionManager) RemoveFromLobby(lobbyID, userID string) {
+	cm.lobbyMutex.Lock()
+	defer cm.lobbyMutex.Unlock()
+
+	delete(cm.lobbyMembers[lobbyID], userID)
+	if len(cm.lobbyMembers[lobbyID]) == 0 {
+		delete(cm.lobbyMembers, lobbyID)
+	}
+}
+
+func (cm *ConnectionManager) BroadcastToLobby(lobbyID string, message contracts.WSMessage) {
+	cm.lobbyMutex.RLock()
+
+	userList := make([]string, 0, len(cm.lobbyMembers[lobbyID]))
+	for user := range cm.lobbyMembers[lobbyID] {
+		userList = append(userList, user)
+	}
+	defer cm.lobbyMutex.RUnlock()
+
+	for _, userID := range userList {
+		if err := cm.SendMessage(userID, message); err != nil {
+			log.Printf("broadcast to lobby %s: user %s: %v", lobbyID, userID, err)
+		}
+	}
 }
 
 // Add
