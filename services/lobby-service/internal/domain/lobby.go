@@ -2,7 +2,7 @@ package domain
 
 import (
 	"context"
-	pbl "rebu/shared/proto/lobby"
+	pbl "domino/shared/proto/lobby"
 )
 
 type LobbyStatus string

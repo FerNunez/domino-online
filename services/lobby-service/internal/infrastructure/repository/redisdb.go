@@ -2,9 +2,9 @@ package repository
 
 import (
 	"context"
+	"domino/services/lobby-service/internal/domain"
 	"encoding/json"
 	"fmt"
-	"rebu/services/lobby-service/internal/domain"
 
 	redis "github.com/redis/go-redis/v9"
 )
@@ -20,7 +20,7 @@ func NewRedisRepository(rdb *redis.Client) *redisRepository {
 }
 
 func (rdb *redisRepository) CreateLobby(ctx context.Context, l *domain.LobbyModel) (*domain.LobbyModel, error) {
-	key := generateKey("lobby", l.ID.Hex())
+	key := generateKey("lobby", l.ID)
 	lobbyData, err := json.Marshal(l)
 	if err != nil {
 		return nil, err
@@ -46,7 +46,7 @@ func (rdb *redisRepository) GetLobbyByID(ctx context.Context, id string) (*domai
 }
 
 func (rdb *redisRepository) UpdateLobby(ctx context.Context, id string, l *domain.LobbyModel) (*domain.LobbyModel, error) {
-	key := generateKey("lobby", l.ID.Hex())
+	key := generateKey("lobby", l.ID)
 	lobbyData, err := json.Marshal(l)
 	if err != nil {
 		return nil, err

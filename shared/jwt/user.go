@@ -1,8 +1,8 @@
 package jwt
 
 import (
+	"domino/shared/env"
 	"errors"
-	"rebu/shared/env"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"

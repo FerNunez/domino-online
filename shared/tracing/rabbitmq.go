@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
-	"rebu/shared/contracts"
+	"domino/shared/contracts"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 	"go.opentelemetry.io/otel"

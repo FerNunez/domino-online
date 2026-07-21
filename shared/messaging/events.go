@@ -1,8 +1,8 @@
 package messaging
 
 import (
-	pbd "rebu/shared/proto/driver"
-	pbt "rebu/shared/proto/trip"
+	pbd "domino/shared/proto/driver"
+	pbt "domino/shared/proto/trip"
 )
 
 // Queue name constants: single source of truth

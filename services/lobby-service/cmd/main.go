@@ -8,17 +8,17 @@ import (
 	"os/signal"
 	"syscall"
 
-	grpchandler "rebu/services/lobby-service/internal/infrastructure/grpc"
-	"rebu/services/lobby-service/internal/infrastructure/repository"
-	"rebu/services/lobby-service/internal/service"
-	"rebu/shared/db"
-	"rebu/shared/env"
-	"rebu/shared/tracing"
+	grpchandler "domino/services/lobby-service/internal/infrastructure/grpc"
+	"domino/services/lobby-service/internal/infrastructure/repository"
+	"domino/services/lobby-service/internal/service"
+	"domino/shared/db"
+	"domino/shared/env"
+	"domino/shared/tracing"
 
 	grpcserver "google.golang.org/grpc"
 )
 
-const grpcAddr = ":9096"
+const grpcAddr = ":9092"
 
 func main() {
 	// 1. Initialice Tracer

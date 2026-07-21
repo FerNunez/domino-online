@@ -1,5 +1,7 @@
 package contracts
 
+import "encoding/json"
+
 // AmqpMessage is the envelope for every message published to RabbitMQ
 // OwnerID routes the message to the correct Websocket connection in the gateway
 // Data is the raw JSON payload, ketp as bytes so eadch consumer can unmashal into own type
@@ -8,29 +10,27 @@ type AmqpMessage struct {
 	Data    []byte `json:"data"` // NOTE: Array of bytes to unmarshal into own type struct
 }
 
+type LobbyEvent struct {
+	Type     string          `json:"type"`
+	LobbyID  string          `json:"lobbyID"`
+	TargetID string          `json:"targetID,omitempty"`
+	Data     json.RawMessage `json:"data"`
+}
+
 // NOTE:
 // *.events.* = something happens
 // *.cmd.* =instruction directed at a specific actor
 const (
-	// Trip events
-	TripEventCreated              = "trip.event.created"
-	TripEventDriverAssigned       = "trip.event.driver_assigned"
-	TripEventNoDriversFound       = "trip.event.no_drivers_found"
-	TripEventDriversNotInterested = "trip.event.drivers_not_interested"
 
-	// Driver Commands
-	DriverCmdTripRequest = "driver.cmd.trip_request"
-	DriverCmdTripAccept  = "driver.cmd.trip_accepted"
-	DriverCmdTripDecline = "driver.cmd.trip_decline"
-	DriverCmdLocation    = "driver.cmd.location"
-	DriverCmdRegister    = "driver.cmd.register"
+	// Lobby events
+	PlayerJoinedLobby = "lobby.player_joined" // {userID, displayName, playerCount, maxPlayers}
+	PlayerLeftLobby   = "lobby.player_left"   //  {userID, playerCount}
+	GameStarted       = "lobby.game_started"  // {startingPlayerID}
 
-	// Payments events
-	PaymentEventSessionCreated = "payment.event.session_created"
-	PaymentEventSuccess        = "payment.event.success"
-	PaymentEventFailed         = "payment.event.failed"
-	PaymentEventCancelled      = "payment.event.cancelled"
-
-	// Payment commands
-	PaymentCmdCreateSession = "payment.cmd.create_session"
+	// Game events
+	HandDealt    = "game.hand_dealt"    // targeted to userID, {tiles: [...]}
+	TurnChanged  = "game.turn_changed"  // {userID}
+	MoveMade     = "game.move_made"     // {userID, tile, side}
+	PlayerPassed = "game.player_passed" // {userID}
+	GameEnded    = "game.ended"         // {winnerID, scores}
 )

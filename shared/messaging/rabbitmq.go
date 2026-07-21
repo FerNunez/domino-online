@@ -2,12 +2,12 @@ package messaging
 
 import (
 	"context"
+	"domino/shared/contracts"
+	"domino/shared/retry"
+	"domino/shared/tracing"
 	"encoding/json"
 	"fmt"
 	"log"
-	"rebu/shared/contracts"
-	"rebu/shared/retry"
-	"rebu/shared/tracing"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -161,40 +161,7 @@ func (r *RabbitMQ) setupExchangesAndQueues() any {
 		name        string
 		routingKeys []string
 	}
-	queues := []queueDef{
-		{
-			FindAvailableDriversQueue,
-			[]string{contracts.TripEventCreated, contracts.TripEventDriversNotInterested},
-		},
-		{
-			DriverCmdTripRequestQueue,
-			[]string{contracts.DriverCmdTripRequest},
-		},
-		{
-			DriverTripResponseQueue,
-			[]string{contracts.DriverCmdTripAccept, contracts.DriverCmdTripDecline},
-		},
-		{
-			NotifyDriverNoDriversFoundQueue,
-			[]string{contracts.TripEventNoDriversFound},
-		},
-		{
-			NotifyDriverAssignQueue,
-			[]string{contracts.TripEventDriverAssigned},
-		},
-		{
-			PaymentTripResponseQueue,
-			[]string{contracts.PaymentCmdCreateSession},
-		},
-		{
-			NotifyPaymentSessionCreatedQueue,
-			[]string{contracts.PaymentEventSessionCreated},
-		},
-		{
-			NotifyPaymentSuccessQueue,
-			[]string{contracts.PaymentEventSuccess},
-		},
-	}
+	queues := []queueDef{}
 	for _, q := range queues {
 		if err := r.declareAndBindQueue(q.name, q.routingKeys, TripExchange); err != nil {
 			return err

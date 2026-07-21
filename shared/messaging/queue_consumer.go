@@ -1,9 +1,9 @@
 package messaging
 
 import (
+	"domino/shared/contracts"
 	"encoding/json"
 	"log"
-	"rebu/shared/contracts"
 )
 
 // QueueConsumer reads from a rabbitMQ queue and forwards msg to the Websocket client indentified by

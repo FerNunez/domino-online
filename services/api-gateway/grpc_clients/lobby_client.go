@@ -1,9 +1,9 @@
 package grpc_clients
 
 import (
-	"rebu/shared/env"
-	pbl "rebu/shared/proto/lobby"
-	"rebu/shared/tracing"
+	"domino/shared/env"
+	pbl "domino/shared/proto/lobby"
+	"domino/shared/tracing"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -15,7 +15,7 @@ type lobbyServiceClient struct {
 }
 
 func NewLobbyServiceClient() (*lobbyServiceClient, error) {
-	lobbyServiceURL := env.GetString("LOBBY_SERVICE_URL", "lobby-service:9096")
+	lobbyServiceURL := env.GetString("LOBBY_SERVICE_URL", "lobby-service:9092")
 
 	dialOptions := append(
 		tracing.DialOptionsWithTracing(),

@@ -1,4 +1,4 @@
-module rebu
+module domino
 
 go 1.25.0
 

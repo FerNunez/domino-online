@@ -1,9 +1,9 @@
 package main
 
 import (
-	pbl "rebu/shared/proto/lobby"
-	pb "rebu/shared/proto/trip"
-	"rebu/shared/types"
+	pbl "domino/shared/proto/lobby"
+	pb "domino/shared/proto/trip"
+	"domino/shared/types"
 )
 
 type previewTripRequest struct {

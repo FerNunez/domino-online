@@ -1,9 +1,9 @@
 package grpc_clients
 
 import (
-	"rebu/shared/env"
-	pbu "rebu/shared/proto/user"
-	"rebu/shared/tracing"
+	"domino/shared/env"
+	pbu "domino/shared/proto/user"
+	"domino/shared/tracing"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -15,7 +15,7 @@ type userServiceClient struct {
 }
 
 func NewUserServiceClient() (*userServiceClient, error) {
-	userServiceURL := env.GetString("USER_SERVICE_URL", "user-service:9095")
+	userServiceURL := env.GetString("USER_SERVICE_URL", "user-service:9091")
 
 	dialOptions := append(
 		tracing.DialOptionsWithTracing(),

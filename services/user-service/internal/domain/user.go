@@ -2,7 +2,7 @@ package domain
 
 import (
 	"context"
-	pbu "rebu/shared/proto/user"
+	pbu "domino/shared/proto/user"
 
 	"github.com/google/uuid"
 )
