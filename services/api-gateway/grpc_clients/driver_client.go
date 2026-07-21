@@ -1,9 +1,9 @@
 package grpc_clients
 
 import (
-	"rebu/shared/env"
-	pb "rebu/shared/proto/driver"
-	"rebu/shared/tracing"
+	"domino/shared/env"
+	pb "domino/shared/proto/driver"
+	"domino/shared/tracing"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"

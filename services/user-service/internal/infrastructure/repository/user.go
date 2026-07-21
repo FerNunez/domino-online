@@ -2,8 +2,8 @@ package repository
 
 import (
 	"context"
-	"rebu/services/user-service/internal/domain"
-	"rebu/shared/db/sql"
+	"domino/services/user-service/internal/domain"
+	"domino/shared/db/sql"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"

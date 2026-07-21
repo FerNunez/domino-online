@@ -2,11 +2,11 @@ package db
 
 import (
 	"context"
+	"domino/shared/env"
 	"fmt"
-	"rebu/shared/env"
 	"time"
 
-	"rebu/shared/db/sql"
+	"domino/shared/db/sql"
 
 	"github.com/jackc/pgx/v5"
 )

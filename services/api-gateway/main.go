@@ -2,12 +2,12 @@ package main
 
 import (
 	"context"
+	"domino/shared/env"
+	"domino/shared/tracing"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
-	"rebu/shared/env"
-	"rebu/shared/tracing"
 	"syscall"
 	"time"
 )

@@ -4,10 +4,10 @@ package messaging
 //the gateway looks up X's WebSocket connection and writes the message to it.
 
 import (
+	"domino/shared/contracts"
 	"errors"
 	"log"
 	"net/http"
-	"rebu/shared/contracts"
 	"sync"
 
 	"github.com/gorilla/websocket"

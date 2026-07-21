@@ -2,8 +2,8 @@ package service
 
 import (
 	"context"
+	"domino/services/lobby-service/internal/domain"
 	"fmt"
-	"rebu/services/lobby-service/internal/domain"
 
 	"github.com/google/uuid"
 )

@@ -2,8 +2,8 @@ package grpc_handler
 
 import (
 	"context"
-	"rebu/services/user-service/internal/domain"
-	pbu "rebu/shared/proto/user"
+	"domino/services/user-service/internal/domain"
+	pbu "domino/shared/proto/user"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"

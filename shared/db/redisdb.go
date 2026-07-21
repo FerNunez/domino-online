@@ -1,7 +1,7 @@
 package db
 
 import (
-	"rebu/shared/env"
+	"domino/shared/env"
 
 	redis "github.com/redis/go-redis/v9"
 )

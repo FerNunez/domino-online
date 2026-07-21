@@ -2,8 +2,8 @@ package grpc
 
 import (
 	"context"
-	"rebu/services/lobby-service/internal/domain"
-	pbl "rebu/shared/proto/lobby"
+	"domino/services/lobby-service/internal/domain"
+	pbl "domino/shared/proto/lobby"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"

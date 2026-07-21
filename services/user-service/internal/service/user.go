@@ -2,8 +2,8 @@ package service
 
 import (
 	"context"
-	"rebu/services/user-service/internal/domain"
-	"rebu/shared/hash"
+	"domino/services/user-service/internal/domain"
+	"domino/shared/hash"
 
 	"github.com/google/uuid"
 )

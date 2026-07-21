@@ -2,9 +2,9 @@ package main
 
 import (
 	"context"
+	"domino/shared/jwt"
 	"fmt"
 	"net/http"
-	"rebu/shared/jwt"
 	"strings"
 )
 
