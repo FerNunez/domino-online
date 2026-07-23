@@ -3,6 +3,8 @@ package grpc
 import (
 	"context"
 	"domino/services/lobby-service/internal/domain"
+	"domino/services/lobby-service/internal/infrastructure/events"
+
 	pbl "domino/shared/proto/lobby"
 
 	"google.golang.org/grpc"
@@ -12,13 +14,15 @@ import (
 
 type gRPCHandler struct {
 	pbl.UnimplementedLobbyServiceServer
-	service domain.LobbyService
+	service   domain.LobbyService
+	publisher *events.LobbyEventPublisher
 }
 
-func NewGRPCHandler(server *grpc.Server, service domain.LobbyService) *gRPCHandler {
+func NewGRPCHandler(server *grpc.Server, service domain.LobbyService, publisher *events.LobbyEventPublisher) *gRPCHandler {
 	h := &gRPCHandler{
 		UnimplementedLobbyServiceServer: pbl.UnimplementedLobbyServiceServer{},
 		service:                         service,
+		publisher:                       publisher,
 	}
 	pbl.RegisterLobbyServiceServer(server, h)
 	return h
@@ -44,4 +48,17 @@ func (h *gRPCHandler) JoinLobby(ctx context.Context, req *pbl.JoinLobbyRequest) 
 	return &pbl.JoinLobbyResponse{
 		Lobby: lobby.ToProto(),
 	}, nil
+}
+
+func (h *gRPCHandler) StartLobby(ctx context.Context, req *pbl.StartLobbyRequest) (*pbl.StartLobbyResponse, error) {
+	lobby, err := h.service.StartLobby(ctx, req.LobbyID, req.UserID)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to start lobby : %v", err)
+	}
+
+	if err := h.publisher.PublishStartGame(ctx, lobby); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to publish GameStarted: %v", err)
+	}
+
+	return &pbl.StartLobbyResponse{}, nil
 }

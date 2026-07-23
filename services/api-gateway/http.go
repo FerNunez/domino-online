@@ -12,7 +12,7 @@ import (
 	"net/http"
 )
 
-var tracer = tracing.GetTracer("api-getaway")
+var tracer = tracing.GetTracer("api-gateway")
 
 func handleCreateLobby(w http.ResponseWriter, r *http.Request) {
 	ctx, span := tracer.Start(r.Context(), "handleCreateLobby")
@@ -127,19 +127,22 @@ func handleStartGame(w http.ResponseWriter, r *http.Request) {
 	ctx, span := tracer.Start(r.Context(), "handleStartGame")
 	defer span.End()
 
+	userID, ok := ctx.Value("userID").(string)
+	if !ok {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
 	lobbyID := r.PathValue("id")
 	if lobbyID == "" {
 		http.Error(w, "lobby id is required", http.StatusBadRequest)
 		return
 	}
 
-	var req startGameRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "failed to parse JSON", http.StatusBadRequest)
-		return
+	req := startLobbyRequest{
+		LobbyID: lobbyID,
+		UserID:  userID,
 	}
-	defer r.Body.Close()
-	req.LobbyID = lobbyID
 
 	lobbySvc, err := grpc_clients.NewLobbyServiceClient()
 	if err != nil {
@@ -148,9 +151,10 @@ func handleStartGame(w http.ResponseWriter, r *http.Request) {
 
 	// TODO: This only have the game ID?
 	// Should I here call the game service grpc to get state or something?
-	game, err := lobbySvc.Client.StartGame(ctx, req.toProto())
+	game, err := lobbySvc.Client.StartLobby(ctx, req.toProto())
 	if err != nil {
-		http.Error(w, "failed to start game", http.StatusInternalServerError)
+		fmt.Printf("error: %v", err)
+		http.Error(w, "failed to start game in server", http.StatusInternalServerError)
 		return
 	}
 
