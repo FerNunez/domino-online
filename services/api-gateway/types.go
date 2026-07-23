@@ -70,15 +70,15 @@ func newProtoJoinLobbyRequest(userID, lobbyID string) *pbl.JoinLobbyRequest {
 }
 
 // Start Game
-type startGameRequest struct {
+type startLobbyRequest struct {
 	LobbyID string `json:"lobbyID"`
-	HostID  string `json:"hostID"`
+	UserID  string `json:"userID"`
 }
 
-func (c *startGameRequest) toProto() *pbl.StartGameRequest {
-	return &pbl.StartGameRequest{
+func (c *startLobbyRequest) toProto() *pbl.StartLobbyRequest {
+	return &pbl.StartLobbyRequest{
 		LobbyID: c.LobbyID,
-		HostID:  c.HostID,
+		UserID:  c.UserID,
 	}
 }
 

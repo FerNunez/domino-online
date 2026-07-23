@@ -8,11 +8,13 @@ import (
 	"os/signal"
 	"syscall"
 
+	"domino/services/lobby-service/internal/infrastructure/events"
 	grpchandler "domino/services/lobby-service/internal/infrastructure/grpc"
 	"domino/services/lobby-service/internal/infrastructure/repository"
 	"domino/services/lobby-service/internal/service"
 	"domino/shared/db"
 	"domino/shared/env"
+	"domino/shared/messaging"
 	"domino/shared/tracing"
 
 	grpcserver "google.golang.org/grpc"
@@ -34,6 +36,16 @@ func main() {
 	defer cancel()
 	defer sh(ctx)
 
+	// 2. Connect to RabbitMQ:
+	rabbitMqURI := env.GetString("RABBITMQ_URI", "amqp://guest:guest@rabbitmq.5672/")
+	rabbitmq, err := messaging.NewRabbitMQ(rabbitMqURI)
+	if err != nil {
+		log.Fatalf("Failed to connect to RabbitMQ: %v", err)
+	}
+	defer rabbitmq.Close()
+
+	pub := events.NewLobbyEventPublisher(rabbitmq)
+
 	// 3. Redis Client
 	redisClient := db.NewRedisClient(db.NewRedisDefaultConfig())
 
@@ -47,7 +59,7 @@ func main() {
 		log.Fatalf("Failed to listen on %s: %v", grpcAddr, err)
 	}
 	server := grpcserver.NewServer(tracing.WithTracingInterceptors()...)
-	grpchandler.NewGRPCHandler(server, svc)
+	grpchandler.NewGRPCHandler(server, svc, pub)
 
 	log.Printf("Lobby service listening on %s", grpcAddr)
 	go func() {
@@ -66,7 +78,6 @@ func main() {
 	case <-ctx.Done():
 	}
 
-	log.Println("Shutting down trip services...")
+	log.Println("Shutting down lobby services...")
 	server.GracefulStop() // wait gor in-flight RPCs to complete
-
 }

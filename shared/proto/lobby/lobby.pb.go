@@ -270,28 +270,28 @@ func (x *JoinLobbyResponse) GetLobby() *Lobby {
 	return nil
 }
 
-type StartGameRequest struct {
+type StartLobbyRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	LobbyID       string                 `protobuf:"bytes,1,opt,name=lobbyID,proto3" json:"lobbyID,omitempty"`
-	HostID        string                 `protobuf:"bytes,2,opt,name=hostID,proto3" json:"hostID,omitempty"`
+	UserID        string                 `protobuf:"bytes,2,opt,name=userID,proto3" json:"userID,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *StartGameRequest) Reset() {
-	*x = StartGameRequest{}
+func (x *StartLobbyRequest) Reset() {
+	*x = StartLobbyRequest{}
 	mi := &file_lobby_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *StartGameRequest) String() string {
+func (x *StartLobbyRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*StartGameRequest) ProtoMessage() {}
+func (*StartLobbyRequest) ProtoMessage() {}
 
-func (x *StartGameRequest) ProtoReflect() protoreflect.Message {
+func (x *StartLobbyRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_lobby_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -303,46 +303,45 @@ func (x *StartGameRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use StartGameRequest.ProtoReflect.Descriptor instead.
-func (*StartGameRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use StartLobbyRequest.ProtoReflect.Descriptor instead.
+func (*StartLobbyRequest) Descriptor() ([]byte, []int) {
 	return file_lobby_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *StartGameRequest) GetLobbyID() string {
+func (x *StartLobbyRequest) GetLobbyID() string {
 	if x != nil {
 		return x.LobbyID
 	}
 	return ""
 }
 
-func (x *StartGameRequest) GetHostID() string {
+func (x *StartLobbyRequest) GetUserID() string {
 	if x != nil {
-		return x.HostID
+		return x.UserID
 	}
 	return ""
 }
 
-type StartGameResponse struct {
+type StartLobbyResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	GameID        string                 `protobuf:"bytes,1,opt,name=gameID,proto3" json:"gameID,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *StartGameResponse) Reset() {
-	*x = StartGameResponse{}
+func (x *StartLobbyResponse) Reset() {
+	*x = StartLobbyResponse{}
 	mi := &file_lobby_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *StartGameResponse) String() string {
+func (x *StartLobbyResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*StartGameResponse) ProtoMessage() {}
+func (*StartLobbyResponse) ProtoMessage() {}
 
-func (x *StartGameResponse) ProtoReflect() protoreflect.Message {
+func (x *StartLobbyResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_lobby_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -354,16 +353,9 @@ func (x *StartGameResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use StartGameResponse.ProtoReflect.Descriptor instead.
-func (*StartGameResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use StartLobbyResponse.ProtoReflect.Descriptor instead.
+func (*StartLobbyResponse) Descriptor() ([]byte, []int) {
 	return file_lobby_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *StartGameResponse) GetGameID() string {
-	if x != nil {
-		return x.GameID
-	}
-	return ""
 }
 
 // Should I do something like returning a Lobby?
@@ -582,12 +574,11 @@ const file_lobby_proto_rawDesc = "" +
 	"secretCode\x18\x03 \x01(\tR\n" +
 	"secretCode\"7\n" +
 	"\x11JoinLobbyResponse\x12\"\n" +
-	"\x05lobby\x18\x01 \x01(\v2\f.lobby.LobbyR\x05lobby\"D\n" +
-	"\x10StartGameRequest\x12\x18\n" +
+	"\x05lobby\x18\x01 \x01(\v2\f.lobby.LobbyR\x05lobby\"E\n" +
+	"\x11StartLobbyRequest\x12\x18\n" +
 	"\alobbyID\x18\x01 \x01(\tR\alobbyID\x12\x16\n" +
-	"\x06hostID\x18\x02 \x01(\tR\x06hostID\"+\n" +
-	"\x11StartGameResponse\x12\x16\n" +
-	"\x06gameID\x18\x01 \x01(\tR\x06gameID\"\xd6\x01\n" +
+	"\x06userID\x18\x02 \x01(\tR\x06userID\"\x14\n" +
+	"\x12StartLobbyResponse\"\xd6\x01\n" +
 	"\x05Lobby\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
 	"\x06hostId\x18\x02 \x01(\tR\x06hostId\x12'\n" +
@@ -607,11 +598,12 @@ const file_lobby_proto_rawDesc = "" +
 	"\vLobbyStatus\x12\x18\n" +
 	"\x14LOBBY_STATUS_WAITING\x10\x00\x12\x18\n" +
 	"\x14LOBBY_STATUS_IN_GAME\x10\x01\x12\x19\n" +
-	"\x15LOBBY_STATUS_FINISHED\x10\x022\xd4\x01\n" +
+	"\x15LOBBY_STATUS_FINISHED\x10\x022\xd7\x01\n" +
 	"\fLobbyService\x12D\n" +
 	"\vCreateLobby\x12\x19.lobby.CreateLobbyRequest\x1a\x1a.lobby.CreateLobbyResponse\x12>\n" +
-	"\tJoinLobby\x12\x17.lobby.JoinLobbyRequest\x1a\x18.lobby.JoinLobbyResponse\x12>\n" +
-	"\tStartGame\x12\x17.lobby.StartGameRequest\x1a\x18.lobby.StartGameResponseB\x1aZ\x18shared/proto/lobby;lobbyb\x06proto3"
+	"\tJoinLobby\x12\x17.lobby.JoinLobbyRequest\x1a\x18.lobby.JoinLobbyResponse\x12A\n" +
+	"\n" +
+	"StartLobby\x12\x18.lobby.StartLobbyRequest\x1a\x19.lobby.StartLobbyResponseB\x1aZ\x18shared/proto/lobby;lobbyb\x06proto3"
 
 var (
 	file_lobby_proto_rawDescOnce sync.Once
@@ -633,8 +625,8 @@ var file_lobby_proto_goTypes = []any{
 	(*CreateLobbyResponse)(nil), // 2: lobby.CreateLobbyResponse
 	(*JoinLobbyRequest)(nil),    // 3: lobby.JoinLobbyRequest
 	(*JoinLobbyResponse)(nil),   // 4: lobby.JoinLobbyResponse
-	(*StartGameRequest)(nil),    // 5: lobby.StartGameRequest
-	(*StartGameResponse)(nil),   // 6: lobby.StartGameResponse
+	(*StartLobbyRequest)(nil),   // 5: lobby.StartLobbyRequest
+	(*StartLobbyResponse)(nil),  // 6: lobby.StartLobbyResponse
 	(*Lobby)(nil),               // 7: lobby.Lobby
 	(*Player)(nil),              // 8: lobby.Player
 	(*LobbySettings)(nil),       // 9: lobby.LobbySettings
@@ -647,10 +639,10 @@ var file_lobby_proto_depIdxs = []int32{
 	9, // 4: lobby.Lobby.settings:type_name -> lobby.LobbySettings
 	1, // 5: lobby.LobbyService.CreateLobby:input_type -> lobby.CreateLobbyRequest
 	3, // 6: lobby.LobbyService.JoinLobby:input_type -> lobby.JoinLobbyRequest
-	5, // 7: lobby.LobbyService.StartGame:input_type -> lobby.StartGameRequest
+	5, // 7: lobby.LobbyService.StartLobby:input_type -> lobby.StartLobbyRequest
 	2, // 8: lobby.LobbyService.CreateLobby:output_type -> lobby.CreateLobbyResponse
 	4, // 9: lobby.LobbyService.JoinLobby:output_type -> lobby.JoinLobbyResponse
-	6, // 10: lobby.LobbyService.StartGame:output_type -> lobby.StartGameResponse
+	6, // 10: lobby.LobbyService.StartLobby:output_type -> lobby.StartLobbyResponse
 	8, // [8:11] is the sub-list for method output_type
 	5, // [5:8] is the sub-list for method input_type
 	5, // [5:5] is the sub-list for extension type_name

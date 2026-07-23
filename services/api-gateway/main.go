@@ -17,17 +17,13 @@ var (
 )
 
 func main() {
-
 	mux := http.NewServeMux()
-
 	mux.Handle("POST /auth/guest", tracing.WrapHandlerFunc(enableCORS(handleAuthGuest), "/auth/guest"))
 	mux.Handle("POST /auth/register", tracing.WrapHandlerFunc(enableCORS(authMiddleware(handleAuthRegiter)), "/auth/register"))
-
 	mux.Handle("GET /users/{id}", tracing.WrapHandlerFunc(enableCORS(handleGetUser), "/users"))
-
 	mux.Handle("POST /lobbies", tracing.WrapHandlerFunc(enableCORS(authMiddleware(handleCreateLobby)), "/lobby"))
 	mux.Handle("POST /lobbies/{id}/join", tracing.WrapHandlerFunc(enableCORS(authMiddleware(handleJoinLobby)), "/lobby/join"))
-	mux.Handle("POST /lobbies/{id}/start", tracing.WrapHandlerFunc(enableCORS(handleStartGame), "/lobby/start"))
+	mux.Handle("POST /lobbies/{id}/start", tracing.WrapHandlerFunc(enableCORS(authMiddleware(handleStartGame)), "/lobby/start"))
 
 	server := &http.Server{
 		Addr:    httpAddr,

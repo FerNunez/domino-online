@@ -70,7 +70,7 @@ func main() {
 	case <-ctx.Done():
 	}
 
-	log.Println("Shutting down trip services...")
+	log.Println("Shutting down user services...")
 	server.GracefulStop() // wait gor in-flight RPCs to complete
 
 }

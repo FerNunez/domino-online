@@ -58,3 +58,21 @@ func (s *service) JoinLobby(ctx context.Context, lobbyID string, userID string) 
 	lobby.Players = append(lobby.Players, player)
 	return s.repo.UpdateLobby(ctx, lobbyID, lobby)
 }
+
+func (s *service) StartLobby(ctx context.Context, lobbyID string, userID string) (*domain.LobbyModel, error) {
+	lobby, err := s.repo.GetLobbyByID(ctx, lobbyID)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't get lobby: %w", err)
+	}
+	if lobby.HostID != userID {
+		return nil, fmt.Errorf("start request needs to be from host")
+	}
+
+	if lobby.MaxPlayers != len(lobby.Players) {
+		return nil, fmt.Errorf("needs full players")
+	}
+
+	lobby.Status = domain.LobbyStatusInGame
+	// TODO: state machine ?
+	return lobby, nil
+}

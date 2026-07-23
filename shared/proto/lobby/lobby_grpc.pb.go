@@ -21,7 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	LobbyService_CreateLobby_FullMethodName = "/lobby.LobbyService/CreateLobby"
 	LobbyService_JoinLobby_FullMethodName   = "/lobby.LobbyService/JoinLobby"
-	LobbyService_StartGame_FullMethodName   = "/lobby.LobbyService/StartGame"
+	LobbyService_StartLobby_FullMethodName  = "/lobby.LobbyService/StartLobby"
 )
 
 // LobbyServiceClient is the client API for LobbyService service.
@@ -30,7 +30,7 @@ const (
 type LobbyServiceClient interface {
 	CreateLobby(ctx context.Context, in *CreateLobbyRequest, opts ...grpc.CallOption) (*CreateLobbyResponse, error)
 	JoinLobby(ctx context.Context, in *JoinLobbyRequest, opts ...grpc.CallOption) (*JoinLobbyResponse, error)
-	StartGame(ctx context.Context, in *StartGameRequest, opts ...grpc.CallOption) (*StartGameResponse, error)
+	StartLobby(ctx context.Context, in *StartLobbyRequest, opts ...grpc.CallOption) (*StartLobbyResponse, error)
 }
 
 type lobbyServiceClient struct {
@@ -61,10 +61,10 @@ func (c *lobbyServiceClient) JoinLobby(ctx context.Context, in *JoinLobbyRequest
 	return out, nil
 }
 
-func (c *lobbyServiceClient) StartGame(ctx context.Context, in *StartGameRequest, opts ...grpc.CallOption) (*StartGameResponse, error) {
+func (c *lobbyServiceClient) StartLobby(ctx context.Context, in *StartLobbyRequest, opts ...grpc.CallOption) (*StartLobbyResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(StartGameResponse)
-	err := c.cc.Invoke(ctx, LobbyService_StartGame_FullMethodName, in, out, cOpts...)
+	out := new(StartLobbyResponse)
+	err := c.cc.Invoke(ctx, LobbyService_StartLobby_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +77,7 @@ func (c *lobbyServiceClient) StartGame(ctx context.Context, in *StartGameRequest
 type LobbyServiceServer interface {
 	CreateLobby(context.Context, *CreateLobbyRequest) (*CreateLobbyResponse, error)
 	JoinLobby(context.Context, *JoinLobbyRequest) (*JoinLobbyResponse, error)
-	StartGame(context.Context, *StartGameRequest) (*StartGameResponse, error)
+	StartLobby(context.Context, *StartLobbyRequest) (*StartLobbyResponse, error)
 	mustEmbedUnimplementedLobbyServiceServer()
 }
 
@@ -94,8 +94,8 @@ func (UnimplementedLobbyServiceServer) CreateLobby(context.Context, *CreateLobby
 func (UnimplementedLobbyServiceServer) JoinLobby(context.Context, *JoinLobbyRequest) (*JoinLobbyResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method JoinLobby not implemented")
 }
-func (UnimplementedLobbyServiceServer) StartGame(context.Context, *StartGameRequest) (*StartGameResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method StartGame not implemented")
+func (UnimplementedLobbyServiceServer) StartLobby(context.Context, *StartLobbyRequest) (*StartLobbyResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method StartLobby not implemented")
 }
 func (UnimplementedLobbyServiceServer) mustEmbedUnimplementedLobbyServiceServer() {}
 func (UnimplementedLobbyServiceServer) testEmbeddedByValue()                      {}
@@ -154,20 +154,20 @@ func _LobbyService_JoinLobby_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
-func _LobbyService_StartGame_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(StartGameRequest)
+func _LobbyService_StartLobby_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StartLobbyRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(LobbyServiceServer).StartGame(ctx, in)
+		return srv.(LobbyServiceServer).StartLobby(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: LobbyService_StartGame_FullMethodName,
+		FullMethod: LobbyService_StartLobby_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(LobbyServiceServer).StartGame(ctx, req.(*StartGameRequest))
+		return srv.(LobbyServiceServer).StartLobby(ctx, req.(*StartLobbyRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -188,8 +188,8 @@ var LobbyService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _LobbyService_JoinLobby_Handler,
 		},
 		{
-			MethodName: "StartGame",
-			Handler:    _LobbyService_StartGame_Handler,
+			MethodName: "StartLobby",
+			Handler:    _LobbyService_StartLobby_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

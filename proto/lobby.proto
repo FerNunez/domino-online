@@ -7,7 +7,7 @@ option go_package = "shared/proto/lobby;lobby";
 service LobbyService{
   rpc CreateLobby(CreateLobbyRequest) returns (CreateLobbyResponse);
   rpc JoinLobby(JoinLobbyRequest) returns (JoinLobbyResponse);
-  rpc StartGame(StartGameRequest) returns (StartGameResponse);
+  rpc StartLobby(StartLobbyRequest) returns (StartLobbyResponse);
 }
 
 message CreateLobbyRequest{
@@ -29,13 +29,12 @@ message JoinLobbyResponse{
   Lobby lobby = 1;
 }
 
-message StartGameRequest{
+message StartLobbyRequest{
   string lobbyID = 1;
-  string hostID = 2;
+  string userID = 2;
 }
 
-message StartGameResponse{
-  string gameID = 1;
+message StartLobbyResponse{
 }
 
 // Should I do something like returning a Lobby?
