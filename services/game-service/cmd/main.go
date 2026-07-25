@@ -8,7 +8,9 @@ import (
 	"syscall"
 
 	"domino/services/game-service/internal/infrastructure/events"
+	"domino/services/game-service/internal/infrastructure/repository"
 	"domino/services/game-service/internal/service"
+	"domino/shared/db"
 	"domino/shared/env"
 	"domino/shared/messaging"
 	"domino/shared/tracing"
@@ -40,11 +42,11 @@ func main() {
 	defer rabbitmq.Close()
 
 	// 3. Redis Client
-	//redisClient := db.NewRedisClient(db.NewRedisDefaultConfig())
+	redisClient := db.NewRedisClient(db.NewRedisDefaultConfig())
 
 	// 4.  Wire the dependency graph (innermost first)
-	//repo := repository.NewRedisRepository(redisClient)
-	svc := service.NewService(nil) // TODO: wire real repo
+	repo := repository.NewRedisRepository(redisClient)
+	svc := service.NewService(repo)
 
 	go func() {
 		if err := events.NewGameConsumer(rabbitmq, svc).Listen(); err != nil {
