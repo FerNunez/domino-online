@@ -72,7 +72,16 @@ func (s *service) StartLobby(ctx context.Context, lobbyID string, userID string)
 		return nil, fmt.Errorf("needs full players")
 	}
 
-	lobby.Status = domain.LobbyStatusInGame
-	// TODO: state machine ?
+	// state machine
+	switch lobby.Status {
+	case domain.LobbyStatusWaiting:
+		lobby.Status = domain.LobbyStatusInGame
+		lobby, err = s.repo.UpdateLobby(ctx, lobbyID, lobby)
+		if err != nil {
+			return nil, fmt.Errorf("couldn't update lobby state")
+		}
+	default:
+		return nil, fmt.Errorf("wrong lobby state transition")
+	}
 	return lobby, nil
 }

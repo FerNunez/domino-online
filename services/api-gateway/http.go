@@ -149,15 +149,14 @@ func handleStartGame(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 
-	// TODO: This only have the game ID?
-	// Should I here call the game service grpc to get state or something?
 	game, err := lobbySvc.Client.StartLobby(ctx, req.toProto())
 	if err != nil {
-		fmt.Printf("error: %v", err)
+		fmt.Printf("error: %v\n", err)
 		http.Error(w, "failed to start game in server", http.StatusInternalServerError)
 		return
 	}
 
+	// TODO: Should I add a grpc call to game start?
 	writeJSON(w, http.StatusCreated, contracts.APIResponse{Data: game})
 }
 
