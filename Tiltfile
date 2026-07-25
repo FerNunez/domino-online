@@ -110,6 +110,37 @@ docker_build_with_restart(
 k8s_yaml('./infra/development/k8s/lobby-service-deployment.yaml')
 k8s_resource('lobby-service', resource_deps=['lobby-service-compile'], labels="services")
 
+### game Service
+game_compile_cmd = 'CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o build/game-service ./services/game-service/cmd/main.go'
+if os.name == 'nt':
+    game_compile_cmd= './infra/development/docker/game-build.bat'
+
+local_resource(
+    'game-service-compile',
+    game_compile_cmd,
+    deps=['./services/game-service/', './shared'],
+    labels="compiles"
+)
+
+docker_build_with_restart(
+    'domino/game-service',
+    '.',
+    entrypoint=['./build/game-service'],
+    dockerfile='./infra/development/docker/game-service.Dockerfile',
+    only=[
+       './build/game-service',
+       './shared',
+    ],
+    live_update=[
+        sync('./build', '/app/build'),
+        sync('./shared', '/app/shared'),
+    ],
+)
+
+k8s_yaml('./infra/development/k8s/game-service-deployment.yaml')
+k8s_resource('game-service', resource_deps=['game-service-compile'], labels="services")
+
+
 ### Web Frontend ###
 docker_build(
   'domino/web',

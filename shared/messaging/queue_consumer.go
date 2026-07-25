@@ -3,6 +3,7 @@ package messaging
 import (
 	"domino/shared/contracts"
 	"encoding/json"
+	"fmt"
 	"log"
 )
 
@@ -33,7 +34,7 @@ func (qc *QueueConsumer) Start() error {
 
 	go func() {
 		for msg := range msgs {
-			var envelope contracts.AmqpMessage
+			var envelope contracts.LobbyEvent
 			if err = json.Unmarshal(msg.Body, &envelope); err != nil {
 				log.Println("QueueConsumer: failed to unmarshal envelope: ", err)
 				continue
@@ -49,13 +50,15 @@ func (qc *QueueConsumer) Start() error {
 				}
 			}
 
-			wsMsg := contracts.WSMessage{
-				Type: msg.RoutingKey,
-				Data: payload,
-			}
-			if err := qc.connMgr.SendMessage(envelope.OwnerID, wsMsg); err != nil {
-				log.Printf("QueueConsumer: failed to send to user %s: %v", envelope.OwnerID, err)
-			}
+			fmt.Printf("envelope: %v\n", envelope)
+
+			// wsMsg := contracts.WSMessage{
+			// 	Type: msg.RoutingKey,
+			// 	Data: payload,
+			// }
+			// if err := qc.connMgr.SendMessage(envelope.OwnerID, wsMsg); err != nil {
+			// 	log.Printf("QueueConsumer: failed to send to user %s: %v", envelope.OwnerID, err)
+			// }
 		}
 	}()
 	return nil

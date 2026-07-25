@@ -19,11 +19,12 @@ type PlayerLeftData struct {
 }
 
 type GameStartedData struct {
-	StartingPlayerID string `json:"StartingPlayerID"`
+	PlayersID []string `json:"playerID"`
 }
 
-type HandDeltData struct {
-	Tiles []string `json:"tiles"`
+type HandsDeltData struct {
+	PlayerTiles      map[string][]string `json:"playerTiles"`
+	StartingPlayerID string              `json:"StartingPlayerID"`
 }
 
 type TurnChangedData struct {

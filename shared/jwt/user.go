@@ -3,6 +3,7 @@ package jwt
 import (
 	"domino/shared/env"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
@@ -42,6 +43,8 @@ func generate(userID string, userType UserType, ttlMinutes int32) (string, error
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(ttlMinutes) * time.Minute)),
 		},
 	}
+
+	fmt.Println("UserID:", userID)
 
 	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return jwtToken.SignedString(secret)

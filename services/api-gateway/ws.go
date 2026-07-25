@@ -47,6 +47,7 @@ func handleLobbyWebsocket(w http.ResponseWriter, r *http.Request, rb *messaging.
 	for _, q := range []string{
 		messaging.NotifyLobby,
 	} {
+		fmt.Println("consumming ", q)
 		consumer := messaging.NewQueueConsumer(rb, connManager, q)
 		if err := consumer.Start(); err != nil {
 			log.Printf("Failed to start consumer for %s: %v", q, err)
