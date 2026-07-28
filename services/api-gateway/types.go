@@ -2,41 +2,7 @@ package main
 
 import (
 	pbl "domino/shared/proto/lobby"
-	pb "domino/shared/proto/trip"
-	"domino/shared/types"
 )
-
-type previewTripRequest struct {
-	UserID      string           `json:"userID"`
-	Pickup      types.Coordinate `json:"pickup"`
-	Destination types.Coordinate `json:"destination"`
-}
-
-func (p *previewTripRequest) toProto() *pb.PreviewTripRequest {
-	return &pb.PreviewTripRequest{
-		UserID: p.UserID,
-		StartLocation: &pb.Coordinate{
-			Latitude:  p.Pickup.Latitude,
-			Longitude: p.Pickup.Longitude,
-		},
-		EndLocation: &pb.Coordinate{
-			Latitude:  p.Destination.Latitude,
-			Longitude: p.Destination.Longitude,
-		},
-	}
-}
-
-type startTripRequest struct {
-	RideFareID string `json:"rideFareID"`
-	UserID     string `json:"userID"`
-}
-
-func (c *startTripRequest) toProto() *pb.CreateTripRequest {
-	return &pb.CreateTripRequest{
-		RideFareID: c.RideFareID,
-		UserID:     c.UserID,
-	}
-}
 
 // Create Lobby
 type createLobbyRequest struct {
@@ -92,4 +58,13 @@ type RegisterRequest struct {
 	DisplayName string `json:"displayName"`
 	Email       string `json:"email"`
 	Password    string `json:"password"`
+}
+
+// /
+type playTileCmd struct {
+	Tile struct {
+		Left  int32 `json:"left"`
+		Right int32 `json:"right"`
+	} `json:"tile"`
+	Side string `json:"side"`
 }

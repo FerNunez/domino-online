@@ -1,20 +1,3 @@
 package types
 
-// Geography data that crosses HHTP -> gRPC -> Service
-// Separate from the proto-generated types  keep the HTTP layer clean of protobuf metadata.
-type Route struct {
-	Distance float64     `json:"distance"`
-	Duration float64     `json:"duration"`
-	Geometry []*Geometry `json:"geometry"`
-}
-
-type Geometry struct {
-	Coordinates []*Coordinate `json:"coordinates"`
-}
-
-type Coordinate struct {
-	Latitude  float64 `json:"latitude"`
-	Longitude float64 `json:"longitude"`
-}
-
-// User
+// TODO: like tiles to be moved here

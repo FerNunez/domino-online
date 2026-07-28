@@ -3,7 +3,6 @@ package messaging
 import (
 	"domino/shared/contracts"
 	"encoding/json"
-	"fmt"
 	"log"
 )
 
@@ -29,13 +28,14 @@ func (qc *QueueConsumer) Start() error {
 		true, // auto-ack: message is acknowledged immediately on delivery
 		false, false, false, nil)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	go func() {
 		for msg := range msgs {
+			// here msg is marshaled in bytes
 			var envelope contracts.LobbyEvent
-			if err = json.Unmarshal(msg.Body, &envelope); err != nil {
+			if err := json.Unmarshal(msg.Body, &envelope); err != nil {
 				log.Println("QueueConsumer: failed to unmarshal envelope: ", err)
 				continue
 			}
@@ -50,15 +50,19 @@ func (qc *QueueConsumer) Start() error {
 				}
 			}
 
-			fmt.Printf("envelope: %v\n", envelope)
+			wsMsg := contracts.WSMessage{
+				Type: msg.RoutingKey,
+				Data: payload,
+			}
 
-			// wsMsg := contracts.WSMessage{
-			// 	Type: msg.RoutingKey,
-			// 	Data: payload,
-			// }
-			// if err := qc.connMgr.SendMessage(envelope.OwnerID, wsMsg); err != nil {
-			// 	log.Printf("QueueConsumer: failed to send to user %s: %v", envelope.OwnerID, err)
-			// }
+			// TargetID set -> directed to one player. Empty -> lobby-wide broadcast.
+			if envelope.TargetID != "" {
+				if err := qc.connMgr.SendMessage(envelope.TargetID, wsMsg); err != nil {
+					log.Printf("QueueConsumer: failed to send to user %s: %v", envelope.TargetID, err)
+				}
+				continue
+			}
+			qc.connMgr.BroadcastToLobby(envelope.LobbyID, wsMsg)
 		}
 	}()
 	return nil
