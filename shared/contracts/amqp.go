@@ -11,26 +11,30 @@ type AmqpMessage struct {
 }
 
 type LobbyEvent struct {
-	Type     string          `json:"type"`
 	LobbyID  string          `json:"lobbyID"`
 	TargetID string          `json:"targetID,omitempty"`
 	Data     json.RawMessage `json:"data"`
 }
 
-// NOTE:
+// EVENTS:
 // *.events.* = something happens
 // *.cmd.* =instruction directed at a specific actor
 const (
-
 	// Lobby events
-	PlayerJoinedLobby = "lobby.player_joined" // {userID, displayName, playerCount, maxPlayers}
-	PlayerLeftLobby   = "lobby.player_left"   //  {userID, playerCount}
-	GameStarted       = "lobby.game_started"  // {startingPlayerID}
+	PlayerJoinedLobby = "lobby.player_joined"  // {userID, displayName, playerCount, maxPlayers}
+	PlayerLeftLobby   = "lobby.player_left"    //  {userID, playerCount}
+	GameStartCmd      = "lobby.cmd.game_start" //
 
 	// Game events
+	GameStarted  = "game.game_started"  //
 	HandDealt    = "game.hand_dealt"    // targeted to userID, {tiles: [...]}
 	TurnChanged  = "game.turn_changed"  // {userID}
 	MoveMade     = "game.move_made"     // {userID, tile, side}
 	PlayerPassed = "game.player_passed" // {userID}
-	GameEnded    = "game.ended"         // {winnerID, scores}
+	GameEnded    = "game.ended"         // {winnerID, reason, scores}
+
+	// Game commands: directed from a player to the game-service, consumed off
+	// the NotifyGame queue (see shared/messaging.NotifyGame)
+	PlayTileCmd = "game.cmd.play_tile" // {userID, tile, side}
+	PassCmd     = "game.cmd.pass"      // {userID}
 )

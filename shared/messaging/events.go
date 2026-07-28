@@ -4,6 +4,7 @@ package messaging
 const (
 	DeaedLetterQueue = "deaed_letter_queue"
 	NotifyLobby      = "notify_lobby_queue"
+	NotifyGame       = "notify_game_queue"
 )
 
 type PlayerJoinedData struct {
@@ -18,13 +19,19 @@ type PlayerLeftData struct {
 	PlayerCount int    `json:"playerCount"`
 }
 
-type GameStartedData struct {
+type GameStartCmd struct {
 	PlayersID []string `json:"playerID"`
 }
 
-type HandsDeltData struct {
-	PlayerTiles      map[string][]string `json:"playerTiles"`
-	StartingPlayerID string              `json:"StartingPlayerID"`
+type GameStartedData struct {
+	PlayerOrder []string       `json:"playerOrder"` // userIDs, order: 0, 1, 2 ,3
+	HandsSize   map[string]int `json:"handsSize"`
+	CurrentTurn string         `json:"currentTurn"` // an userID
+}
+
+type HandDeltData struct {
+	PlayerID    string   `json:"playerID"`
+	PlayerTiles []string `json:"playerTiles"`
 }
 
 type TurnChangedData struct {
@@ -39,4 +46,10 @@ type MoveChangedData struct {
 
 type PlayerPassedData struct {
 	UserID string `json:"userID"`
+}
+
+type GameEndedData struct {
+	WinnerID string         `json:"winnerID"`
+	Reason   string         `json:"reason"` // "domino" | "blocked"
+	Scores   map[string]int `json:"scores"`
 }

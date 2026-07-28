@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	TripExchange       = "trip"
+	DominoExchange     = "domino"
 	DeadLetterExchange = "dlx"
 )
 
@@ -130,7 +130,7 @@ func (r *RabbitMQ) PublishMessage(ctx context.Context, routingKey string, messag
 		DeliveryMode: amqp.Persistent, // survives broker strart
 		Body:         jsonMsg,
 	}
-	return tracing.TracedPublisher(ctx, TripExchange, routingKey, msg, r.publish)
+	return tracing.TracedPublisher(ctx, DominoExchange, routingKey, msg, r.publish)
 }
 
 func (r *RabbitMQ) publish(ctx context.Context, exchange, routingKey string, msg amqp.Publishing) error {
@@ -152,8 +152,8 @@ func (r *RabbitMQ) setupExchangesAndQueues() any {
 	}
 
 	// Trip Exchange declaration
-	if err := r.Channel.ExchangeDeclare(TripExchange, "topic", true, false, false, false, nil); err != nil {
-		return fmt.Errorf("failed to declare exchange %s: %v", TripExchange, err)
+	if err := r.Channel.ExchangeDeclare(DominoExchange, "topic", true, false, false, false, nil); err != nil {
+		return fmt.Errorf("failed to declare exchange %s: %v", DominoExchange, err)
 	}
 
 	// Each queue binds to one or more routing keys on the TripExchange
@@ -165,13 +165,19 @@ func (r *RabbitMQ) setupExchangesAndQueues() any {
 		{
 			name: NotifyLobby,
 			routingKeys: []string{
-				"lobby.*",
+				"lobby.#",
 				"game.*",
+			},
+		},
+		{
+			name: NotifyGame,
+			routingKeys: []string{
+				"game.cmd.*",
 			},
 		},
 	}
 	for _, q := range queues {
-		if err := r.declareAndBindQueue(q.name, q.routingKeys, TripExchange); err != nil {
+		if err := r.declareAndBindQueue(q.name, q.routingKeys, DominoExchange); err != nil {
 			return err
 		}
 	}
@@ -211,6 +217,21 @@ func (r *RabbitMQ) declareAndBindQueue(name string, routineKeys []string, exchan
 		}
 	}
 	return nil
+}
+
+// Declare name-unique, not-durable, autoDelete, exclusive
+func (r *RabbitMQ) DeclareGatewayQueue(routineKeys []string, exchange string) (string, error) {
+	q, err := r.Channel.QueueDeclare("", false, false, true, false, nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to declare gateway queue %v", err)
+	}
+
+	for _, key := range routineKeys {
+		if err := r.Channel.QueueBind(q.Name, key, exchange, false, nil); err != nil {
+			return "", fmt.Errorf("failed to bind queue %s to key %s: %v", q.Name, key, err)
+		}
+	}
+	return q.Name, nil
 }
 
 func (r *RabbitMQ) Close() {

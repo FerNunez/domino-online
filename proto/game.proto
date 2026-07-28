@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package game;
+
+option go_package = "shared/proto/game;game";
+
+service GameService{
+  rpc PlayTile(PlayTileRequest) returns (PlayTileResponse);
+}
+
+message Tile{
+  int32 left = 1;
+  int32 right = 2;
+}
+
+message PlayTileRequest{
+  string lobby_id = 1;
+  string user_id = 2;
+  Tile tile = 3;
+  string side = 4;
+}
+
+message PlayTileResponse{
+  repeated Tile board = 1;
+  repeated Tile hand = 2;
+}
+
+

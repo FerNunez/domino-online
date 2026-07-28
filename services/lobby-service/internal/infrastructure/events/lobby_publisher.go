@@ -18,14 +18,13 @@ func NewLobbyEventPublisher(rmq *messaging.RabbitMQ) *LobbyEventPublisher {
 	}
 }
 
-// Publishes contracts.GameStarted with starting player ID
+// Publishes contracts.GameStartCmd with starting player ID
 func (p *LobbyEventPublisher) PublishStartGame(ctx context.Context, lobby *domain.LobbyModel) error {
-
 	playersID := make([]string, len(lobby.Players))
 	for idx, p := range lobby.Players {
 		playersID[idx] = p.ID
 	}
-	payload := messaging.GameStartedData{
+	payload := messaging.GameStartCmd{
 		PlayersID: playersID,
 	}
 	data, err := json.Marshal(payload)
@@ -33,8 +32,7 @@ func (p *LobbyEventPublisher) PublishStartGame(ctx context.Context, lobby *domai
 		return err
 	}
 
-	return p.rabbitmq.PublishMessage(ctx, contracts.GameStarted, contracts.LobbyEvent{
-		Type:     "Broadcast", // TODO: is this better to convert to EventType
+	return p.rabbitmq.PublishMessage(ctx, contracts.GameStartCmd, contracts.LobbyEvent{
 		LobbyID:  lobby.ID,
 		TargetID: "",
 		Data:     data,

@@ -40,11 +40,12 @@ func WithBackoff(ctx context.Context, cfg Config, operation func() error) error 
 				wait = cfg.MaxWait
 			}
 		}
-		if err := operation(); err == nil {
+		err = operation()
+		if err == nil {
 			return nil
 		}
 
-		log.Printf("Operation failed (attempt %d%d): %v", attempt+1, cfg.MaxRetries, err)
+		log.Printf("Operation failed (attempt %d/%d): %v", attempt+1, cfg.MaxRetries, err)
 
 	}
 	return err

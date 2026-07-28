@@ -69,8 +69,8 @@ type RoundResult struct {
 type GameModel struct {
 	LobbyID     string
 	Status      GameStatus
-	PlayerOrder []string // turn rotation order
-	Hands       map[string][]Tile
+	PlayerOrder []string          // turn rotation order
+	Hands       map[string][]Tile // map of PlayerId -> []Tiles{}
 	Board       Board
 	CurrentTurn string
 	PassStreak  int

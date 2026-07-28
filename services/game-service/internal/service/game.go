@@ -2,10 +2,8 @@ package service
 
 import (
 	"context"
-	"crypto/rand"
 	"domino/services/game-service/internal/domain"
 	"fmt"
-	"math/big"
 )
 
 type service struct {
@@ -19,38 +17,58 @@ func NewService(repo domain.GameRepository) *service {
 	}
 }
 
-func (s *service) CreateGame(ctx context.Context, lobbyID string) (*domain.GameModel, error) {
-
-	pile := []string{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"}
-	if err := secureShuffle(pile); err != nil {
-		return nil, fmt.Errorf("couldnt shuffle tiles")
+// Async called
+func (s *service) CreateGame(ctx context.Context, lobbyID string, playerIDs []string) (*domain.GameModel, error) {
+	game, err := domain.NewGame(lobbyID, playerIDs)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't create game: %w", err)
 	}
-
-	numPlayers := 4
-	playerTiles := make([][]string, 0, numPlayers)
-	for idx := range numPlayers {
-		size := len(pile) / numPlayers
-		playerTiles = append(playerTiles, pile[idx*size:idx*size+size])
-	}
-
-	game := &domain.GameModel{
-		LobbyID:     lobbyID,
-		PlayerTiles: playerTiles,
-		Head:        make([]string, 0, len(pile)),
-		Tail:        make([]string, 0, len(pile)),
-	}
-	return game, nil
+	return s.repo.CreateGame(ctx, game)
 }
 
-// --- Helper ---
-func secureShuffle(s []string) error {
-	for i := len(s) - 1; i > 0; i-- {
-		jBig, err := rand.Int(rand.Reader, big.NewInt(int64(i+1)))
-		if err != nil {
-			return err
-		}
-		j := jBig.Int64()
-		s[i], s[j] = s[j], s[i]
+// Sync called
+// PlayTile if valid, update game and send result if over
+func (s *service) PlayTile(ctx context.Context, lobbyID, userID string, tile domain.Tile, side string) (*domain.GameModel, *domain.RoundResult, error) {
+	game, err := s.repo.GetGameByLobbyID(ctx, lobbyID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("couldn't get game: %w", err)
 	}
-	return nil
+
+	if err := game.PlayTile(userID, tile, side); err != nil {
+		return nil, nil, err
+	}
+
+	game, err = s.repo.UpdateGame(ctx, lobbyID, game)
+	if err != nil {
+		return nil, nil, fmt.Errorf("couldn't update game: %w", err)
+	}
+
+	if game.Status == domain.GameStatusRoundOver {
+		result := game.ResolveRoundResult()
+		return game, &result, nil
+	}
+	return game, nil, nil
+}
+
+// Sync called
+func (s *service) PassTurn(ctx context.Context, lobbyID, userID string) (*domain.GameModel, *domain.RoundResult, error) {
+	game, err := s.repo.GetGameByLobbyID(ctx, lobbyID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("couldn't get game: %w", err)
+	}
+
+	if err := game.PassTurn(userID); err != nil {
+		return nil, nil, err
+	}
+
+	game, err = s.repo.UpdateGame(ctx, lobbyID, game)
+	if err != nil {
+		return nil, nil, fmt.Errorf("couldn't update game: %w", err)
+	}
+
+	if game.Status == domain.GameStatusRoundOver {
+		result := game.ResolveRoundResult()
+		return game, &result, nil
+	}
+	return game, nil, nil
 }

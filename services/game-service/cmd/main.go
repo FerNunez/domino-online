@@ -3,21 +3,24 @@ package main
 import (
 	"context"
 	"log"
+	"net"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"domino/services/game-service/internal/infrastructure/events"
+	grpchandler "domino/services/game-service/internal/infrastructure/grpc"
 	"domino/services/game-service/internal/infrastructure/repository"
 	"domino/services/game-service/internal/service"
 	"domino/shared/db"
 	"domino/shared/env"
 	"domino/shared/messaging"
 	"domino/shared/tracing"
-	//grpcserver "google.golang.org/grpc"
+
+	grpcserver "google.golang.org/grpc"
 )
 
-//const grpcAddr = ":9092"
+const grpcAddr = ":9093"
 
 func main() {
 	// 1. Initialice Tracer
@@ -56,19 +59,20 @@ func main() {
 	}()
 
 	// 6. Start the Grpc Server. Listen
-	// lis, err := net.Listen("tcp", grpcAddr)
-	// if err != nil {
-	// 	log.Fatalf("Failed to listen on %s: %v", grpcAddr, err)
-	// }
-	//server := grpcserver.NewServer(tracing.WithTracingInterceptors()...)
-	//grpchandler.NewGRPCHandler(server, svc, pub)
-	// log.Printf("Game service listening on %s", grpcAddr)
-	// go func() {
-	// 	if err := server.Serve(lis); err != nil {
-	// 		log.Printf("gRPC server error: %v", err)
-	// 		cancel()
-	// 	}
-	// }()
+	lis, err := net.Listen("tcp", grpcAddr)
+	if err != nil {
+		log.Fatalf("Failed to listen on %s: %v", grpcAddr, err)
+	}
+	server := grpcserver.NewServer(tracing.WithTracingInterceptors()...)
+	grpchandler.NewGRPCHandler(server, svc)
+
+	log.Printf("Game service listening on %s", grpcAddr)
+	go func() {
+		if err := server.Serve(lis); err != nil {
+			log.Printf("gRPC server error: %v", err)
+			cancel()
+		}
+	}()
 
 	// 7. Wait for shutfown signal
 	sigCh := make(chan os.Signal, 1)
@@ -80,5 +84,5 @@ func main() {
 	}
 
 	log.Println("Shutting down game services...")
-	//server.GracefulStop() // wait gor in-flight RPCs to complete
+	server.GracefulStop() // wait for in-flight RPCs to complete
 }
