@@ -13,41 +13,42 @@ import (
 	gpb "domino/shared/proto/game"
 )
 
-// connManager is a package-level singleton shared by all WebSocket handlers
-// All handlers in the same process share one connection map, enablig cross-handler message delivery(eg. a RabbitMQ consumer pushing to a rider whose connection was registered by handleRidersWebsocket
+// NOTE: connManager is a package-level singleton shared by all WebSocket handlers
+// All handlers in the same process share one connection map, enablig cross-handler message delivery(eg. a RabbitMQ consumer pushing to UserID whose connection was registered by handleLobbyWebsocket
 
 func handleLobbyWebsocket(w http.ResponseWriter, r *http.Request, rb *messaging.RabbitMQ) {
+	// Inputs check: lobbyID, claimID
 	lobbyID := r.PathValue("id")
 	if lobbyID == "" {
 		http.Error(w, "lobby id is required", http.StatusBadRequest)
 		return
 	}
-
 	claims, err := jwt.ParseLobbyTicket(r.URL.Query().Get("wsToken"))
 	if err != nil {
 		fmt.Printf("couldnt approuve ws token: %v", err)
 		http.Error(w, "couldnt approuve ws token", http.StatusUnauthorized)
 		return
 	}
-
 	if claims.LobbyID != lobbyID {
 		http.Error(w, "invalid request", http.StatusBadRequest)
 		return
 	}
 
+	// Upgrade
 	conn, err := connManager.Upgrade(w, r)
-
 	if err != nil {
 		log.Printf("WebSocket upgrade failed: %v", err)
 		return
 	}
 	defer conn.Close()
 
+	// Add in Manager
 	connManager.AddToLobby(lobbyID, claims.UserID)
 	defer connManager.RemoveFromLobby(lobbyID, claims.UserID)
 	connManager.Add(claims.UserID, conn)
 	defer connManager.Remove(claims.UserID)
 
+	// Create its consumer queues
 	for _, q := range []string{
 		messaging.NotifyLobby,
 	} {
@@ -58,6 +59,7 @@ func handleLobbyWebsocket(w http.ResponseWriter, r *http.Request, rb *messaging.
 		}
 	}
 
+	// Create Game GRPC Client
 	gameSvc, err := grpc_clients.NewGameServiceClient()
 	if err != nil {
 		fmt.Printf("couldnt reach game service: %v\n", err)
@@ -65,7 +67,7 @@ func handleLobbyWebsocket(w http.ResponseWriter, r *http.Request, rb *messaging.
 		return
 	}
 
-	// Read loop
+	// Read loop => read each user msg => check type and handle it accordingly
 	for {
 		_, message, err := conn.ReadMessage()
 		if err != nil {
@@ -73,28 +75,27 @@ func handleLobbyWebsocket(w http.ResponseWriter, r *http.Request, rb *messaging.
 			break
 		}
 
+		// Unmarshal into {Type and Data}
 		type playerMessage struct {
 			Type string          `json:"type"`
 			Data json.RawMessage `json:"data"`
 		}
-
 		var playerMsg playerMessage
 		if err := json.Unmarshal(message, &playerMsg); err != nil {
 			log.Printf("Error unmarshaling player message: %v", err)
 			continue
 		}
-		fmt.Printf("got message %v\n", playerMsg.Data)
-		fmt.Printf("got message type %v\n", playerMsg.Type)
 
-		// Handle the different message type from websocket client
+		// Handle by Msg Type
 		switch playerMsg.Type {
+
+		// Play a tile
 		case contracts.PlayTileCmd:
 			var cmd playTileCmd
 			if err := json.Unmarshal(playerMsg.Data, &cmd); err != nil {
 				log.Printf("Error unmarshaling play tile command: %v", err)
 				continue
 			}
-
 			req := &gpb.PlayTileRequest{
 				LobbyId: lobbyID,
 				UserId:  claims.UserID,
@@ -103,11 +104,33 @@ func handleLobbyWebsocket(w http.ResponseWriter, r *http.Request, rb *messaging.
 			}
 			response, err := gameSvc.Client.PlayTile(r.Context(), req)
 			if err != nil {
-				log.Printf("Error unmarshaling driver message: %v", err)
+				log.Printf("couldn't play tile to server: %v", err)
 				continue
 			}
+
+			// Send response to WebSocket
 			WSMsg := contracts.WSMessage{
-				Type: "response",
+				Type: "TODO",
+				Data: response,
+			}
+			if err := connManager.SendMessage(claims.UserID, WSMsg); err != nil {
+				log.Printf("couldt send message: %v", err)
+			}
+
+		case contracts.PassTurnCmd:
+			// Pass cmd doesnt pass anything
+			req := &gpb.PassTurnRequest{
+				LobbyId: lobbyID,
+				UserId:  claims.UserID,
+			}
+			response, err := gameSvc.Client.PassTurn(r.Context(), req)
+			if err != nil {
+				log.Printf("couldn't pass turn to server: %v", err)
+				continue
+			}
+			// Send response to WebSocket
+			WSMsg := contracts.WSMessage{
+				Type: "TODO",
 				Data: response,
 			}
 
@@ -115,20 +138,10 @@ func handleLobbyWebsocket(w http.ResponseWriter, r *http.Request, rb *messaging.
 				log.Printf("couldt send message: %v", err)
 			}
 
-		// case contracts.DriverCmdLocation:
-		// 	// Handle driver location update in the future
-		// 	continue
-		// case contracts.DriverCmdTripAccept, contracts.DriverCmdTripDecline:
-		// 	// Forward the message to RabbitMQ
-		// 	if err := rb.PublishMessage(ctx, driverMsg.Type, contracts.AmqpMessage{
-		// 		OwnerID: userID,
-		// 		Data:    driverMsg.Data,
-		// 	}); err != nil {
-		// 		log.Printf("Error publishing message to RabbitMQ: %v", err)
-		// 	}
+			log.Printf("TODO: Handle of %s", playerMsg.Type)
+
 		default:
 			log.Printf("Unknown message type: %s", playerMsg.Type)
 		}
 	}
-
 }

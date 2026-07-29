@@ -6,6 +6,7 @@ option go_package = "shared/proto/game;game";
 
 service GameService{
   rpc PlayTile(PlayTileRequest) returns (PlayTileResponse);
+  rpc PassTurn(PassTurnRequest) returns (PassTurnResponse);
 }
 
 message Tile{
@@ -23,6 +24,24 @@ message PlayTileRequest{
 message PlayTileResponse{
   repeated Tile board = 1;
   repeated Tile hand = 2;
+  RoundResult round_result = 3; // this is optional
 }
+
+message PassTurnRequest{
+  string lobby_id = 1;
+  string user_id = 2;
+}
+
+message PassTurnResponse{
+  RoundResult round_result = 1; // this is optional
+}
+
+message RoundResult {
+  string winner_id  = 1;
+  string reason  = 2;// ReasonDomino | ReasonBlocked
+  // TODO: add scores?
+}
+
+
 
 

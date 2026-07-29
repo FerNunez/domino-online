@@ -253,11 +253,12 @@ func (g *GameModel) PassTurn(userID string) error {
 	if g.CurrentTurn != userID {
 		return ErrNotYourTurn
 	}
-	// Check incorrect passing!!
+	// Check incorrect passing!! mmeaning no valid moves in its hands
 	if len(ValidMoves(g.Hands[userID], g.Board)) > 0 {
 		return ErrHasLegalMove
 	}
 
+	// keep memory of how many consecutives players passed, if reaches 4 => game over
 	g.PassStreak++
 	if g.PassStreak >= len(g.PlayerOrder) {
 		g.Status = GameStatusRoundOver
@@ -270,6 +271,7 @@ func (g *GameModel) PassTurn(userID string) error {
 	return nil
 }
 
+// TODO: Change to proper 2 v 2 scoring system
 // ResolveRoundResult computes the winner and score once the round has ended.
 // It must only be called when Status == GameStatusRoundOver.
 func (g *GameModel) ResolveRoundResult() RoundResult {

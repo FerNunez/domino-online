@@ -52,7 +52,7 @@ func (s *service) JoinLobby(ctx context.Context, lobbyID string, userID string) 
 	player := &domain.PlayerModel{
 		ID:          userID,
 		Name:        userID, // FIX:
-		Slot:        lobby.MaxPlayers + 1,
+		Slot:        len(lobby.Players) + 1,
 		IsConnected: false,
 	}
 	lobby.Players = append(lobby.Players, player)

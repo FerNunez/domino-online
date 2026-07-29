@@ -50,7 +50,9 @@ func (s *service) PlayTile(ctx context.Context, lobbyID, userID string, tile dom
 	return game, nil, nil
 }
 
-// Sync called
+// Sync called:
+// Check if pass move is valid, then pass to next user and updates game.
+// Game can end if 4 players already passed!!
 func (s *service) PassTurn(ctx context.Context, lobbyID, userID string) (*domain.GameModel, *domain.RoundResult, error) {
 	game, err := s.repo.GetGameByLobbyID(ctx, lobbyID)
 	if err != nil {
@@ -66,6 +68,7 @@ func (s *service) PassTurn(ctx context.Context, lobbyID, userID string) (*domain
 		return nil, nil, fmt.Errorf("couldn't update game: %w", err)
 	}
 
+	// Return result of play when game round over
 	if game.Status == domain.GameStatusRoundOver {
 		result := game.ResolveRoundResult()
 		return game, &result, nil
