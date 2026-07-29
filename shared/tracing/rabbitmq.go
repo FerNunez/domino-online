@@ -90,7 +90,7 @@ func TracedConsumer(delivery amqp.Delivery, handler func(context.Context, amqp.D
 	defer span.End()
 
 	// Try to extract and add message details to span (map[string]any if you don't know the type)
-	var msgBody contracts.LobbyEvent
+	var msgBody contracts.DominoEvent
 	if err := json.Unmarshal(delivery.Body, &msgBody); err == nil {
 		if msgBody.LobbyID != "" {
 			span.SetAttributes(attribute.String("messaging.owner_id", msgBody.LobbyID))

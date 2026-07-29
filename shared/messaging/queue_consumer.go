@@ -34,7 +34,7 @@ func (qc *QueueConsumer) Start() error {
 	go func() {
 		for msg := range msgs {
 			// here msg is marshaled in bytes
-			var envelope contracts.LobbyEvent
+			var envelope contracts.DominoEvent
 			if err := json.Unmarshal(msg.Body, &envelope); err != nil {
 				log.Println("QueueConsumer: failed to unmarshal envelope: ", err)
 				continue

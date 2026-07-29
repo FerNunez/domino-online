@@ -51,20 +51,23 @@ func main() {
 	repo := repository.NewRedisRepository(redisClient)
 	svc := service.NewService(repo)
 
+	// 5. Consumer
 	go func() {
 		if err := events.NewGameConsumer(rabbitmq, svc).Listen(); err != nil {
 			log.Printf(" consumer error: %v", err)
 			cancel()
 		}
 	}()
+	// 6. Publisher
+	pub := events.NewGameEventPublisher(rabbitmq)
 
-	// 6. Start the Grpc Server. Listen
+	// 7. Start the Grpc Server. Listen
 	lis, err := net.Listen("tcp", grpcAddr)
 	if err != nil {
 		log.Fatalf("Failed to listen on %s: %v", grpcAddr, err)
 	}
 	server := grpcserver.NewServer(tracing.WithTracingInterceptors()...)
-	grpchandler.NewGRPCHandler(server, svc)
+	grpchandler.NewGRPCHandler(server, svc, pub)
 
 	log.Printf("Game service listening on %s", grpcAddr)
 	go func() {
@@ -74,7 +77,7 @@ func main() {
 		}
 	}()
 
-	// 7. Wait for shutfown signal
+	// 8. Wait for shutfown signal
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
 	select {

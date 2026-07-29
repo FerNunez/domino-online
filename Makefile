@@ -5,6 +5,7 @@ GO_OUT := .
 .PHONY: generate-proto
 generate-proto:
 	protoc \
+	    --experimental_allow_proto3_optional \
 	    --proto_path=$(PROTO_DIR) \
 	    --go_out=$(GO_OUT) \
 	    --go-grpc_out=$(GO_OUT) \

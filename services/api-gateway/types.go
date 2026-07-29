@@ -60,7 +60,6 @@ type RegisterRequest struct {
 	Password    string `json:"password"`
 }
 
-// /
 type playTileCmd struct {
 	Tile struct {
 		Left  int32 `json:"left"`

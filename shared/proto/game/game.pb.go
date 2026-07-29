@@ -145,6 +145,7 @@ type PlayTileResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Board         []*Tile                `protobuf:"bytes,1,rep,name=board,proto3" json:"board,omitempty"`
 	Hand          []*Tile                `protobuf:"bytes,2,rep,name=hand,proto3" json:"hand,omitempty"`
+	RoundResult   *RoundResult           `protobuf:"bytes,3,opt,name=round_result,json=roundResult,proto3" json:"round_result,omitempty"` // this is optional
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -193,6 +194,161 @@ func (x *PlayTileResponse) GetHand() []*Tile {
 	return nil
 }
 
+func (x *PlayTileResponse) GetRoundResult() *RoundResult {
+	if x != nil {
+		return x.RoundResult
+	}
+	return nil
+}
+
+type PassTurnRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	LobbyId       string                 `protobuf:"bytes,1,opt,name=lobby_id,json=lobbyId,proto3" json:"lobby_id,omitempty"`
+	UserId        string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PassTurnRequest) Reset() {
+	*x = PassTurnRequest{}
+	mi := &file_game_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PassTurnRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PassTurnRequest) ProtoMessage() {}
+
+func (x *PassTurnRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_game_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PassTurnRequest.ProtoReflect.Descriptor instead.
+func (*PassTurnRequest) Descriptor() ([]byte, []int) {
+	return file_game_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *PassTurnRequest) GetLobbyId() string {
+	if x != nil {
+		return x.LobbyId
+	}
+	return ""
+}
+
+func (x *PassTurnRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+type PassTurnResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RoundResult   *RoundResult           `protobuf:"bytes,1,opt,name=round_result,json=roundResult,proto3" json:"round_result,omitempty"` // this is optional
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PassTurnResponse) Reset() {
+	*x = PassTurnResponse{}
+	mi := &file_game_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PassTurnResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PassTurnResponse) ProtoMessage() {}
+
+func (x *PassTurnResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_game_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PassTurnResponse.ProtoReflect.Descriptor instead.
+func (*PassTurnResponse) Descriptor() ([]byte, []int) {
+	return file_game_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *PassTurnResponse) GetRoundResult() *RoundResult {
+	if x != nil {
+		return x.RoundResult
+	}
+	return nil
+}
+
+type RoundResult struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	WinnerId      string                 `protobuf:"bytes,1,opt,name=winner_id,json=winnerId,proto3" json:"winner_id,omitempty"`
+	Reason        string                 `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"` // ReasonDomino | ReasonBlocked
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RoundResult) Reset() {
+	*x = RoundResult{}
+	mi := &file_game_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RoundResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RoundResult) ProtoMessage() {}
+
+func (x *RoundResult) ProtoReflect() protoreflect.Message {
+	mi := &file_game_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RoundResult.ProtoReflect.Descriptor instead.
+func (*RoundResult) Descriptor() ([]byte, []int) {
+	return file_game_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *RoundResult) GetWinnerId() string {
+	if x != nil {
+		return x.WinnerId
+	}
+	return ""
+}
+
+func (x *RoundResult) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
 var File_game_proto protoreflect.FileDescriptor
 
 const file_game_proto_rawDesc = "" +
@@ -207,14 +363,24 @@ const file_game_proto_rawDesc = "" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x1e\n" +
 	"\x04tile\x18\x03 \x01(\v2\n" +
 	".game.TileR\x04tile\x12\x12\n" +
-	"\x04side\x18\x04 \x01(\tR\x04side\"T\n" +
+	"\x04side\x18\x04 \x01(\tR\x04side\"\x8a\x01\n" +
 	"\x10PlayTileResponse\x12 \n" +
 	"\x05board\x18\x01 \x03(\v2\n" +
 	".game.TileR\x05board\x12\x1e\n" +
 	"\x04hand\x18\x02 \x03(\v2\n" +
-	".game.TileR\x04hand2H\n" +
+	".game.TileR\x04hand\x124\n" +
+	"\fround_result\x18\x03 \x01(\v2\x11.game.RoundResultR\vroundResult\"E\n" +
+	"\x0fPassTurnRequest\x12\x19\n" +
+	"\blobby_id\x18\x01 \x01(\tR\alobbyId\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\tR\x06userId\"H\n" +
+	"\x10PassTurnResponse\x124\n" +
+	"\fround_result\x18\x01 \x01(\v2\x11.game.RoundResultR\vroundResult\"B\n" +
+	"\vRoundResult\x12\x1b\n" +
+	"\twinner_id\x18\x01 \x01(\tR\bwinnerId\x12\x16\n" +
+	"\x06reason\x18\x02 \x01(\tR\x06reason2\x83\x01\n" +
 	"\vGameService\x129\n" +
-	"\bPlayTile\x12\x15.game.PlayTileRequest\x1a\x16.game.PlayTileResponseB\x18Z\x16shared/proto/game;gameb\x06proto3"
+	"\bPlayTile\x12\x15.game.PlayTileRequest\x1a\x16.game.PlayTileResponse\x129\n" +
+	"\bPassTurn\x12\x15.game.PassTurnRequest\x1a\x16.game.PassTurnResponseB\x18Z\x16shared/proto/game;gameb\x06proto3"
 
 var (
 	file_game_proto_rawDescOnce sync.Once
@@ -228,23 +394,30 @@ func file_game_proto_rawDescGZIP() []byte {
 	return file_game_proto_rawDescData
 }
 
-var file_game_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_game_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_game_proto_goTypes = []any{
 	(*Tile)(nil),             // 0: game.Tile
 	(*PlayTileRequest)(nil),  // 1: game.PlayTileRequest
 	(*PlayTileResponse)(nil), // 2: game.PlayTileResponse
+	(*PassTurnRequest)(nil),  // 3: game.PassTurnRequest
+	(*PassTurnResponse)(nil), // 4: game.PassTurnResponse
+	(*RoundResult)(nil),      // 5: game.RoundResult
 }
 var file_game_proto_depIdxs = []int32{
 	0, // 0: game.PlayTileRequest.tile:type_name -> game.Tile
 	0, // 1: game.PlayTileResponse.board:type_name -> game.Tile
 	0, // 2: game.PlayTileResponse.hand:type_name -> game.Tile
-	1, // 3: game.GameService.PlayTile:input_type -> game.PlayTileRequest
-	2, // 4: game.GameService.PlayTile:output_type -> game.PlayTileResponse
-	4, // [4:5] is the sub-list for method output_type
-	3, // [3:4] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	5, // 3: game.PlayTileResponse.round_result:type_name -> game.RoundResult
+	5, // 4: game.PassTurnResponse.round_result:type_name -> game.RoundResult
+	1, // 5: game.GameService.PlayTile:input_type -> game.PlayTileRequest
+	3, // 6: game.GameService.PassTurn:input_type -> game.PassTurnRequest
+	2, // 7: game.GameService.PlayTile:output_type -> game.PlayTileResponse
+	4, // 8: game.GameService.PassTurn:output_type -> game.PassTurnResponse
+	7, // [7:9] is the sub-list for method output_type
+	5, // [5:7] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_game_proto_init() }
@@ -258,7 +431,7 @@ func file_game_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_game_proto_rawDesc), len(file_game_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

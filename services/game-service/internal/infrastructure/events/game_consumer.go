@@ -28,14 +28,15 @@ func NewGameConsumer(rabbitmq *messaging.RabbitMQ, service domain.GameService) *
 // Listen consumes lobby broadcast events (GameStarted) and player commands
 // (play tile / pass) directed at this service.
 func (c *gameConsumer) Listen() error {
-	if err := c.rabbitmq.ConsumeMessages(messaging.NotifyLobby, c.handleLobbyEvent); err != nil {
+	if err := c.rabbitmq.ConsumeMessages(messaging.NotifyLobby, c.handleDominoEvent); err != nil {
 		return err
 	}
-	return c.rabbitmq.ConsumeMessages(messaging.NotifyGame, c.handleGameCmd)
+	//return c.rabbitmq.ConsumeMessages(messaging.NotifyGame, c.handleGameCmd)
+	return nil
 }
 
-func (c *gameConsumer) handleLobbyEvent(ctx context.Context, msg amqp.Delivery) error {
-	var envelope contracts.LobbyEvent
+func (c *gameConsumer) handleDominoEvent(ctx context.Context, msg amqp.Delivery) error {
+	var envelope contracts.DominoEvent
 	if err := json.Unmarshal(msg.Body, &envelope); err != nil {
 		return err
 	}
@@ -53,31 +54,6 @@ func (c *gameConsumer) handleLobbyEvent(ctx context.Context, msg amqp.Delivery) 
 	}
 }
 
-func (c *gameConsumer) handleGameCmd(ctx context.Context, msg amqp.Delivery) error {
-	var envelope contracts.LobbyEvent
-	if err := json.Unmarshal(msg.Body, &envelope); err != nil {
-		return err
-	}
-
-	switch msg.RoutingKey {
-	case contracts.PlayTileCmd:
-		var payload messaging.MoveChangedData
-		if err := json.Unmarshal(envelope.Data, &payload); err != nil {
-			return err
-		}
-		return c.handlePlayTile(ctx, envelope.LobbyID, payload)
-	case contracts.PassCmd:
-		var payload messaging.PlayerPassedData
-		if err := json.Unmarshal(envelope.Data, &payload); err != nil {
-			return err
-		}
-		return c.handlePass(ctx, envelope.LobbyID, payload)
-	default:
-		log.Printf("game-service: unknown routing key %s", msg.RoutingKey)
-		return nil
-	}
-}
-
 // handleGameStarted deals
 // 1) creates game for the lobby
 // 2) publishes new broadcast game data
@@ -87,8 +63,6 @@ func (c *gameConsumer) handleGameStarted(ctx context.Context, lobbyID string, pa
 	if err != nil {
 		return fmt.Errorf("couldn't create game: %w", err)
 	}
-	fmt.Printf("gmae created: %v\n", game)
-
 	// Create game /Start game message response payload
 	handSize := make(map[string]int, len(game.PlayerOrder))
 	for userID, tiles := range game.Hands {
@@ -105,7 +79,7 @@ func (c *gameConsumer) handleGameStarted(ctx context.Context, lobbyID string, pa
 	}
 
 	// Publish: Game Created/ Started
-	if err := c.rabbitmq.PublishMessage(ctx, contracts.GameStarted, contracts.LobbyEvent{
+	if err := c.rabbitmq.PublishMessage(ctx, contracts.GameStarted, contracts.DominoEvent{
 		LobbyID:  lobbyID,
 		Data:     data,
 		TargetID: "",
@@ -133,7 +107,7 @@ func (c *gameConsumer) handleGameStarted(ctx context.Context, lobbyID string, pa
 		if err != nil {
 			return err
 		}
-		if err := c.rabbitmq.PublishMessage(ctx, contracts.HandDealt, contracts.LobbyEvent{
+		if err := c.rabbitmq.PublishMessage(ctx, contracts.HandDealt, contracts.DominoEvent{
 			LobbyID:  lobbyID,
 			Data:     data,
 			TargetID: playerID, // target
@@ -161,7 +135,7 @@ func (c *gameConsumer) handlePlayTile(ctx context.Context, lobbyID string, paylo
 	if err != nil {
 		return err
 	}
-	if err := c.rabbitmq.PublishMessage(ctx, contracts.MoveMade, contracts.LobbyEvent{
+	if err := c.rabbitmq.PublishMessage(ctx, contracts.PlayerMoveMade, contracts.DominoEvent{
 		LobbyID: lobbyID,
 		Data:    data,
 	}); err != nil {
@@ -181,7 +155,7 @@ func (c *gameConsumer) handlePass(ctx context.Context, lobbyID string, payload m
 	if err != nil {
 		return err
 	}
-	if err := c.rabbitmq.PublishMessage(ctx, contracts.PlayerPassed, contracts.LobbyEvent{
+	if err := c.rabbitmq.PublishMessage(ctx, contracts.PlayerPassed, contracts.DominoEvent{
 		LobbyID: lobbyID,
 		Data:    data,
 	}); err != nil {
@@ -205,7 +179,7 @@ func (c *gameConsumer) publishTurnChanged(ctx context.Context, lobbyID, userID s
 	if err != nil {
 		return err
 	}
-	return c.rabbitmq.PublishMessage(ctx, contracts.TurnChanged, contracts.LobbyEvent{
+	return c.rabbitmq.PublishMessage(ctx, contracts.PlayerPassed, contracts.DominoEvent{
 		LobbyID: lobbyID,
 		Data:    data,
 	})
@@ -220,7 +194,7 @@ func (c *gameConsumer) publishGameEnded(ctx context.Context, lobbyID string, res
 	if err != nil {
 		return err
 	}
-	return c.rabbitmq.PublishMessage(ctx, contracts.GameEnded, contracts.LobbyEvent{
+	return c.rabbitmq.PublishMessage(ctx, contracts.GameEnded, contracts.DominoEvent{
 		LobbyID: lobbyID,
 		Data:    data,
 	})

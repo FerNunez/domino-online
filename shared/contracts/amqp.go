@@ -10,7 +10,7 @@ type AmqpMessage struct {
 	Data    []byte `json:"data"` // NOTE: Array of bytes to unmarshal into own type struct
 }
 
-type LobbyEvent struct {
+type DominoEvent struct {
 	LobbyID  string          `json:"lobbyID"`
 	TargetID string          `json:"targetID,omitempty"`
 	Data     json.RawMessage `json:"data"`
@@ -26,15 +26,14 @@ const (
 	GameStartCmd      = "lobby.cmd.game_start" //
 
 	// Game events
-	GameStarted  = "game.game_started"  //
-	HandDealt    = "game.hand_dealt"    // targeted to userID, {tiles: [...]}
-	TurnChanged  = "game.turn_changed"  // {userID}
-	MoveMade     = "game.move_made"     // {userID, tile, side}
-	PlayerPassed = "game.player_passed" // {userID}
-	GameEnded    = "game.ended"         // {winnerID, reason, scores}
+	GameStarted    = "game.game_started"     //
+	HandDealt      = "game.hand_dealt"       // targeted to userID, {tiles: [...]}
+	PlayerPassed   = "game.player_passed"    // {userID}
+	PlayerMoveMade = "game.player_move_made" // {userID, tile, side}
+	GameEnded      = "game.ended"            // {winnerID, reason, scores}
 
 	// Game commands: directed from a player to the game-service, consumed off
 	// the NotifyGame queue (see shared/messaging.NotifyGame)
 	PlayTileCmd = "game.cmd.play_tile" // {userID, tile, side}
-	PassCmd     = "game.cmd.pass"      // {userID}
+	PassTurnCmd = "game.cmd.pass"      // {userID}
 )

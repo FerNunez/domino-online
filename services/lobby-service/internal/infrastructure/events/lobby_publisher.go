@@ -32,7 +32,7 @@ func (p *LobbyEventPublisher) PublishStartGame(ctx context.Context, lobby *domai
 		return err
 	}
 
-	return p.rabbitmq.PublishMessage(ctx, contracts.GameStartCmd, contracts.LobbyEvent{
+	return p.rabbitmq.PublishMessage(ctx, contracts.GameStartCmd, contracts.DominoEvent{
 		LobbyID:  lobby.ID,
 		TargetID: "",
 		Data:     data,
