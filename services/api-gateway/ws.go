@@ -9,14 +9,13 @@ import (
 	"domino/services/api-gateway/grpc_clients"
 	"domino/shared/contracts"
 	"domino/shared/jwt"
-	"domino/shared/messaging"
 	gpb "domino/shared/proto/game"
 )
 
 // NOTE: connManager is a package-level singleton shared by all WebSocket handlers
 // All handlers in the same process share one connection map, enablig cross-handler message delivery(eg. a RabbitMQ consumer pushing to UserID whose connection was registered by handleLobbyWebsocket
 
-func handleLobbyWebsocket(w http.ResponseWriter, r *http.Request, rb *messaging.RabbitMQ) {
+func handleLobbyWebsocket(w http.ResponseWriter, r *http.Request) {
 	// Inputs check: lobbyID, claimID
 	lobbyID := r.PathValue("id")
 	if lobbyID == "" {
@@ -48,16 +47,8 @@ func handleLobbyWebsocket(w http.ResponseWriter, r *http.Request, rb *messaging.
 	connManager.Add(claims.UserID, conn)
 	defer connManager.Remove(claims.UserID)
 
-	// Create its consumer queues
-	for _, q := range []string{
-		messaging.NotifyLobby,
-	} {
-		fmt.Println("consumming ", q)
-		consumer := messaging.NewQueueConsumer(rb, connManager, q)
-		if err := consumer.Start(); err != nil {
-			log.Printf("Failed to start consumer for %s: %v", q, err)
-		}
-	}
+	// NOTE: broadcast/target events (lobby.*, game.*) reach connManager via the
+	// single gateway-wide consumer started once in main.go, not per connection here.
 
 	// Create Game GRPC Client
 	gameSvc, err := grpc_clients.NewGameServiceClient()

@@ -28,7 +28,6 @@ func main() {
 	defer rabbitmq.Close()
 
 	// Declare and bind new queue and consomme it
-
 	queueName, err := rabbitmq.DeclareGatewayQueue([]string{"lobby.*", "game.*"}, messaging.DominoExchange)
 	if err != nil {
 		log.Fatal(err)
@@ -46,9 +45,7 @@ func main() {
 	mux.Handle("POST /lobbies/{id}/join", tracing.WrapHandlerFunc(enableCORS(authMiddleware(handleJoinLobby)), "/lobby/join"))
 	mux.Handle("POST /lobbies/{id}/start", tracing.WrapHandlerFunc(enableCORS(authMiddleware(handleStartGame)), "/lobby/start"))
 
-	mux.Handle("/lobbies/{id}/ws", tracing.WrapHandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		handleLobbyWebsocket(w, r, rabbitmq)
-	}, "/lobby/ws"))
+	mux.Handle("/lobbies/{id}/ws", tracing.WrapHandlerFunc(handleLobbyWebsocket, "/lobby/ws"))
 
 	server := &http.Server{
 		Addr:    httpAddr,
