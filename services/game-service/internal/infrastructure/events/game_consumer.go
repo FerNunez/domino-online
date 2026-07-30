@@ -31,6 +31,7 @@ func (c *gameConsumer) Listen() error {
 	if err := c.rabbitmq.ConsumeMessages(messaging.NotifyLobby, c.handleDominoEvent); err != nil {
 		return err
 	}
+	// TODO: To consume game? or rather to publish into game?
 	//return c.rabbitmq.ConsumeMessages(messaging.NotifyGame, c.handleGameCmd)
 	return nil
 }
