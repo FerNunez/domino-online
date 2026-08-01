@@ -16,7 +16,7 @@ import (
 // All handlers in the same process share one connection map, enablig cross-handler message delivery(eg. a RabbitMQ consumer pushing to UserID whose connection was registered by handleLobbyWebsocket
 
 func handleLobbyWebsocket(w http.ResponseWriter, r *http.Request) {
-	// Inputs check: lobbyID, claimID
+	// check inputs: lobbyID, claimID
 	lobbyID := r.PathValue("id")
 	if lobbyID == "" {
 		http.Error(w, "lobby id is required", http.StatusBadRequest)
@@ -101,7 +101,7 @@ func handleLobbyWebsocket(w http.ResponseWriter, r *http.Request) {
 
 			// Send response to WebSocket
 			WSMsg := contracts.WSMessage{
-				Type: "TODO",
+				Type: contracts.PlayTileResponse,
 				Data: response,
 			}
 			if err := connManager.SendMessage(claims.UserID, WSMsg); err != nil {
@@ -121,7 +121,7 @@ func handleLobbyWebsocket(w http.ResponseWriter, r *http.Request) {
 			}
 			// Send response to WebSocket
 			WSMsg := contracts.WSMessage{
-				Type: "TODO",
+				Type: contracts.PassTurnResponse,
 				Data: response,
 			}
 

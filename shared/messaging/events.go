@@ -1,5 +1,7 @@
 package messaging
 
+import "domino/shared/types"
+
 // Queue name constants: single source of truth
 const (
 	DeaedLetterQueue = "deaed_letter_queue"
@@ -34,18 +36,18 @@ type HandDeltData struct {
 	PlayerTiles []string `json:"playerTiles"`
 }
 
-type TurnChangedData struct {
-	UserID string `json:"userID"`
-}
-
-type MoveChangedData struct {
-	UserID string `json:"userID"`
-	Tile   string `json:"tile"`
-	Side   string `json:"side"`
+type MoveMadeData struct {
+	UserID      string             `json:"userID"`
+	Tile        types.Tile         `json:"tile"`
+	Side        string             `json:"side"`
+	NextTurn    string             `json:"next_turn"`
+	RoundResult *types.RoundResult `json:"round_result,omitempty"`
 }
 
 type PlayerPassedData struct {
-	UserID string `json:"userID"`
+	UserID      string             `json:"userID"`
+	NextTurn    string             `json:"next_turn"`
+	RoundResult *types.RoundResult `json:"round_result,omitempty"`
 }
 
 type GameEndedData struct {
