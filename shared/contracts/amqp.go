@@ -2,14 +2,7 @@ package contracts
 
 import "encoding/json"
 
-// AmqpMessage is the envelope for every message published to RabbitMQ
-// OwnerID routes the message to the correct Websocket connection in the gateway
-// Data is the raw JSON payload, ketp as bytes so eadch consumer can unmashal into own type
-type AmqpMessage struct {
-	OwnerID string `json:"ownerId"`
-	Data    []byte `json:"data"` // NOTE: Array of bytes to unmarshal into own type struct
-}
-
+// DominoEvent is the envelope for every message published to RabbitMQ
 type DominoEvent struct {
 	LobbyID  string          `json:"lobbyID"`
 	TargetID string          `json:"targetID,omitempty"`
@@ -25,15 +18,21 @@ const (
 	PlayerLeftLobby   = "lobby.player_left"    //  {userID, playerCount}
 	GameStartCmd      = "lobby.cmd.game_start" //
 
-	// Game events
-	GameStarted    = "game.game_started"     //
-	HandDealt      = "game.hand_dealt"       // targeted to userID, {tiles: [...]}
+	// Private event
+	HandDealt = "game.hand_dealt" // targeted to userID, {tiles: [...]}
+
+	// Game events broadcasted
+	GameStarted    = "game.game_started"     // Should I add game ID and lobbyID
 	PlayerPassed   = "game.player_passed"    // {userID}
-	PlayerMoveMade = "game.player_move_made" // {userID, tile, side}
+	PlayerMoveMade = "game.player_move_made" // {userID, tile, side}	// should I add here the next user and the reuslt?
 	GameEnded      = "game.ended"            // {winnerID, reason, scores}
 
-	// Game commands: directed from a player to the game-service, consumed off
-	// the NotifyGame queue (see shared/messaging.NotifyGame)
+	// GPRC commands from player/apiGateway-wS to services
 	PlayTileCmd = "game.cmd.play_tile" // {userID, tile, side}
 	PassTurnCmd = "game.cmd.pass"      // {userID}
+
+	// GPRC response to players/apiGateway-wS from a service rpc response
+	PlayTileResponse = "game.play_tile_response" // {Board, Hand, RoundResult} // uses grpc response btw
+	PassTurnResponse = "game.pass_turn_response" // {RoundResult}
+
 )

@@ -50,10 +50,10 @@ func TracedPublisher(ctx context.Context, exchange, routingKey string, msg amqp.
 	defer span.End()
 
 	// Try to extract and add message details to span (map[string]any if you don't know the type)
-	var msgBody contracts.AmqpMessage
+	var msgBody contracts.DominoEvent
 	if err := json.Unmarshal(msg.Body, &msgBody); err == nil {
-		if msgBody.OwnerID != "" {
-			span.SetAttributes(attribute.String("messaging.owner_id", msgBody.OwnerID))
+		if msgBody.LobbyID != "" {
+			span.SetAttributes(attribute.String("messaging.lobby_id:", msgBody.LobbyID))
 		}
 	}
 

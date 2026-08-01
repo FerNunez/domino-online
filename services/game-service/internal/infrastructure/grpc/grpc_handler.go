@@ -6,6 +6,7 @@ import (
 	"domino/services/game-service/internal/infrastructure/events"
 
 	pbg "domino/shared/proto/game"
+	"domino/shared/types"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -34,7 +35,8 @@ func (h *gRPCHandler) PlayTile(ctx context.Context, req *pbg.PlayTileRequest) (*
 	if req.Side != "left" && req.Side != "right" {
 		return nil, status.Error(codes.Internal, "failed to parse side")
 	}
-	tile := domain.Tile{Left: int(req.Tile.Left), Right: int(req.Tile.Right)}
+	tile := types.Tile{Left: int(req.Tile.Left), Right: int(req.Tile.Right)}
+	// NOTE: should
 
 	// Play tile
 	game, roundResult, err := h.service.PlayTile(ctx, req.LobbyId, req.UserId, tile, req.Side)
@@ -42,8 +44,8 @@ func (h *gRPCHandler) PlayTile(ctx context.Context, req *pbg.PlayTileRequest) (*
 		return nil, status.Errorf(codes.Internal, "failed to play tile: %v", err)
 	}
 
-	// publish move
-	if err := h.publisher.PublishMoveMade(ctx, game.LobbyID, req.UserId, tile, req.Side); err != nil {
+	// publish move made
+	if err := h.publisher.PublishMoveMade(ctx, req, game, roundResult); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to publish move made: %v", err)
 	}
 
@@ -57,12 +59,13 @@ func (h *gRPCHandler) PlayTile(ctx context.Context, req *pbg.PlayTileRequest) (*
 
 func (h *gRPCHandler) PassTurn(ctx context.Context, req *pbg.PassTurnRequest) (*pbg.PassTurnResponse, error) {
 	// Pass turn
-	_, roundResult, err := h.service.PassTurn(ctx, req.LobbyId, req.UserId)
+	game, roundResult, err := h.service.PassTurn(ctx, req.LobbyId, req.UserId)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to pass turn: %v", err)
 	}
 
-	if err := h.publisher.PublishTurnChanged(ctx, req.LobbyId, req.UserId); err != nil {
+	// publish turn passed
+	if err := h.publisher.PublishTurnChanged(ctx, req, game, roundResult); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to publish GameStarted: %v", err)
 	}
 
@@ -71,7 +74,7 @@ func (h *gRPCHandler) PassTurn(ctx context.Context, req *pbg.PassTurnRequest) (*
 	}, nil
 }
 
-func toProtoRoundResult(rr *domain.RoundResult) *pbg.RoundResult {
+func toProtoRoundResult(rr *types.RoundResult) *pbg.RoundResult {
 	if rr == nil {
 		return nil
 	}
@@ -81,7 +84,7 @@ func toProtoRoundResult(rr *domain.RoundResult) *pbg.RoundResult {
 	}
 }
 
-func toProtoTiles(tiles []domain.Tile) []*pbg.Tile {
+func toProtoTiles(tiles []types.Tile) []*pbg.Tile {
 	out := make([]*pbg.Tile, len(tiles))
 	for i, t := range tiles {
 		out[i] = &pbg.Tile{Left: int32(t.Left), Right: int32(t.Right)}

@@ -36,3 +36,5 @@ type WSDriverMessage struct {
 //
 //  If Data were any, the pipeline would be:
 //  received bytes → Unmarshal into any → Marshal back to bytes
+
+const ()

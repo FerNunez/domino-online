@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"domino/services/game-service/internal/domain"
+	"domino/shared/types"
 	"fmt"
 )
 
@@ -28,7 +29,7 @@ func (s *service) CreateGame(ctx context.Context, lobbyID string, playerIDs []st
 
 // Sync called
 // PlayTile if valid, update game and send result if over
-func (s *service) PlayTile(ctx context.Context, lobbyID, userID string, tile domain.Tile, side string) (*domain.GameModel, *domain.RoundResult, error) {
+func (s *service) PlayTile(ctx context.Context, lobbyID, userID string, tile types.Tile, side string) (*domain.GameModel, *types.RoundResult, error) {
 	game, err := s.repo.GetGameByLobbyID(ctx, lobbyID)
 	if err != nil {
 		return nil, nil, fmt.Errorf("couldn't get game: %w", err)
@@ -53,7 +54,7 @@ func (s *service) PlayTile(ctx context.Context, lobbyID, userID string, tile dom
 // Sync called:
 // Check if pass move is valid, then pass to next user and updates game.
 // Game can end if 4 players already passed!!
-func (s *service) PassTurn(ctx context.Context, lobbyID, userID string) (*domain.GameModel, *domain.RoundResult, error) {
+func (s *service) PassTurn(ctx context.Context, lobbyID, userID string) (*domain.GameModel, *types.RoundResult, error) {
 	game, err := s.repo.GetGameByLobbyID(ctx, lobbyID)
 	if err != nil {
 		return nil, nil, fmt.Errorf("couldn't get game: %w", err)

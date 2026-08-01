@@ -2,6 +2,7 @@ package domain
 
 import (
 	"context"
+	"domino/shared/types"
 	"errors"
 	"fmt"
 )
@@ -40,13 +41,13 @@ const noEnd = -1
 // Board tracks the tiles played, in play order, and the two pip values
 // currently open for matching.
 type Board struct {
-	Tiles    []Tile
+	Tiles    []types.Tile
 	LeftEnd  int
 	RightEnd int
 }
 
 func emptyBoard() Board {
-	return Board{Tiles: []Tile{}, LeftEnd: noEnd, RightEnd: noEnd}
+	return Board{Tiles: []types.Tile{}, LeftEnd: noEnd, RightEnd: noEnd}
 }
 
 func (b Board) IsEmpty() bool {
@@ -55,22 +56,15 @@ func (b Board) IsEmpty() bool {
 
 // Move describes a candidate legal play: a tile from hand and which open end it matches.
 type Move struct {
-	Tile Tile
+	Tile types.Tile
 	Side string
-}
-
-// RoundResult is the outcome of a finished round (hand emptied or blocked board).
-type RoundResult struct {
-	WinnerID string
-	Reason   string // ReasonDomino | ReasonBlocked
-	Scores   map[string]int
 }
 
 type GameModel struct {
 	LobbyID     string
 	Status      GameStatus
-	PlayerOrder []string          // turn rotation order
-	Hands       map[string][]Tile // map of PlayerId -> []Tiles{}
+	PlayerOrder []string                // turn rotation order
+	Hands       map[string][]types.Tile // map of PlayerId -> []Tiles{}
 	Board       Board
 	CurrentTurn string
 	PassStreak  int
@@ -88,8 +82,8 @@ type GameRepository interface {
 
 type GameService interface {
 	CreateGame(ctx context.Context, lobbyID string, playerIDs []string) (*GameModel, error)
-	PlayTile(ctx context.Context, lobbyID, userID string, tile Tile, side string) (*GameModel, *RoundResult, error)
-	PassTurn(ctx context.Context, lobbyID, userID string) (*GameModel, *RoundResult, error)
+	PlayTile(ctx context.Context, lobbyID, userID string, tile types.Tile, side string) (*GameModel, *types.RoundResult, error)
+	PassTurn(ctx context.Context, lobbyID, userID string) (*GameModel, *types.RoundResult, error)
 }
 
 // NewGame builds a fresh standard-block domino game: shuffles a double-six
@@ -106,7 +100,7 @@ func NewGame(lobbyID string, playerIDs []string) (*GameModel, error) {
 	}
 
 	const handSize = 7
-	hands := make(map[string][]Tile, len(playerIDs))
+	hands := make(map[string][]types.Tile, len(playerIDs))
 	for idx, playerID := range playerIDs {
 		hands[playerID] = pile[idx*handSize : (idx+1)*handSize]
 	}
@@ -114,7 +108,7 @@ func NewGame(lobbyID string, playerIDs []string) (*GameModel, error) {
 	startingPlayer := ""
 	for playerID, hand := range hands {
 		for _, t := range hand {
-			if t == (Tile{Left: 6, Right: 6}) {
+			if t == (types.Tile{Left: 6, Right: 6}) {
 				startingPlayer = playerID
 			}
 		}
@@ -134,13 +128,13 @@ func NewGame(lobbyID string, playerIDs []string) (*GameModel, error) {
 }
 
 // sameTile compares tiles ignoring orientation (2-5 == 5-2).
-func sameTile(a, b Tile) bool {
+func sameTile(a, b types.Tile) bool {
 	return a == b || a == b.Flip()
 }
 
 // ValidMoves returns every legal (tile, side) combination playable from hand
 // given the current board state.
-func ValidMoves(hand []Tile, b Board) []Move {
+func ValidMoves(hand []types.Tile, b Board) []Move {
 	moves := make([]Move, 0)
 	if b.IsEmpty() {
 		for _, t := range hand {
@@ -170,7 +164,7 @@ func (g *GameModel) nextTurn() string {
 }
 
 // PlayTile validates and applies userID playing tile against the open end on side.
-func (g *GameModel) PlayTile(userID string, tile Tile, side string) error {
+func (g *GameModel) PlayTile(userID string, tile types.Tile, side string) error {
 	if g.Status == GameStatusRoundOver {
 		return ErrRoundOver
 	}
@@ -211,7 +205,7 @@ func (g *GameModel) PlayTile(userID string, tile Tile, side string) error {
 		if oriented.Right != g.Board.LeftEnd {
 			oriented = oriented.Flip()
 		}
-		g.Board.Tiles = append([]Tile{oriented}, g.Board.Tiles...)
+		g.Board.Tiles = append([]types.Tile{oriented}, g.Board.Tiles...)
 		g.Board.LeftEnd = oriented.Left
 	} else {
 		// Check if can be placed left
@@ -274,8 +268,8 @@ func (g *GameModel) PassTurn(userID string) error {
 // TODO: Change to proper 2 v 2 scoring system
 // ResolveRoundResult computes the winner and score once the round has ended.
 // It must only be called when Status == GameStatusRoundOver.
-func (g *GameModel) ResolveRoundResult() RoundResult {
-	pipSum := func(hand []Tile) int {
+func (g *GameModel) ResolveRoundResult() types.RoundResult {
+	pipSum := func(hand []types.Tile) int {
 		total := 0
 		for _, t := range hand {
 			total += t.Pips()
@@ -299,7 +293,7 @@ func (g *GameModel) ResolveRoundResult() RoundResult {
 			}
 			scores[playerID] = pipSum(hand)
 		}
-		return RoundResult{WinnerID: winnerID, Reason: ReasonDomino, Scores: scores}
+		return types.RoundResult{WinnerID: winnerID, Reason: ReasonDomino, Scores: scores}
 
 	case ReasonBlocked:
 		lowest := -1
@@ -317,7 +311,7 @@ func (g *GameModel) ResolveRoundResult() RoundResult {
 			}
 		}
 		if tie {
-			return RoundResult{Reason: ReasonBlocked, Scores: map[string]int{}}
+			return types.RoundResult{Reason: ReasonBlocked, Scores: map[string]int{}}
 		}
 		scores := make(map[string]int)
 		for playerID, hand := range g.Hands {
@@ -326,7 +320,7 @@ func (g *GameModel) ResolveRoundResult() RoundResult {
 			}
 			scores[playerID] = pipSum(hand)
 		}
-		return RoundResult{WinnerID: winnerID, Reason: ReasonBlocked, Scores: scores}
+		return types.RoundResult{WinnerID: winnerID, Reason: ReasonBlocked, Scores: scores}
 
 	default:
 		panic("ResolveRoundResult called before the round ended")
