@@ -76,8 +76,6 @@ func (r *RabbitMQ) ConsumeMessages(queueName string, handler MessageHandler) err
 		for msg := range msgs {
 			// NOTE: Here our TracedConsumer passes a delivery that is not processed
 			if err := tracing.TracedConsumer(msg, func(ctx context.Context, d amqp.Delivery) error {
-				log.Printf("Received messgae on %s: %s", queueName, msg.Body)
-
 				cfg := retry.DefualtConfig()
 				err := retry.WithBackoff(ctx, cfg, func() error {
 					return handler(ctx, d)

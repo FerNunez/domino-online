@@ -85,3 +85,11 @@ func (s *service) StartLobby(ctx context.Context, lobbyID string, userID string)
 	}
 	return lobby, nil
 }
+
+func (s *service) GetLobby(ctx context.Context, lobbyID string) (*domain.LobbyModel, error) {
+	lobby, err := s.repo.GetLobbyByID(ctx, lobbyID)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't get lobby: %w", err)
+	}
+	return lobby, nil
+}

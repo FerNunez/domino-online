@@ -22,6 +22,7 @@ const (
 	LobbyService_CreateLobby_FullMethodName = "/lobby.LobbyService/CreateLobby"
 	LobbyService_JoinLobby_FullMethodName   = "/lobby.LobbyService/JoinLobby"
 	LobbyService_StartLobby_FullMethodName  = "/lobby.LobbyService/StartLobby"
+	LobbyService_GetLobby_FullMethodName    = "/lobby.LobbyService/GetLobby"
 )
 
 // LobbyServiceClient is the client API for LobbyService service.
@@ -31,6 +32,7 @@ type LobbyServiceClient interface {
 	CreateLobby(ctx context.Context, in *CreateLobbyRequest, opts ...grpc.CallOption) (*CreateLobbyResponse, error)
 	JoinLobby(ctx context.Context, in *JoinLobbyRequest, opts ...grpc.CallOption) (*JoinLobbyResponse, error)
 	StartLobby(ctx context.Context, in *StartLobbyRequest, opts ...grpc.CallOption) (*StartLobbyResponse, error)
+	GetLobby(ctx context.Context, in *GetLobbyRequest, opts ...grpc.CallOption) (*GetLobbyResponse, error)
 }
 
 type lobbyServiceClient struct {
@@ -71,6 +73,16 @@ func (c *lobbyServiceClient) StartLobby(ctx context.Context, in *StartLobbyReque
 	return out, nil
 }
 
+func (c *lobbyServiceClient) GetLobby(ctx context.Context, in *GetLobbyRequest, opts ...grpc.CallOption) (*GetLobbyResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetLobbyResponse)
+	err := c.cc.Invoke(ctx, LobbyService_GetLobby_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // LobbyServiceServer is the server API for LobbyService service.
 // All implementations must embed UnimplementedLobbyServiceServer
 // for forward compatibility.
@@ -78,6 +90,7 @@ type LobbyServiceServer interface {
 	CreateLobby(context.Context, *CreateLobbyRequest) (*CreateLobbyResponse, error)
 	JoinLobby(context.Context, *JoinLobbyRequest) (*JoinLobbyResponse, error)
 	StartLobby(context.Context, *StartLobbyRequest) (*StartLobbyResponse, error)
+	GetLobby(context.Context, *GetLobbyRequest) (*GetLobbyResponse, error)
 	mustEmbedUnimplementedLobbyServiceServer()
 }
 
@@ -96,6 +109,9 @@ func (UnimplementedLobbyServiceServer) JoinLobby(context.Context, *JoinLobbyRequ
 }
 func (UnimplementedLobbyServiceServer) StartLobby(context.Context, *StartLobbyRequest) (*StartLobbyResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method StartLobby not implemented")
+}
+func (UnimplementedLobbyServiceServer) GetLobby(context.Context, *GetLobbyRequest) (*GetLobbyResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetLobby not implemented")
 }
 func (UnimplementedLobbyServiceServer) mustEmbedUnimplementedLobbyServiceServer() {}
 func (UnimplementedLobbyServiceServer) testEmbeddedByValue()                      {}
@@ -172,6 +188,24 @@ func _LobbyService_StartLobby_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _LobbyService_GetLobby_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetLobbyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LobbyServiceServer).GetLobby(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: LobbyService_GetLobby_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LobbyServiceServer).GetLobby(ctx, req.(*GetLobbyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // LobbyService_ServiceDesc is the grpc.ServiceDesc for LobbyService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -190,6 +224,10 @@ var LobbyService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "StartLobby",
 			Handler:    _LobbyService_StartLobby_Handler,
+		},
+		{
+			MethodName: "GetLobby",
+			Handler:    _LobbyService_GetLobby_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

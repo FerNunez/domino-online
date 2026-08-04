@@ -62,3 +62,14 @@ func (h *gRPCHandler) StartLobby(ctx context.Context, req *pbl.StartLobbyRequest
 
 	return &pbl.StartLobbyResponse{}, nil
 }
+
+func (h *gRPCHandler) GetLobby(ctx context.Context, req *pbl.GetLobbyRequest) (*pbl.GetLobbyResponse, error) {
+	lobby, err := h.service.GetLobby(ctx, req.LobbyID)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to get lobby : %v", err)
+	}
+
+	return &pbl.GetLobbyResponse{
+		Lobby: lobby.ToProto(),
+	}, nil
+}

@@ -8,6 +8,7 @@ service LobbyService{
   rpc CreateLobby(CreateLobbyRequest) returns (CreateLobbyResponse);
   rpc JoinLobby(JoinLobbyRequest) returns (JoinLobbyResponse);
   rpc StartLobby(StartLobbyRequest) returns (StartLobbyResponse);
+  rpc GetLobby(GetLobbyRequest) returns (GetLobbyResponse);
 }
 
 message CreateLobbyRequest{
@@ -37,6 +38,14 @@ message StartLobbyRequest{
 message StartLobbyResponse{
 }
 
+message GetLobbyRequest{
+  string lobbyID = 1;
+}
+
+message GetLobbyResponse{
+  Lobby lobby = 1;
+}
+
 // Should I do something like returning a Lobby?
 message Lobby{
   string id = 1;
@@ -51,6 +60,7 @@ message Player{
   string id = 1;
   string name = 2;
   int32 slot = 3;
+  bool isConnected = 4;
 }
 
 enum LobbyStatus{
