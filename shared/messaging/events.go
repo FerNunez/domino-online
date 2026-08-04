@@ -55,3 +55,13 @@ type GameEndedData struct {
 	Reason   string         `json:"reason"` // "domino" | "blocked"
 	Scores   map[string]int `json:"scores"`
 }
+
+type PlayTileResponseData struct {
+	Board       []types.Tile       `json:"board"`
+	Hand        []types.Tile       `json:"hand"`
+	RoundResult *types.RoundResult `json:"round_result,omitempty"`
+}
+
+type PassTurnResponseData struct {
+	RoundResult *types.RoundResult `json:"round_result,omitempty"`
+}

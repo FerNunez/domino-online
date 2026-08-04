@@ -9,7 +9,9 @@ import (
 	"domino/services/api-gateway/grpc_clients"
 	"domino/shared/contracts"
 	"domino/shared/jwt"
-	gpb "domino/shared/proto/game"
+	"domino/shared/messaging"
+	pbg "domino/shared/proto/game"
+	"domino/shared/types"
 )
 
 // NOTE: connManager is a package-level singleton shared by all WebSocket handlers
@@ -87,16 +89,22 @@ func handleLobbyWebsocket(w http.ResponseWriter, r *http.Request) {
 				log.Printf("Error unmarshaling play tile command: %v", err)
 				continue
 			}
-			req := &gpb.PlayTileRequest{
+			req := &pbg.PlayTileRequest{
 				LobbyId: lobbyID,
 				UserId:  claims.UserID,
-				Tile:    &gpb.Tile{Left: cmd.Tile.Left, Right: cmd.Tile.Right},
+				Tile:    &pbg.Tile{Left: cmd.Tile.Left, Right: cmd.Tile.Right},
 				Side:    cmd.Side,
 			}
-			response, err := gameSvc.Client.PlayTile(r.Context(), req)
+			responseGrpc, err := gameSvc.Client.PlayTile(r.Context(), req)
 			if err != nil {
 				log.Printf("couldn't play tile to server: %v", err)
 				continue
+			}
+
+			response := messaging.PlayTileResponseData{
+				Board:       toTiles(responseGrpc.Board),
+				Hand:        toTiles(responseGrpc.Hand),
+				RoundResult: toRoundResult(responseGrpc.RoundResult),
 			}
 
 			// Send response to WebSocket
@@ -110,15 +118,19 @@ func handleLobbyWebsocket(w http.ResponseWriter, r *http.Request) {
 
 		case contracts.PassTurnCmd:
 			// Pass cmd doesnt pass anything
-			req := &gpb.PassTurnRequest{
+			req := &pbg.PassTurnRequest{
 				LobbyId: lobbyID,
 				UserId:  claims.UserID,
 			}
-			response, err := gameSvc.Client.PassTurn(r.Context(), req)
+			responseGrpc, err := gameSvc.Client.PassTurn(r.Context(), req)
 			if err != nil {
 				log.Printf("couldn't pass turn to server: %v", err)
 				continue
 			}
+			response := messaging.PassTurnResponseData{
+				RoundResult: toRoundResult(responseGrpc.RoundResult),
+			}
+
 			// Send response to WebSocket
 			WSMsg := contracts.WSMessage{
 				Type: contracts.PassTurnResponse,
@@ -134,5 +146,27 @@ func handleLobbyWebsocket(w http.ResponseWriter, r *http.Request) {
 		default:
 			log.Printf("Unknown message type: %s", playerMsg.Type)
 		}
+	}
+}
+
+func toTiles(tiles []*pbg.Tile) []types.Tile {
+	out := make([]types.Tile, len(tiles))
+	for idx, t := range tiles {
+		out[idx] = types.Tile{
+			Left:  int(t.Left),
+			Right: int(t.Right),
+		}
+	}
+	return out
+}
+
+func toRoundResult(roundResult *pbg.RoundResult) *types.RoundResult {
+	if roundResult == nil {
+		return nil
+	}
+	return &types.RoundResult{
+		WinnerID: roundResult.WinnerId,
+		Reason:   roundResult.Reason,
+		Scores:   map[string]int{},
 	}
 }

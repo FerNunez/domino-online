@@ -4,15 +4,15 @@ import "fmt"
 
 // RoundResult is the outcome of a finished round (hand emptied or blocked board).
 type RoundResult struct {
-	WinnerID string
-	Reason   string // ReasonDomino | ReasonBlocked
-	Scores   map[string]int
+	WinnerID string         `json:"winner_id,omitempty"`
+	Reason   string         `json:"reason,omitempty"` // ReasonDomino | ReasonBlocked
+	Scores   map[string]int `json:"scores,omitempty"`
 }
 
 // Tile is a domino tile identified by its two values.
 type Tile struct {
-	Left  int
-	Right int
+	Left  int `json:"left"`
+	Right int `json:"right"`
 }
 
 func (t Tile) String() string {
