@@ -1,0 +1,49 @@
+// Mirrors shared/contracts/amqp.go's event-name constants. See
+// services/api-gateway/ws.go for the client-command handling and
+// shared/messaging/queue_consumer.go for how broadcast/targeted events are
+// relayed to the client.
+import {
+  GameStartedData,
+  HandDealtData,
+  MoveMadeData,
+  PassTurnResponseData,
+  PlayerPassedData,
+  PlayTileResponseData,
+  Side,
+  Tile,
+} from "./types";
+
+export enum GameEvents {
+  GameStarted = "game.game_started",
+  HandDealt = "game.hand_dealt",
+  PlayerMoveMade = "game.player_move_made",
+  PlayerPassed = "game.player_passed",
+  PlayTileResponse = "game.play_tile_response",
+  PassTurnResponse = "game.pass_turn_response",
+  PlayTileCmd = "game.cmd.play_tile",
+  PassTurnCmd = "game.cmd.pass",
+}
+
+// Messages sent from the server to the client via the websocket.
+export type ServerWsMessage =
+  | { type: GameEvents.GameStarted; data: GameStartedData }
+  | { type: GameEvents.HandDealt; data: HandDealtData }
+  | { type: GameEvents.PlayerMoveMade; data: MoveMadeData }
+  | { type: GameEvents.PlayerPassed; data: PlayerPassedData }
+  | { type: GameEvents.PlayTileResponse; data: PlayTileResponseData }
+  | { type: GameEvents.PassTurnResponse; data: PassTurnResponseData };
+
+// Messages sent from the client to the server via the websocket.
+export type ClientWsMessage =
+  | { type: GameEvents.PlayTileCmd; data: { tile: Tile; side: Side } }
+  | { type: GameEvents.PassTurnCmd; data: Record<string, never> };
+
+export function isValidGameEvent(event: string): event is GameEvents {
+  return Object.values(GameEvents).includes(event as GameEvents);
+}
+
+export function isValidServerWsMessage(message: {
+  type: string;
+}): message is ServerWsMessage {
+  return isValidGameEvent(message.type);
+}
