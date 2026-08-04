@@ -4,6 +4,7 @@ import (
 	"domino/services/api-gateway/grpc_clients"
 	"domino/shared/contracts"
 	"domino/shared/jwt"
+	pbl "domino/shared/proto/lobby"
 	pbu "domino/shared/proto/user"
 	"domino/shared/tracing"
 	"encoding/json"
@@ -158,6 +159,30 @@ func handleStartGame(w http.ResponseWriter, r *http.Request) {
 
 	// TODO: Should I add a grpc call to game start?
 	writeJSON(w, http.StatusCreated, contracts.APIResponse{Data: game})
+}
+
+func handleGetLobby(w http.ResponseWriter, r *http.Request) {
+	ctx, span := tracer.Start(r.Context(), "handleGetLobby")
+	defer span.End()
+
+	lobbyID := r.PathValue("id")
+	if lobbyID == "" {
+		http.Error(w, "lobby id is required", http.StatusBadRequest)
+		return
+	}
+
+	lobbySvc, err := grpc_clients.NewLobbyServiceClient()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	lobby, err := lobbySvc.Client.GetLobby(ctx, &pbl.GetLobbyRequest{LobbyID: lobbyID})
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to get lobby: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, contracts.APIResponse{Data: lobby.Lobby})
 }
 
 func handleAuthGuest(w http.ResponseWriter, r *http.Request) {

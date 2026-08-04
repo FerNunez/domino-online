@@ -67,9 +67,10 @@ func (l *LobbyModel) ToProto() *pbl.Lobby {
 
 func (p *PlayerModel) ToProto() *pbl.Player {
 	return &pbl.Player{
-		Id:   p.ID,
-		Name: p.Name,
-		Slot: int32(p.Slot),
+		Id:          p.ID,
+		Name:        p.Name,
+		Slot:        int32(p.Slot),
+		IsConnected: p.IsConnected,
 	}
 }
 
@@ -88,4 +89,5 @@ type LobbyService interface {
 	CreateLobby(ctx context.Context, hostID string, maxPlayers int) (*LobbyModel, error)
 	JoinLobby(ctx context.Context, lobbyID string, userID string) (*LobbyModel, error)
 	StartLobby(ctx context.Context, lobbyID string, userID string) (*LobbyModel, error)
+	GetLobby(ctx context.Context, lobbyID string) (*LobbyModel, error)
 }
