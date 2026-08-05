@@ -1,0 +1,269 @@
+// Derived rendering geometry for Board.tsx. Never feeds back into board.ts —
+// applyMove/legalSides mirror the backend's replay logic (see board.ts's
+// header comment) and their tiles/leftEnd/rightEnd contract must stay
+// untouched.
+//
+// Layout rules — a spiral, not a grid:
+//  1. The tile that opens the round is placed dead center and never moves
+//     again — every later tile is laid out *around* it, not the whole chain
+//     re-centered. The board grows outward from the center tile's right
+//     edge (toward the chain's right/open end) and from its left edge
+//     (toward the chain's left/open end), independently.
+//  2. Each side has a current travel direction, starting horizontal — right
+//     for the right-growing side, left for the left-growing side — and
+//     keeps placing tiles edge-to-edge in that direction for as long as
+//     they fit inside the board's fixed square canvas.
+//  3. The instant the *next* tile would cross the canvas border, the
+//     side's travel direction rotates 90° counter-clockwise (right → up →
+//     left → down → right) and the chain continues from exactly the point
+//     it stopped — no gap, no re-centering, no dedicated "corner" tile.
+//     Both sides use the same counter-clockwise rule; they start 180°
+//     apart, so they trace mirror arcs of the same spiral and never cross.
+//  4. Doubles are always laid crosswise (perpendicular to the *current*
+//     travel direction), same as real play, whether or not they happen to
+//     land on a turn. That's the only tile that ever isn't aligned with the
+//     current direction — a turn itself doesn't need a special pivot tile,
+//     since every plain tile already renders aligned with whatever the
+//     (possibly just-rotated) direction is.
+// Because the board only ever grows by exactly one tile at a time (see
+// useGameConnection: every state update is a single applyMove), positions
+// are computed incrementally and cached in a ref keyed by tile identity
+// (`left-right` is unique — a standard set has no duplicate tiles, and a
+// placed tile's orientation never changes after the fact) so that already-
+// placed tiles never move on screen as new ones are added.
+import { useRef } from "react";
+import { BoardState } from "./board";
+import { Tile, tileToString } from "./types";
+
+// Pixel geometry for the "sm" DominoTile (see DominoTile.tsx's SIZE_CLASSES /
+// ROTATED_SIZE_CLASSES). Kept in sync manually — there are only the three
+// fixed sizes and Board.tsx always renders "sm" here.
+const TILE_LONG = 80; // footprint along the direction of travel, laid straight
+const TILE_SHORT = 40; // footprint along the direction of travel, laid crosswise
+const GAP = 4; // matches Tailwind's gap-1
+const SLOT_SIZE = 40; // EndSlot button diameter
+
+export interface LaidOutTile {
+  key: string;
+  tile: Tile;
+  rotate: boolean;
+  left: number;
+  top: number;
+}
+
+export interface EndSlotPixel {
+  left: number;
+  top: number;
+}
+
+export interface BoardLayout {
+  width: number;
+  height: number;
+  tiles: LaidOutTile[];
+  leftEndSlot: EndSlotPixel;
+  rightEndSlot: EndSlotPixel;
+}
+
+type Dir = "R" | "U" | "L" | "D";
+const VECTORS: Record<Dir, { x: number; y: number }> = {
+  R: { x: 1, y: 0 },
+  U: { x: 0, y: -1 },
+  L: { x: -1, y: 0 },
+  D: { x: 0, y: 1 },
+};
+// 90° counter-clockwise.
+const ROTATE_CCW: Record<Dir, Dir> = { R: "U", U: "L", L: "D", D: "R" };
+
+interface Cursor {
+  x: number;
+  y: number;
+  dir: Dir;
+}
+
+interface Box {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
+interface Placed extends Box {
+  rotate: boolean;
+}
+
+interface LayoutState {
+  placed: Map<string, Placed>;
+  order: string[]; // board.tiles keys, in board order, as of the last call
+  bottom: Cursor; // grows toward the chain's right/open-end end
+  top: Cursor; // grows toward the chain's left/open-start end
+}
+
+function emptyState(): LayoutState {
+  return {
+    placed: new Map(),
+    order: [],
+    bottom: { x: 0, y: 0, dir: "R" },
+    top: { x: 0, y: 0, dir: "L" },
+  };
+}
+
+function box(x: number, y: number, dir: Dir, footprint: number, perp: number): Box {
+  switch (dir) {
+    case "R":
+      return { left: x, top: y - perp / 2, width: footprint, height: perp };
+    case "L":
+      return { left: x - footprint, top: y - perp / 2, width: footprint, height: perp };
+    case "D":
+      return { left: x - perp / 2, top: y, width: perp, height: footprint };
+    case "U":
+      return { left: x - perp / 2, top: y - footprint, width: perp, height: footprint };
+  }
+}
+
+// Advances `cursor` by one tile. If it would cross the canvas border in the
+// cursor's current direction, the direction rotates 90° counter-clockwise
+// (possibly more than once, for a canvas too small to fit even one tile in
+// any direction) and the tile is placed in the new direction instead, from
+// the exact point the cursor stopped.
+function place(cursor: Cursor, tile: Tile, half: number): { placed: Placed; next: Cursor } {
+  const isDouble = tile.left === tile.right;
+  const footprint = isDouble ? TILE_SHORT : TILE_LONG;
+  const perp = isDouble ? TILE_LONG : TILE_SHORT;
+
+  const priorDir = cursor.dir;
+  let dir = cursor.dir;
+  let vec = VECTORS[dir];
+  for (let attempt = 0; attempt < 4; attempt++) {
+    vec = VECTORS[dir];
+    const endX = cursor.x + vec.x * footprint;
+    const endY = cursor.y + vec.y * footprint;
+    const overflows = vec.x > 0 ? endX > half : vec.x < 0 ? endX < -half : vec.y < 0 ? endY < -half : endY > half;
+    if (!overflows || attempt === 3) break;
+    dir = ROTATE_CCW[dir];
+  }
+
+  // box() centers a tile on (x, y) across its perpendicular axis. That's
+  // right for a tile continuing the same direction — it shares the run's
+  // established centerline — but wrong for the tile that just turned: its
+  // predecessor's footprint occupies the half of that centerline behind the
+  // pivot (the direction we arrived from), so centering on the pivot would
+  // have the new tile's back half overlap it. Shifting the reference point
+  // half a tile-width further in the *prior* direction makes the new tile's
+  // trailing edge land exactly on the pivot instead, GAP away from what it's
+  // turning off of, regardless of either tile's size.
+  let refX = cursor.x;
+  let refY = cursor.y;
+  if (dir !== priorDir) {
+    const priorVec = VECTORS[priorDir];
+    refX += priorVec.x * (perp / 2);
+    refY += priorVec.y * (perp / 2);
+  }
+
+  const b = box(refX, refY, dir, footprint, perp);
+  const step = footprint + GAP;
+  const next: Cursor = { x: refX + vec.x * step, y: refY + vec.y * step, dir };
+
+  return { placed: { ...b, rotate: b.width === TILE_SHORT }, next };
+}
+
+// (Re)seeds `state` treating board.tiles[0] as the opening, centered tile
+// and every subsequent tile as a rightward/downward-spiral extension. Used
+// both for the very first tile of a round and as a fallback if the board's
+// tiles ever change in a way that isn't recognized as simple growth (e.g. a
+// resync).
+function seed(state: LayoutState, board: BoardState, half: number, keys: string[]) {
+  const first = board.tiles[0];
+  const isDouble = first.left === first.right;
+  const footprint = isDouble ? TILE_SHORT : TILE_LONG;
+  const perp = isDouble ? TILE_LONG : TILE_SHORT;
+  const b = box(-footprint / 2, 0, "R", footprint, perp);
+  state.placed.set(keys[0], { ...b, rotate: b.width === TILE_SHORT });
+  state.bottom = { x: footprint / 2 + GAP, y: 0, dir: "R" };
+  state.top = { x: -footprint / 2 - GAP, y: 0, dir: "L" };
+
+  for (let i = 1; i < board.tiles.length; i++) {
+    const { placed, next } = place(state.bottom, board.tiles[i], half);
+    state.placed.set(keys[i], placed);
+    state.bottom = next;
+  }
+  state.order = keys;
+}
+
+export function useBoardLayout(board: BoardState, opts: { canvas: number }): BoardLayout | null {
+  const half = Math.max(TILE_LONG, opts.canvas) / 2;
+  const stateRef = useRef<LayoutState | null>(null);
+
+  if (board.tiles.length === 0) {
+    stateRef.current = null;
+    return null;
+  }
+
+  const state = stateRef.current ?? (stateRef.current = emptyState());
+  const keys = board.tiles.map(tileToString);
+
+  const grewOnBottom =
+    state.order.length > 0 &&
+    keys.length >= state.order.length &&
+    keys.slice(0, state.order.length).join("|") === state.order.join("|");
+  const grewOnTop =
+    !grewOnBottom &&
+    state.order.length > 0 &&
+    keys.length >= state.order.length &&
+    keys.slice(keys.length - state.order.length).join("|") === state.order.join("|");
+
+  if (state.order.length === 0) {
+    seed(state, board, half, keys);
+  } else if (grewOnBottom) {
+    for (let i = state.order.length; i < keys.length; i++) {
+      const { placed, next } = place(state.bottom, board.tiles[i], half);
+      state.placed.set(keys[i], placed);
+      state.bottom = next;
+    }
+    state.order = keys;
+  } else if (grewOnTop) {
+    const grewCount = keys.length - state.order.length;
+    // Prepended tiles appear at indices [0, grewCount) in board order, but
+    // the one *closest* to the previously-known chain (index grewCount - 1)
+    // is the one that actually attaches to it, so it must be placed first.
+    for (let i = grewCount - 1; i >= 0; i--) {
+      const { placed, next } = place(state.top, board.tiles[i], half);
+      state.placed.set(keys[i], placed);
+      state.top = next;
+    }
+    state.order = keys;
+  } else if (keys.join("|") !== state.order.join("|")) {
+    // Board changed in a way that isn't simple growth (new round, resync) —
+    // rebuild from scratch rather than show stale positions.
+    stateRef.current = emptyState();
+    seed(stateRef.current, board, half, keys);
+  }
+
+  return buildLayout(board, stateRef.current);
+}
+
+function buildLayout(board: BoardState, state: LayoutState): BoardLayout {
+  const boxes = Array.from(state.placed.values());
+  const minLeft = Math.min(0, ...boxes.map((b) => b.left));
+  const minTop = Math.min(0, ...boxes.map((b) => b.top));
+  const maxRight = Math.max(0, ...boxes.map((b) => b.left + b.width));
+  const maxBottom = Math.max(0, ...boxes.map((b) => b.top + b.height));
+
+  const tiles: LaidOutTile[] = board.tiles.map((tile) => {
+    const key = tileToString(tile);
+    const p = state.placed.get(key)!;
+    return { key, tile, rotate: p.rotate, left: p.left - minLeft, top: p.top - minTop };
+  });
+
+  const slotBox = (cursor: Cursor): EndSlotPixel => {
+    const b = box(cursor.x, cursor.y, cursor.dir, SLOT_SIZE, SLOT_SIZE);
+    return { left: b.left - minLeft, top: b.top - minTop };
+  };
+
+  return {
+    width: maxRight - minLeft,
+    height: maxBottom - minTop,
+    tiles,
+    leftEndSlot: slotBox(state.top),
+    rightEndSlot: slotBox(state.bottom),
+  };
+}

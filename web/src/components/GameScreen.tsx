@@ -3,12 +3,16 @@
 import { useState } from "react";
 import { Board } from "./Board";
 import { Hand } from "./Hand";
+import { PlayersPanel } from "./PlayersPanel";
 import { TurnIndicator } from "./TurnIndicator";
 import { BoardState, legalSides } from "@/lib/board";
-import { RoundResult, Side, Tile } from "@/lib/types";
+import { LobbyModel, RoundResult, Side, Tile } from "@/lib/types";
 
 interface GameScreenProps {
   userID: string | undefined;
+  lobby: LobbyModel;
+  playerOrder: string[];
+  handCounts: Record<string, number>;
   board: BoardState;
   hand: Tile[];
   currentTurn: string | null;
@@ -17,7 +21,18 @@ interface GameScreenProps {
   pass: () => void;
 }
 
-export function GameScreen({ userID, board, hand, currentTurn, roundResult, playTile, pass }: GameScreenProps) {
+export function GameScreen({
+  userID,
+  lobby,
+  playerOrder,
+  handCounts,
+  board,
+  hand,
+  currentTurn,
+  roundResult,
+  playTile,
+  pass,
+}: GameScreenProps) {
   const [selectedTile, setSelectedTile] = useState<Tile | null>(null);
   const isYourTurn = !!currentTurn && currentTurn === userID;
 
@@ -39,7 +54,7 @@ export function GameScreen({ userID, board, hand, currentTurn, roundResult, play
   const dropSides = selectedTile ? legalSides(board, selectedTile) : [];
 
   return (
-    <div className="flex w-full max-w-3xl flex-col gap-4 p-4">
+    <div className="flex w-full max-w-5xl flex-col gap-4 p-4">
       <TurnIndicator
         currentTurn={currentTurn}
         userID={userID}
@@ -47,16 +62,18 @@ export function GameScreen({ userID, board, hand, currentTurn, roundResult, play
         roundResult={roundResult}
         onPass={pass}
       />
-      <Board
-        board={board}
-        canPlayLeft={dropSides.includes("left")}
-        canPlayRight={dropSides.includes("right")}
-        onDropEnd={(side) => {
-          if (!selectedTile) return;
-          playTile(selectedTile, side);
-          setSelectedTile(null);
-        }}
-      />
+      <PlayersPanel players={lobby.players} playerOrder={playerOrder} handCounts={handCounts} currentTurn={currentTurn} userID={userID}>
+        <Board
+          board={board}
+          canPlayLeft={dropSides.includes("left")}
+          canPlayRight={dropSides.includes("right")}
+          onDropEnd={(side) => {
+            if (!selectedTile) return;
+            playTile(selectedTile, side);
+            setSelectedTile(null);
+          }}
+        />
+      </PlayersPanel>
       <Hand tiles={hand} selectedTile={selectedTile} isYourTurn={isYourTurn} onSelect={handleSelect} />
     </div>
   );

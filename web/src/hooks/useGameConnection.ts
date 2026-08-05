@@ -14,6 +14,9 @@ interface GameConnectionState {
   roundResult: RoundResult | null;
   error: string | null;
   playerConnectivity: Record<string, boolean>;
+  // userID -> remaining tile count, for every seat (opponents included —
+  // their actual tiles are private and never sent to other clients).
+  handCounts: Record<string, number>;
 }
 
 const initialState: GameConnectionState = {
@@ -26,6 +29,7 @@ const initialState: GameConnectionState = {
   roundResult: null,
   error: null,
   playerConnectivity: {},
+  handCounts: {},
 };
 
 // Mirrors web/src/hooks/useRiderStreamConnection.ts's shape: connect in a
@@ -56,8 +60,16 @@ export function useGameConnection(lobbyID: string | undefined, wsToken: string |
 
       switch (message.type) {
         case GameEvents.GameStarted: {
-          const { playerOrder, currentTurn } = message.data;
-          setState((s) => ({ ...s, gameStarted: true, playerOrder, currentTurn, board: emptyBoard, roundResult: null }));
+          const { playerOrder, currentTurn, handsSize } = message.data;
+          setState((s) => ({
+            ...s,
+            gameStarted: true,
+            playerOrder,
+            currentTurn,
+            board: emptyBoard,
+            roundResult: null,
+            handCounts: handsSize ?? {},
+          }));
           break;
         }
         case GameEvents.HandDealt: {
@@ -67,12 +79,16 @@ export function useGameConnection(lobbyID: string | undefined, wsToken: string |
           break;
         }
         case GameEvents.PlayerMoveMade: {
-          const { tile, side, next_turn, round_result } = message.data;
+          const { userID: actorID, tile, side, next_turn, round_result } = message.data;
           setState((s) => ({
             ...s,
             board: applyMove(s.board, tile, side as Side),
             currentTurn: next_turn,
             roundResult: round_result ?? s.roundResult,
+            handCounts: {
+              ...s.handCounts,
+              [actorID]: Math.max(0, (s.handCounts[actorID] ?? 0) - 1),
+            },
           }));
           break;
         }
