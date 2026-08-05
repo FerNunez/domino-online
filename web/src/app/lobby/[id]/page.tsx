@@ -46,15 +46,22 @@ export default function LobbyPage({ params }: { params: Promise<{ id: string }> 
   if (conn.gameStarted) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center">
-        <GameScreen
-          userID={userID}
-          board={conn.board}
-          hand={conn.hand}
-          currentTurn={conn.currentTurn}
-          roundResult={conn.roundResult}
-          playTile={conn.playTile}
-          pass={conn.pass}
-        />
+        {lobby ? (
+          <GameScreen
+            userID={userID}
+            lobby={lobby}
+            playerOrder={conn.playerOrder}
+            handCounts={conn.handCounts}
+            board={conn.board}
+            hand={conn.hand}
+            currentTurn={conn.currentTurn}
+            roundResult={conn.roundResult}
+            playTile={conn.playTile}
+            pass={conn.pass}
+          />
+        ) : (
+          <p className="text-sm text-muted-foreground">Loading players…</p>
+        )}
       </main>
     );
   }
