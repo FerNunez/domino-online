@@ -3,6 +3,7 @@ package domain
 import (
 	"context"
 	pbl "domino/shared/proto/lobby"
+	"sort"
 )
 
 type LobbyStatus string
@@ -27,12 +28,12 @@ func (ls LobbyStatus) ToProto() pbl.LobbyStatus {
 }
 
 type LobbyModel struct {
-	ID         string         `bson:"id"`
-	HostID     string         `bson:"hostID"`
-	Status     LobbyStatus    `bson:"status"`
-	Players    []*PlayerModel `bson:"players"`
-	MaxPlayers int            `bson:"maxPlayers"`
-	Settings   LobbySettings  `bson:"settings"`
+	ID         string                  `bson:"id"`
+	HostID     string                  `bson:"hostID"`
+	Status     LobbyStatus             `bson:"status"`
+	Players    map[string]*PlayerModel `bson:"players"` // userID -> PlayerModel
+	MaxPlayers int                     `bson:"maxPlayers"`
+	Settings   LobbySettings           `bson:"settings"`
 }
 
 type PlayerModel struct {
@@ -47,9 +48,20 @@ type LobbySettings struct {
 	TurnTimerSeconds int `bson:"TurnTimerSeconds"`
 }
 
+// SortedPlayers returns players ordered by Slot
+func (l *LobbyModel) SortedPlayers() []*PlayerModel {
+	players := make([]*PlayerModel, 0, len(l.Players))
+	for _, p := range l.Players {
+		players = append(players, p)
+	}
+	sort.Slice(players, func(i, j int) bool { return players[i].Slot < players[j].Slot })
+	return players
+}
+
 func (l *LobbyModel) ToProto() *pbl.Lobby {
-	protoPlayers := make([]*pbl.Player, len(l.Players))
-	for i, p := range l.Players {
+	sorted := l.SortedPlayers()
+	protoPlayers := make([]*pbl.Player, len(sorted))
+	for i, p := range sorted {
 		protoPlayers[i] = p.ToProto()
 	}
 	return &pbl.Lobby{
@@ -76,13 +88,12 @@ func (p *PlayerModel) ToProto() *pbl.Player {
 
 type LobbyRepository interface {
 	CreateLobby(ctx context.Context, l *LobbyModel) (*LobbyModel, error)
-	//StartLobby(ctx context.Context, id string) error
-
 	GetLobbyByID(ctx context.Context, id string) (*LobbyModel, error)
-	// TODO: UpdateLobby(ctx context.Context, lobbyID string, status string, driver *pbd.Driver) error
 
-	UpdateLobby(ctx context.Context, id string, l *LobbyModel) (*LobbyModel, error)
-	//AddPlayer(ctx context.Context, id string, p *PlayerModel) (*LobbyModel, error)
+	SetStatus(ctx context.Context, lobbyID string, status LobbyStatus) error // used for StartLobby for example
+
+	AddPlayer(ctx context.Context, lobbyID string, p *PlayerModel) error
+	SetPlayerConnection(ctx context.Context, lobbyID string, userID string, connected bool) error
 }
 
 type LobbyService interface {

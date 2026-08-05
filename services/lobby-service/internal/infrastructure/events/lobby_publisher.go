@@ -20,8 +20,9 @@ func NewLobbyEventPublisher(rmq *messaging.RabbitMQ) *LobbyEventPublisher {
 
 // Publishes contracts.GameStartCmd with starting player ID
 func (p *LobbyEventPublisher) PublishStartGame(ctx context.Context, lobby *domain.LobbyModel) error {
-	playersID := make([]string, len(lobby.Players))
-	for idx, p := range lobby.Players {
+	sorted := lobby.SortedPlayers()
+	playersID := make([]string, len(sorted))
+	for idx, p := range sorted {
 		playersID[idx] = p.ID
 	}
 	payload := messaging.GameStartCmd{
