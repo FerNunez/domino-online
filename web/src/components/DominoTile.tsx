@@ -28,6 +28,10 @@ function PipHalf({ value }: { value: number }) {
 interface DominoTileProps {
   tile: Tile;
   size?: "sm" | "md" | "lg";
+  // True for doubles laid across the chain, as in real play — rotates the
+  // whole tile 90° as a rigid piece (pip halves stay left/right internally,
+  // they just read as top/bottom once rotated).
+  rotate?: boolean;
   selected?: boolean;
   disabled?: boolean;
   onClick?: () => void;
@@ -40,27 +44,38 @@ const SIZE_CLASSES: Record<NonNullable<DominoTileProps["size"]>, string> = {
   lg: "h-16 w-32",
 };
 
-export function DominoTile({ tile, size = "md", selected, disabled, onClick, className }: DominoTileProps) {
+// h/w swapped so a rotated tile's bounding box reflects its actual footprint
+// in the layout (a rotated "sm" tile is 40px wide, not 80px).
+const ROTATED_SIZE_CLASSES: Record<NonNullable<DominoTileProps["size"]>, string> = {
+  sm: "h-20 w-10",
+  md: "h-28 w-14",
+  lg: "h-32 w-16",
+};
+
+export function DominoTile({ tile, size = "md", rotate, selected, disabled, onClick, className }: DominoTileProps) {
   const interactive = !!onClick && !disabled;
   return (
-    <div
-      role={interactive ? "button" : undefined}
-      tabIndex={interactive ? 0 : undefined}
-      onClick={interactive ? onClick : undefined}
-      onKeyDown={interactive ? (e) => (e.key === "Enter" || e.key === " ") && onClick?.() : undefined}
-      className={cn(
-        "flex overflow-hidden rounded-md border-2 bg-card shadow-sm transition-all duration-150",
-        SIZE_CLASSES[size],
-        interactive && "cursor-pointer hover:-translate-y-1 hover:shadow-md",
-        selected && "-translate-y-2 border-primary shadow-md",
-        disabled && "opacity-40",
-        !selected && !disabled && "border-border",
-        className
-      )}
-    >
-      <PipHalf value={tile.left} />
-      <div className="w-px shrink-0 bg-border" />
-      <PipHalf value={tile.right} />
+    <div className={cn("flex shrink-0 items-center justify-center", rotate ? ROTATED_SIZE_CLASSES[size] : undefined)}>
+      <div
+        role={interactive ? "button" : undefined}
+        tabIndex={interactive ? 0 : undefined}
+        onClick={interactive ? onClick : undefined}
+        onKeyDown={interactive ? (e) => (e.key === "Enter" || e.key === " ") && onClick?.() : undefined}
+        className={cn(
+          "flex shrink-0 overflow-hidden rounded-md border-2 bg-card shadow-sm transition-all duration-150",
+          SIZE_CLASSES[size],
+          rotate && "rotate-90",
+          interactive && "cursor-pointer hover:-translate-y-1 hover:shadow-md",
+          selected && "-translate-y-2 border-primary shadow-md",
+          disabled && "opacity-40",
+          !selected && !disabled && "border-border",
+          className
+        )}
+      >
+        <PipHalf value={tile.left} />
+        <div className="w-px shrink-0 bg-border" />
+        <PipHalf value={tile.right} />
+      </div>
     </div>
   );
 }
