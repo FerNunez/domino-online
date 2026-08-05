@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { WEBSOCKET_URL } from "@/lib/constants";
-import { GameEvents, isValidServerWsMessage, ServerWsMessage } from "@/lib/contracts";
+import { GameEvents, isValidServerWsMessage, LobbyEvents, ServerWsMessage } from "@/lib/contracts";
 import { applyMove, BoardState, emptyBoard } from "@/lib/board";
 import { parseTileString, RoundResult, Side, Tile } from "@/lib/types";
 
@@ -13,6 +13,7 @@ interface GameConnectionState {
   board: BoardState;
   roundResult: RoundResult | null;
   error: string | null;
+  playerConnectivity: Record<string, boolean>;
 }
 
 const initialState: GameConnectionState = {
@@ -24,6 +25,7 @@ const initialState: GameConnectionState = {
   board: emptyBoard,
   roundResult: null,
   error: null,
+  playerConnectivity: {},
 };
 
 // Mirrors web/src/hooks/useRiderStreamConnection.ts's shape: connect in a
@@ -89,6 +91,16 @@ export function useGameConnection(lobbyID: string | undefined, wsToken: string |
         }
         case GameEvents.PassTurnResponse:
           break;
+        case LobbyEvents.PlayerConnected: {
+          const { userID } = message.data;
+          setState((s) => ({ ...s, playerConnectivity: { ...s.playerConnectivity, [userID]: true } }));
+          break;
+        }
+        case LobbyEvents.PlayerDisconnected: {
+          const { userID } = message.data;
+          setState((s) => ({ ...s, playerConnectivity: { ...s.playerConnectivity, [userID]: false } }));
+          break;
+        }
       }
     };
 

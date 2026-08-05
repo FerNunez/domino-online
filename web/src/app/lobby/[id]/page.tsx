@@ -4,7 +4,7 @@ import { use, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { LobbyRoster } from "@/components/LobbyRoster";
 import { GameScreen } from "@/components/GameScreen";
-import { useLobbyPolling } from "@/hooks/useLobbyPolling";
+import { useLobbySnapshot } from "@/hooks/useLobbySnapshot";
 import { useGameConnection } from "@/hooks/useGameConnection";
 import { getStoredToken, getStoredWsToken, startLobby } from "@/lib/api";
 import { decodeJwtUserId } from "@/lib/jwt";
@@ -26,7 +26,7 @@ export default function LobbyPage({ params }: { params: Promise<{ id: string }> 
     setWsToken(getStoredWsToken(lobbyID) ?? undefined);
   }, [lobbyID]);
 
-  const { lobby, error: lobbyError } = useLobbyPolling(lobbyID);
+  const { lobby, error: lobbyError } = useLobbySnapshot(lobbyID);
   const conn = useGameConnection(lobbyID, wsToken, userID);
 
   const isHost = !!lobby && !!userID && lobby.hostId === userID;
@@ -65,7 +65,7 @@ export default function LobbyPage({ params }: { params: Promise<{ id: string }> 
       <p className="text-sm text-muted-foreground">Share this lobby ID with 3 friends to fill the table.</p>
 
       {lobby ? (
-        <LobbyRoster lobby={lobby} />
+        <LobbyRoster lobby={lobby} playerConnectivity={conn.playerConnectivity} />
       ) : (
         <p className="text-sm text-muted-foreground">Loading lobby…</p>
       )}

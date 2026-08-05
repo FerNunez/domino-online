@@ -103,3 +103,8 @@ export interface PlayTileResponseData {
 export interface PassTurnResponseData {
   roundResult?: RoundResult;
 }
+
+export interface PlayerConnectionData {
+  userID: string;
+  lobbyID: string;
+}
