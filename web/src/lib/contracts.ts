@@ -7,6 +7,7 @@ import {
   HandDealtData,
   MoveMadeData,
   PassTurnResponseData,
+  PlayerConnectionData,
   PlayerPassedData,
   PlayTileResponseData,
   Side,
@@ -24,6 +25,15 @@ export enum GameEvents {
   PassTurnCmd = "game.cmd.pass",
 }
 
+// Relayed verbatim by the gateway from lobby.player_connected /
+// lobby.player_disconnected (see services/api-gateway/ws.go); the gateway's
+// own AMQP queue is bound to "lobby.*" so these already reach the browser
+// today, they were just previously dropped by isValidServerWsMessage.
+export enum LobbyEvents {
+  PlayerConnected = "lobby.player_connected",
+  PlayerDisconnected = "lobby.player_disconnected",
+}
+
 // Messages sent from the server to the client via the websocket.
 export type ServerWsMessage =
   | { type: GameEvents.GameStarted; data: GameStartedData }
@@ -31,7 +41,9 @@ export type ServerWsMessage =
   | { type: GameEvents.PlayerMoveMade; data: MoveMadeData }
   | { type: GameEvents.PlayerPassed; data: PlayerPassedData }
   | { type: GameEvents.PlayTileResponse; data: PlayTileResponseData }
-  | { type: GameEvents.PassTurnResponse; data: PassTurnResponseData };
+  | { type: GameEvents.PassTurnResponse; data: PassTurnResponseData }
+  | { type: LobbyEvents.PlayerConnected; data: PlayerConnectionData }
+  | { type: LobbyEvents.PlayerDisconnected; data: PlayerConnectionData };
 
 // Messages sent from the client to the server via the websocket.
 export type ClientWsMessage =
@@ -42,8 +54,12 @@ export function isValidGameEvent(event: string): event is GameEvents {
   return Object.values(GameEvents).includes(event as GameEvents);
 }
 
+export function isValidLobbyEvent(event: string): event is LobbyEvents {
+  return Object.values(LobbyEvents).includes(event as LobbyEvents);
+}
+
 export function isValidServerWsMessage(message: {
   type: string;
 }): message is ServerWsMessage {
-  return isValidGameEvent(message.type);
+  return isValidGameEvent(message.type) || isValidLobbyEvent(message.type);
 }
