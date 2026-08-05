@@ -17,7 +17,7 @@ import (
 // NOTE: connManager is a package-level singleton shared by all WebSocket handlers
 // All handlers in the same process share one connection map, enablig cross-handler message delivery(eg. a RabbitMQ consumer pushing to UserID whose connection was registered by handleLobbyWebsocket
 
-func handleLobbyWebsocket(w http.ResponseWriter, r *http.Request) {
+func handleLobbyWebsocket(w http.ResponseWriter, r *http.Request, rmq *messaging.RabbitMQ) {
 	// check inputs: lobbyID, claimID
 	lobbyID := r.PathValue("id")
 	if lobbyID == "" {
@@ -44,14 +44,11 @@ func handleLobbyWebsocket(w http.ResponseWriter, r *http.Request) {
 	defer conn.Close()
 
 	// Add in Manager
-	connManager.AddToLobby(lobbyID, claims.UserID)
-	defer connManager.RemoveFromLobby(lobbyID, claims.UserID)
+	connManager.AddToLobby(claims.LobbyID, claims.UserID)
 	connManager.Add(claims.UserID, conn)
-	defer connManager.Remove(claims.UserID)
 
 	// NOTE: broadcast/target events (lobby.*, game.*) reach connManager via the
 	// single gateway-wide consumer started once in main.go, not per connection here.
-
 	// Create Game GRPC Client
 	gameSvc, err := grpc_clients.NewGameServiceClient()
 	if err != nil {
@@ -59,6 +56,54 @@ func handleLobbyWebsocket(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
+	// Prepare msg to publish PlayerConnected
+	playerConnectedMsg := messaging.PlayerConnectedData{
+		UserID:  claims.UserID,
+		LobbyID: claims.LobbyID,
+	}
+	data, err := json.Marshal(playerConnectedMsg)
+	if err != nil {
+		fmt.Printf("couldn't marshal joined player: %v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	// Publish player conenctedbefore connect
+	if err := rmq.PublishMessage(r.Context(), contracts.PlayerConnected, &contracts.DominoEvent{
+		LobbyID:  claims.LobbyID,
+		TargetID: "",
+		Data:     data,
+	}); err != nil {
+		fmt.Printf("couldn't notify player: %v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	// This defer function runs when the websocket is dropt. Need to clean up and inform
+	defer func() {
+		// clean up:
+		connManager.RemoveFromLobby(claims.LobbyID, claims.UserID)
+		connManager.Remove(claims.UserID)
+		// Prepare msg to publish Disconnect
+		playerDisonnectedMsg := messaging.PlayerDisconnectedData{
+			UserID:  claims.UserID,
+			LobbyID: claims.LobbyID,
+		}
+		data, err := json.Marshal(playerDisonnectedMsg)
+		if err != nil {
+			log.Printf("couldn't marshal disconnected player: %v", err)
+			return
+		}
+		// Publish player disconnected
+		if err := rmq.PublishMessage(r.Context(), contracts.PlayerDisconnected, &contracts.DominoEvent{
+			LobbyID:  claims.LobbyID,
+			TargetID: "",
+			Data:     data,
+		}); err != nil {
+			log.Printf("couldn't notify player disconnected: %v", err)
+			return
+		}
+	}()
 
 	// Read loop => read each user msg => check type and handle it accordingly
 	for {
@@ -78,6 +123,8 @@ func handleLobbyWebsocket(w http.ResponseWriter, r *http.Request) {
 			log.Printf("Error unmarshaling player message: %v", err)
 			continue
 		}
+
+		log.Printf("%v: got message %v", claims.UserID, playerMsg)
 
 		// Handle by Msg Type
 		switch playerMsg.Type {

@@ -117,7 +117,7 @@ func (r *RabbitMQ) ConsumeMessages(queueName string, handler MessageHandler) err
 
 // PublishMessage marshals message as JSON and publishes it to the trip exchange with the routing key.
 // The msg is persistent
-func (r *RabbitMQ) PublishMessage(ctx context.Context, routingKey string, message contracts.DominoEvent) error {
+func (r *RabbitMQ) PublishMessage(ctx context.Context, routingKey string, message *contracts.DominoEvent) error {
 	log.Printf("Publishing message with routing key: %s", routingKey)
 	jsonMsg, err := json.Marshal(message)
 	if err != nil {

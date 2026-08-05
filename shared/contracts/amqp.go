@@ -18,6 +18,9 @@ const (
 	PlayerLeftLobby   = "lobby.player_left"    //  {userID, playerCount}
 	GameStartCmd      = "lobby.cmd.game_start" //
 
+	PlayerConnected    = "lobby.player_connected"    // {userID}
+	PlayerDisconnected = "lobby.player_disconnected" // {userID}
+
 	// Private event
 	HandDealt = "game.hand_dealt" // targeted to userID, {tiles: [...]}
 

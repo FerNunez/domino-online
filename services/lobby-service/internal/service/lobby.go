@@ -78,7 +78,7 @@ func (s *service) StartLobby(ctx context.Context, lobbyID string, userID string)
 		lobby.Status = domain.LobbyStatusInGame
 		lobby, err = s.repo.UpdateLobby(ctx, lobbyID, lobby)
 		if err != nil {
-			return nil, fmt.Errorf("couldn't update lobby state")
+			return nil, fmt.Errorf("couldn't update lobby state: %w", err)
 		}
 	default:
 		return nil, fmt.Errorf("wrong lobby state transition")
@@ -92,4 +92,51 @@ func (s *service) GetLobby(ctx context.Context, lobbyID string) (*domain.LobbyMo
 		return nil, fmt.Errorf("couldn't get lobby: %w", err)
 	}
 	return lobby, nil
+}
+
+func (s *service) SetPlayerConnected(ctx context.Context, lobbyID string, userID string) error {
+	lobby, err := s.GetLobby(ctx, lobbyID)
+	if err != nil {
+		return fmt.Errorf("failed to get lobby : %v", err)
+	}
+
+	found := false
+	for idx := range lobby.Players {
+		if lobby.Players[idx].ID == userID {
+			lobby.Players[idx].IsConnected = true
+			found = true
+			break
+		}
+	}
+	if !found {
+		return fmt.Errorf("player %s not found in lobby %s", userID, lobbyID)
+	}
+	_, err = s.repo.UpdateLobby(ctx, lobbyID, lobby)
+	if err != nil {
+		return fmt.Errorf("couldn't update lobby state: %w", err)
+	}
+	return nil
+}
+func (s *service) SetPlayerDisconnected(ctx context.Context, lobbyID string, userID string) error {
+	lobby, err := s.GetLobby(ctx, lobbyID)
+	if err != nil {
+		return fmt.Errorf("failed to get lobby : %v", err)
+	}
+
+	found := false
+	for idx := range lobby.Players {
+		if lobby.Players[idx].ID == userID {
+			lobby.Players[idx].IsConnected = false
+			found = true
+			break
+		}
+	}
+	if !found {
+		return fmt.Errorf("player %s not found in lobby %s", userID, lobbyID)
+	}
+	_, err = s.repo.UpdateLobby(ctx, lobbyID, lobby)
+	if err != nil {
+		return fmt.Errorf("couldn't update lobby state: %w", err)
+	}
+	return nil
 }
