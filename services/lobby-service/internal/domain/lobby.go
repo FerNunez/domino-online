@@ -90,4 +90,7 @@ type LobbyService interface {
 	JoinLobby(ctx context.Context, lobbyID string, userID string) (*LobbyModel, error)
 	StartLobby(ctx context.Context, lobbyID string, userID string) (*LobbyModel, error)
 	GetLobby(ctx context.Context, lobbyID string) (*LobbyModel, error)
+
+	SetPlayerConnected(ctx context.Context, lobbyID string, userID string) error
+	SetPlayerDisconnected(ctx context.Context, lobbyID string, userID string) error
 }

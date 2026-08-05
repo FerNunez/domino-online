@@ -80,7 +80,7 @@ func (c *gameConsumer) handleGameStarted(ctx context.Context, lobbyID string, pa
 	}
 
 	// Publish: Game Created/ Started
-	if err := c.rabbitmq.PublishMessage(ctx, contracts.GameStarted, contracts.DominoEvent{
+	if err := c.rabbitmq.PublishMessage(ctx, contracts.GameStarted, &contracts.DominoEvent{
 		LobbyID:  lobbyID,
 		Data:     data,
 		TargetID: "",
@@ -108,7 +108,7 @@ func (c *gameConsumer) handleGameStarted(ctx context.Context, lobbyID string, pa
 		if err != nil {
 			return err
 		}
-		if err := c.rabbitmq.PublishMessage(ctx, contracts.HandDealt, contracts.DominoEvent{
+		if err := c.rabbitmq.PublishMessage(ctx, contracts.HandDealt, &contracts.DominoEvent{
 			LobbyID:  lobbyID,
 			Data:     data,
 			TargetID: playerID, // target

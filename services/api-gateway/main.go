@@ -52,7 +52,9 @@ func main() {
 		mux.Handle("OPTIONS "+path, corsPreflight)
 	}
 
-	mux.Handle("/lobbies/{id}/ws", tracing.WrapHandlerFunc(handleLobbyWebsocket, "/lobby/ws"))
+	mux.Handle("/lobbies/{id}/ws", tracing.WrapHandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handleLobbyWebsocket(w, r, rabbitmq)
+	}, "/lobby/ws"))
 
 	server := &http.Server{
 		Addr:    httpAddr,

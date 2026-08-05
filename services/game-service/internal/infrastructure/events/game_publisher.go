@@ -35,7 +35,7 @@ func (p *GameEventPublisher) PublishMoveMade(ctx context.Context, req *pbg.PlayT
 	}
 
 	// Publish to MoveMade
-	return p.rabbitmq.PublishMessage(ctx, contracts.PlayerMoveMade, contracts.DominoEvent{
+	return p.rabbitmq.PublishMessage(ctx, contracts.PlayerMoveMade, &contracts.DominoEvent{
 		LobbyID:  game.LobbyID,
 		TargetID: "",
 		Data:     data,
@@ -55,7 +55,7 @@ func (p *GameEventPublisher) PublishTurnChanged(ctx context.Context, req *pbg.Pa
 	}
 
 	// Publish to MoveMade
-	return p.rabbitmq.PublishMessage(ctx, contracts.PlayerPassed, contracts.DominoEvent{
+	return p.rabbitmq.PublishMessage(ctx, contracts.PlayerPassed, &contracts.DominoEvent{
 		LobbyID:  game.LobbyID,
 		TargetID: "",
 		Data:     data,

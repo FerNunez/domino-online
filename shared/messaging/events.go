@@ -21,6 +21,16 @@ type PlayerLeftData struct {
 	PlayerCount int    `json:"playerCount"`
 }
 
+type PlayerConnectedData struct {
+	UserID  string `json:"userID"`
+	LobbyID string `json:"lobbyID"`
+}
+
+type PlayerDisconnectedData struct {
+	UserID  string `json:"userID"`
+	LobbyID string `json:"lobbyID"`
+}
+
 type GameStartCmd struct {
 	PlayersID []string `json:"playerID"`
 }
