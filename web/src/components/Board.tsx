@@ -24,14 +24,19 @@ export function Board({ board, canPlayLeft, canPlayRight, onDropEnd }: BoardProp
   const layout = useBoardLayout(board, { canvas: CANVAS });
 
   return (
-    <div className="flex min-h-32 w-full items-center justify-center overflow-auto rounded-lg border bg-muted/30 p-6">
+    <div className="flex w-full items-center justify-center overflow-auto rounded-lg p-6">
       {!layout ? (
-        <p className="text-sm text-muted-foreground">Board is empty — play any tile to start</p>
+        <div className="flex min-h-32 w-full max-w-3xl items-center justify-center rounded-2xl border-4 border-amber-900/20 bg-emerald-800/10 p-6 dark:border-amber-100/10 dark:bg-emerald-900/20">
+          <p className="text-sm text-muted-foreground">Board is empty — play any tile to start</p>
+        </div>
       ) : (
-        <div className="relative" style={{ width: layout.width, height: layout.height }}>
+        <div
+          className="relative shrink-0 rounded-2xl border-4 border-amber-900/20 bg-emerald-800/10 shadow-inner dark:border-amber-100/10 dark:bg-emerald-900/20"
+          style={{ width: layout.width, height: layout.height }}
+        >
           {layout.tiles.map((lt) => (
             <div key={lt.key} className="absolute" style={{ left: lt.left, top: lt.top }}>
-              <DominoTile tile={lt.tile} size="sm" rotate={lt.rotate} />
+              <DominoTile tile={lt.tile} size="sm" rotation={lt.rotation} />
             </div>
           ))}
           {canPlayLeft && (

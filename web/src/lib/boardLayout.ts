@@ -42,11 +42,16 @@ const TILE_LONG = 80; // footprint along the direction of travel, laid straight
 const TILE_SHORT = 40; // footprint along the direction of travel, laid crosswise
 const GAP = 4; // matches Tailwind's gap-1
 const SLOT_SIZE = 40; // EndSlot button diameter
+// Breathing room kept between the outermost tile edge and the felt border —
+// place()/seed() are bounded to `canvasHalf - MARGIN`, while the rendered
+// canvas itself stays the full `canvasHalf * 2`, so tiles visibly stop short
+// of the rim instead of touching or crossing it.
+const MARGIN = 40;
 
 export interface LaidOutTile {
   key: string;
   tile: Tile;
-  rotate: boolean;
+  rotation: number;
   left: number;
   top: number;
 }
@@ -74,6 +79,27 @@ const VECTORS: Record<Dir, { x: number; y: number }> = {
 // 90° counter-clockwise.
 const ROTATE_CCW: Record<Dir, Dir> = { R: "U", U: "L", L: "D", D: "R" };
 
+// Screen-clockwise angle (E=0, S=90, W=180, N=270) that a non-double tile
+// must be rotated to so its "open" pip half — the one that continues the
+// chain further outward — faces the direction the arm is currently
+// traveling. DominoTile always draws tile.left/tile.right as a west/east
+// pair before any rotation is applied, and board.ts's applyMove defines
+// which of those two values is "open" differently per side (see below), so
+// the same travel direction needs a different rotation on each side.
+const FORWARD_ANGLE: Record<Dir, number> = { R: 0, D: 90, L: 180, U: 270 };
+
+// `side` mirrors board.ts's applyMove: the bottom cursor grows the chain's
+// right/open end (where a played tile's *right* value is the new open end
+// and *left* is what connects backward), the top cursor grows the left/open
+// end (mirrored — *left* is open, *right* connects backward). Doubles show
+// the same pip both halves, so their rotation only needs to satisfy the
+// footprint's aspect ratio, not this forward/backward pip placement.
+function computeRotation(isDouble: boolean, width: number, side: "top" | "bottom", dir: Dir): number {
+  if (isDouble) return width === TILE_SHORT ? 90 : 0;
+  const forward = FORWARD_ANGLE[dir];
+  return side === "bottom" ? forward : (forward + 180) % 360;
+}
+
 interface Cursor {
   x: number;
   y: number;
@@ -88,7 +114,7 @@ interface Box {
 }
 
 interface Placed extends Box {
-  rotate: boolean;
+  rotation: number;
 }
 
 interface LayoutState {
@@ -120,12 +146,21 @@ function box(x: number, y: number, dir: Dir, footprint: number, perp: number): B
   }
 }
 
-// Advances `cursor` by one tile. If it would cross the canvas border in the
-// cursor's current direction, the direction rotates 90° counter-clockwise
-// (possibly more than once, for a canvas too small to fit even one tile in
-// any direction) and the tile is placed in the new direction instead, from
-// the exact point the cursor stopped.
-function place(cursor: Cursor, tile: Tile, half: number): { placed: Placed; next: Cursor } {
+// Advances `cursor` by one tile. If the tile's full footprint — not just its
+// leading edge along the travel direction — would cross the canvas border,
+// the direction rotates 90° counter-clockwise (possibly more than once, for
+// a canvas too small to fit even one tile in any direction) and the tile is
+// placed in the new direction instead, from the exact point the cursor
+// stopped. Checking the whole box (not just the forward endpoint) matters
+// for the tile that turns: see the refX/refY comment below — the pivot shift
+// can push a turning tile's perpendicular extent past the border even when
+// the straight-line forward check alone would've allowed it.
+function place(
+  cursor: Cursor,
+  tile: Tile,
+  half: number,
+  side: "top" | "bottom"
+): { placed: Placed; next: Cursor } {
   const isDouble = tile.left === tile.right;
   const footprint = isDouble ? TILE_SHORT : TILE_LONG;
   const perp = isDouble ? TILE_LONG : TILE_SHORT;
@@ -133,37 +168,41 @@ function place(cursor: Cursor, tile: Tile, half: number): { placed: Placed; next
   const priorDir = cursor.dir;
   let dir = cursor.dir;
   let vec = VECTORS[dir];
+  let refX = cursor.x;
+  let refY = cursor.y;
+  let b: Box;
   for (let attempt = 0; attempt < 4; attempt++) {
     vec = VECTORS[dir];
-    const endX = cursor.x + vec.x * footprint;
-    const endY = cursor.y + vec.y * footprint;
-    const overflows = vec.x > 0 ? endX > half : vec.x < 0 ? endX < -half : vec.y < 0 ? endY < -half : endY > half;
+
+    // box() centers a tile on (x, y) across its perpendicular axis. That's
+    // right for a tile continuing the same direction — it shares the run's
+    // established centerline — but wrong for the tile that just turned: its
+    // predecessor's footprint occupies the half of that centerline behind
+    // the pivot (the direction we arrived from), so centering on the pivot
+    // would have the new tile's back half overlap it. Shifting the
+    // reference point half a tile-width further in the *prior* direction
+    // makes the new tile's trailing edge land exactly on the pivot instead,
+    // GAP away from what it's turning off of, regardless of either tile's
+    // size.
+    refX = cursor.x;
+    refY = cursor.y;
+    if (dir !== priorDir) {
+      const priorVec = VECTORS[priorDir];
+      refX += priorVec.x * (perp / 2);
+      refY += priorVec.y * (perp / 2);
+    }
+
+    b = box(refX, refY, dir, footprint, perp);
+    const overflows = b.left < -half || b.top < -half || b.left + b.width > half || b.top + b.height > half;
     if (!overflows || attempt === 3) break;
     dir = ROTATE_CCW[dir];
   }
 
-  // box() centers a tile on (x, y) across its perpendicular axis. That's
-  // right for a tile continuing the same direction — it shares the run's
-  // established centerline — but wrong for the tile that just turned: its
-  // predecessor's footprint occupies the half of that centerline behind the
-  // pivot (the direction we arrived from), so centering on the pivot would
-  // have the new tile's back half overlap it. Shifting the reference point
-  // half a tile-width further in the *prior* direction makes the new tile's
-  // trailing edge land exactly on the pivot instead, GAP away from what it's
-  // turning off of, regardless of either tile's size.
-  let refX = cursor.x;
-  let refY = cursor.y;
-  if (dir !== priorDir) {
-    const priorVec = VECTORS[priorDir];
-    refX += priorVec.x * (perp / 2);
-    refY += priorVec.y * (perp / 2);
-  }
-
-  const b = box(refX, refY, dir, footprint, perp);
   const step = footprint + GAP;
   const next: Cursor = { x: refX + vec.x * step, y: refY + vec.y * step, dir };
 
-  return { placed: { ...b, rotate: b.width === TILE_SHORT }, next };
+  const rotation = computeRotation(isDouble, b!.width, side, dir);
+  return { placed: { ...b!, rotation }, next };
 }
 
 // (Re)seeds `state` treating board.tiles[0] as the opening, centered tile
@@ -177,12 +216,12 @@ function seed(state: LayoutState, board: BoardState, half: number, keys: string[
   const footprint = isDouble ? TILE_SHORT : TILE_LONG;
   const perp = isDouble ? TILE_LONG : TILE_SHORT;
   const b = box(-footprint / 2, 0, "R", footprint, perp);
-  state.placed.set(keys[0], { ...b, rotate: b.width === TILE_SHORT });
+  state.placed.set(keys[0], { ...b, rotation: computeRotation(isDouble, b.width, "bottom", "R") });
   state.bottom = { x: footprint / 2 + GAP, y: 0, dir: "R" };
   state.top = { x: -footprint / 2 - GAP, y: 0, dir: "L" };
 
   for (let i = 1; i < board.tiles.length; i++) {
-    const { placed, next } = place(state.bottom, board.tiles[i], half);
+    const { placed, next } = place(state.bottom, board.tiles[i], half, "bottom");
     state.placed.set(keys[i], placed);
     state.bottom = next;
   }
@@ -190,7 +229,12 @@ function seed(state: LayoutState, board: BoardState, half: number, keys: string[
 }
 
 export function useBoardLayout(board: BoardState, opts: { canvas: number }): BoardLayout | null {
-  const half = Math.max(TILE_LONG, opts.canvas) / 2;
+  // `canvasHalf` sizes the rendered surface (buildLayout); `half` is the
+  // smaller boundary tiles are actually placed within, so the outermost
+  // tile stops MARGIN short of the felt edge instead of touching/crossing
+  // it (see place()'s box-overflow check).
+  const canvasHalf = Math.max(TILE_LONG, opts.canvas) / 2;
+  const half = canvasHalf - MARGIN;
   const stateRef = useRef<LayoutState | null>(null);
 
   if (board.tiles.length === 0) {
@@ -215,7 +259,7 @@ export function useBoardLayout(board: BoardState, opts: { canvas: number }): Boa
     seed(state, board, half, keys);
   } else if (grewOnBottom) {
     for (let i = state.order.length; i < keys.length; i++) {
-      const { placed, next } = place(state.bottom, board.tiles[i], half);
+      const { placed, next } = place(state.bottom, board.tiles[i], half, "bottom");
       state.placed.set(keys[i], placed);
       state.bottom = next;
     }
@@ -226,7 +270,7 @@ export function useBoardLayout(board: BoardState, opts: { canvas: number }): Boa
     // the one *closest* to the previously-known chain (index grewCount - 1)
     // is the one that actually attaches to it, so it must be placed first.
     for (let i = grewCount - 1; i >= 0; i--) {
-      const { placed, next } = place(state.top, board.tiles[i], half);
+      const { placed, next } = place(state.top, board.tiles[i], half, "top");
       state.placed.set(keys[i], placed);
       state.top = next;
     }
@@ -238,30 +282,29 @@ export function useBoardLayout(board: BoardState, opts: { canvas: number }): Boa
     seed(stateRef.current, board, half, keys);
   }
 
-  return buildLayout(board, stateRef.current);
+  return buildLayout(board, stateRef.current, canvasHalf);
 }
 
-function buildLayout(board: BoardState, state: LayoutState): BoardLayout {
-  const boxes = Array.from(state.placed.values());
-  const minLeft = Math.min(0, ...boxes.map((b) => b.left));
-  const minTop = Math.min(0, ...boxes.map((b) => b.top));
-  const maxRight = Math.max(0, ...boxes.map((b) => b.left + b.width));
-  const maxBottom = Math.max(0, ...boxes.map((b) => b.top + b.height));
-
+// The canvas is a fixed `2*half` square regardless of how many tiles are
+// placed — every tile/slot is offset by the constant `half` (not by the
+// bounding box of tiles placed so far) so the rendered surface never grows
+// or shrinks as the round progresses; it matches the fixed half-plane the
+// spiral placement math (`place()`) already confines every tile to.
+function buildLayout(board: BoardState, state: LayoutState, half: number): BoardLayout {
   const tiles: LaidOutTile[] = board.tiles.map((tile) => {
     const key = tileToString(tile);
     const p = state.placed.get(key)!;
-    return { key, tile, rotate: p.rotate, left: p.left - minLeft, top: p.top - minTop };
+    return { key, tile, rotation: p.rotation, left: p.left + half, top: p.top + half };
   });
 
   const slotBox = (cursor: Cursor): EndSlotPixel => {
     const b = box(cursor.x, cursor.y, cursor.dir, SLOT_SIZE, SLOT_SIZE);
-    return { left: b.left - minLeft, top: b.top - minTop };
+    return { left: b.left + half, top: b.top + half };
   };
 
   return {
-    width: maxRight - minLeft,
-    height: maxBottom - minTop,
+    width: half * 2,
+    height: half * 2,
     tiles,
     leftEndSlot: slotBox(state.top),
     rightEndSlot: slotBox(state.bottom),

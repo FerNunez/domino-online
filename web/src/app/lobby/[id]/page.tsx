@@ -26,8 +26,21 @@ export default function LobbyPage({ params }: { params: Promise<{ id: string }> 
     setWsToken(getStoredWsToken(lobbyID) ?? undefined);
   }, [lobbyID]);
 
-  const { lobby, error: lobbyError } = useLobbySnapshot(lobbyID);
+  const { lobby: lobbySnapshot, error: lobbyError } = useLobbySnapshot(lobbyID);
   const conn = useGameConnection(lobbyID, wsToken, userID);
+
+  // The snapshot is a one-shot fetch (see useLobbySnapshot); players who join
+  // afterwards arrive live via lobby.player_joined and are merged in here.
+  const lobby =
+    lobbySnapshot && conn.joinedPlayers.length > 0
+      ? {
+          ...lobbySnapshot,
+          players: [
+            ...lobbySnapshot.players,
+            ...conn.joinedPlayers.filter((jp) => !lobbySnapshot.players.some((p) => p.id === jp.id)),
+          ],
+        }
+      : lobbySnapshot;
 
   const isHost = !!lobby && !!userID && lobby.hostId === userID;
   const isFull = !!lobby && lobby.players.length === lobby.maxPlayers;
