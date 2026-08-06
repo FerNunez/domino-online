@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>domino lobby viewer</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font-family: ui-monospace, monospace; margin: 1rem; }
+  #topbar { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin-bottom: 1rem; }
+  #topbar input { font-family: inherit; padding: 0.3rem; }
+  #topbar input#baseUrl { width: 12rem; }
+  #topbar input#lobbyId { width: 22rem; }
+  #topbar input#maxPlayers { width: 4rem; }
+  button { font-family: inherit; padding: 0.3rem 0.6rem; cursor: pointer; }
+  #status { font-size: 0.85rem; opacity: 0.75; }
+  #panels { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: flex-start; }
+  .panel { border: 1px solid currentColor; border-radius: 6px; width: 320px; display: flex; flex-direction: column; }
+  .panel header { display: flex; justify-content: space-between; align-items: center; padding: 0.4rem 0.6rem; border-bottom: 1px solid currentColor; gap: 0.4rem; }
+  .panel header .uid { font-size: 0.75rem; opacity: 0.8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .panel header .state { font-size: 0.7rem; padding: 0.1rem 0.4rem; border-radius: 4px; border: 1px solid currentColor; flex-shrink: 0; }
+  .panel header .state.open { color: #2e7d32; border-color: #2e7d32; }
+  .panel header .state.error, .panel header .state.closed { color: #c62828; border-color: #c62828; }
+  .log { flex: 1; min-height: 220px; max-height: 320px; overflow-y: auto; padding: 0.4rem 0.6rem; font-size: 0.78rem; white-space: pre-wrap; word-break: break-word; }
+  .log .sent { color: #1565c0; }
+  .log .recv { color: #2e7d32; }
+  .log .sys { opacity: 0.6; font-style: italic; }
+  .panel form { display: flex; border-top: 1px solid currentColor; }
+  .panel form input { flex: 1; border: none; padding: 0.4rem 0.6rem; font-family: inherit; background: transparent; color: inherit; }
+  .panel form button { border: none; border-left: 1px solid currentColor; background: transparent; color: inherit; }
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <label>baseURL <input id="baseUrl" value="localhost:8081"></label>
+  <label>lobbyID <input id="lobbyId" placeholder="(none yet)"></label>
+  <label>maxPlayers <input id="maxPlayers" value="6"></label>
+  <button id="newLobbyBtn">New lobby</button>
+  <button id="addGuestBtn">+ Add guest</button>
+  <span id="status"></span>
+</div>
+
+<div id="panels"></div>
+
+<script>
+const $ = (sel) => document.querySelector(sel);
+const baseUrlInput = $('#baseUrl');
+const lobbyIdInput = $('#lobbyId');
+const maxPlayersInput = $('#maxPlayers');
+const statusEl = $('#status');
+const panelsEl = $('#panels');
+
+function setStatus(msg, isError) {
+  statusEl.textContent = msg;
+  statusEl.style.color = isError ? '#c62828' : '';
+}
+
+async function apiPost(path, token, body) {
+  const headers = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  const resp = await fetch(`http://${baseUrlInput.value}${path}`, {
+    method: 'POST',
+    headers,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
+  const json = await resp.json().catch(() => ({}));
+  if (!resp.ok) {
+    const msg = (json && json.error && json.error.message) || resp.statusText || `HTTP ${resp.status}`;
+    throw new Error(msg);
+  }
+  return json;
+}
+
+async function createGuest() {
+  const json = await apiPost('/auth/guest');
+  return json.data.token;
+}
+
+function jwtUserId(token) {
+  try {
+    const payload = token.split('.')[1];
+    const decoded = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
+    return decoded.userID || '?';
+  } catch {
+    return '?';
+  }
+}
+
+$('#newLobbyBtn').addEventListener('click', async () => {
+  try {
+    setStatus('creating lobby...');
+    const token = await createGuest();
+    const maxPlayers = parseInt(maxPlayersInput.value, 10) || 4;
+    const json = await apiPost('/lobbies', token, { maxPlayers });
+    lobbyIdInput.value = json.data.lobbyID;
+    setStatus(`lobby ${json.data.lobbyID} created`);
+  } catch (err) {
+    setStatus(`create lobby failed: ${err.message}`, true);
+  }
+});
+
+$('#addGuestBtn').addEventListener('click', async () => {
+  const lobbyId = lobbyIdInput.value.trim();
+  if (!lobbyId) {
+    setStatus('set a lobbyID first (or click "New lobby")', true);
+    return;
+  }
+  try {
+    setStatus('creating guest...');
+    const token = await createGuest();
+    const userId = jwtUserId(token);
+    setStatus(`joining lobby as ${userId}...`);
+    const joinResp = await apiPost(`/lobbies/${lobbyId}/join`, token);
+    const wsToken = joinResp.data.wsToken;
+    addPanel(lobbyId, userId, wsToken);
+    setStatus(`${userId} joined ${lobbyId}`);
+  } catch (err) {
+    setStatus(`add guest failed: ${err.message}`, true);
+  }
+});
+
+function addPanel(lobbyId, userId, wsToken) {
+  const panel = document.createElement('div');
+  panel.className = 'panel';
+  panel.innerHTML = `
+    <header>
+      <span class="uid" title="${userId}">${userId}</span>
+      <span class="state">connecting</span>
+      <button class="closeBtn" title="close">x</button>
+    </header>
+    <div class="log"></div>
+    <form>
+      <input type="text" placeholder='{"type":"game.cmd.pass","data":{}}' autocomplete="off">
+      <button type="submit">send</button>
+    </form>
+  `;
+  panelsEl.appendChild(panel);
+
+  const stateEl = panel.querySelector('.state');
+  const logEl = panel.querySelector('.log');
+  const form = panel.querySelector('form');
+  const input = panel.querySelector('input[type=text]');
+  const closeBtn = panel.querySelector('.closeBtn');
+
+  function logLine(cls, text) {
+    const line = document.createElement('div');
+    line.className = cls;
+    line.textContent = text;
+    logEl.appendChild(line);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  const wsProto = baseUrlInput.value.startsWith('localhost') || !location.protocol.startsWith('https') ? 'ws' : 'wss';
+  const ws = new WebSocket(`${wsProto}://${baseUrlInput.value}/lobbies/${lobbyId}/ws?wsToken=${wsToken}`);
+
+  ws.addEventListener('open', () => {
+    stateEl.textContent = 'open';
+    stateEl.className = 'state open';
+    logLine('sys', 'connected');
+  });
+  ws.addEventListener('message', (ev) => logLine('recv', `< ${ev.data}`));
+  ws.addEventListener('close', () => {
+    stateEl.textContent = 'closed';
+    stateEl.className = 'state closed';
+    logLine('sys', 'closed');
+  });
+  ws.addEventListener('error', () => {
+    stateEl.textContent = 'error';
+    stateEl.className = 'state error';
+    logLine('sys', 'error');
+  });
+
+  form.addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    const raw = input.value.trim();
+    if (!raw) return;
+    try {
+      ws.send(raw);
+      logLine('sent', `> ${raw}`);
+      input.value = '';
+    } catch (err) {
+      logLine('sys', `send failed: ${err.message}`);
+    }
+  });
+
+  closeBtn.addEventListener('click', () => {
+    ws.close();
+    panel.remove();
+  });
+}
+</script>
+
+</body>
+</html>
