@@ -46,7 +46,7 @@ const SLOT_SIZE = 40; // EndSlot button diameter
 export interface LaidOutTile {
   key: string;
   tile: Tile;
-  rotate: boolean;
+  rotation: number;
   left: number;
   top: number;
 }
@@ -74,6 +74,27 @@ const VECTORS: Record<Dir, { x: number; y: number }> = {
 // 90° counter-clockwise.
 const ROTATE_CCW: Record<Dir, Dir> = { R: "U", U: "L", L: "D", D: "R" };
 
+// Screen-clockwise angle (E=0, S=90, W=180, N=270) that a non-double tile
+// must be rotated to so its "open" pip half — the one that continues the
+// chain further outward — faces the direction the arm is currently
+// traveling. DominoTile always draws tile.left/tile.right as a west/east
+// pair before any rotation is applied, and board.ts's applyMove defines
+// which of those two values is "open" differently per side (see below), so
+// the same travel direction needs a different rotation on each side.
+const FORWARD_ANGLE: Record<Dir, number> = { R: 0, D: 90, L: 180, U: 270 };
+
+// `side` mirrors board.ts's applyMove: the bottom cursor grows the chain's
+// right/open end (where a played tile's *right* value is the new open end
+// and *left* is what connects backward), the top cursor grows the left/open
+// end (mirrored — *left* is open, *right* connects backward). Doubles show
+// the same pip both halves, so their rotation only needs to satisfy the
+// footprint's aspect ratio, not this forward/backward pip placement.
+function computeRotation(isDouble: boolean, width: number, side: "top" | "bottom", dir: Dir): number {
+  if (isDouble) return width === TILE_SHORT ? 90 : 0;
+  const forward = FORWARD_ANGLE[dir];
+  return side === "bottom" ? forward : (forward + 180) % 360;
+}
+
 interface Cursor {
   x: number;
   y: number;
@@ -88,7 +109,7 @@ interface Box {
 }
 
 interface Placed extends Box {
-  rotate: boolean;
+  rotation: number;
 }
 
 interface LayoutState {
@@ -125,7 +146,12 @@ function box(x: number, y: number, dir: Dir, footprint: number, perp: number): B
 // (possibly more than once, for a canvas too small to fit even one tile in
 // any direction) and the tile is placed in the new direction instead, from
 // the exact point the cursor stopped.
-function place(cursor: Cursor, tile: Tile, half: number): { placed: Placed; next: Cursor } {
+function place(
+  cursor: Cursor,
+  tile: Tile,
+  half: number,
+  side: "top" | "bottom"
+): { placed: Placed; next: Cursor } {
   const isDouble = tile.left === tile.right;
   const footprint = isDouble ? TILE_SHORT : TILE_LONG;
   const perp = isDouble ? TILE_LONG : TILE_SHORT;
@@ -163,7 +189,8 @@ function place(cursor: Cursor, tile: Tile, half: number): { placed: Placed; next
   const step = footprint + GAP;
   const next: Cursor = { x: refX + vec.x * step, y: refY + vec.y * step, dir };
 
-  return { placed: { ...b, rotate: b.width === TILE_SHORT }, next };
+  const rotation = computeRotation(isDouble, b.width, side, dir);
+  return { placed: { ...b, rotation }, next };
 }
 
 // (Re)seeds `state` treating board.tiles[0] as the opening, centered tile
@@ -177,12 +204,12 @@ function seed(state: LayoutState, board: BoardState, half: number, keys: string[
   const footprint = isDouble ? TILE_SHORT : TILE_LONG;
   const perp = isDouble ? TILE_LONG : TILE_SHORT;
   const b = box(-footprint / 2, 0, "R", footprint, perp);
-  state.placed.set(keys[0], { ...b, rotate: b.width === TILE_SHORT });
+  state.placed.set(keys[0], { ...b, rotation: computeRotation(isDouble, b.width, "bottom", "R") });
   state.bottom = { x: footprint / 2 + GAP, y: 0, dir: "R" };
   state.top = { x: -footprint / 2 - GAP, y: 0, dir: "L" };
 
   for (let i = 1; i < board.tiles.length; i++) {
-    const { placed, next } = place(state.bottom, board.tiles[i], half);
+    const { placed, next } = place(state.bottom, board.tiles[i], half, "bottom");
     state.placed.set(keys[i], placed);
     state.bottom = next;
   }
@@ -215,7 +242,7 @@ export function useBoardLayout(board: BoardState, opts: { canvas: number }): Boa
     seed(state, board, half, keys);
   } else if (grewOnBottom) {
     for (let i = state.order.length; i < keys.length; i++) {
-      const { placed, next } = place(state.bottom, board.tiles[i], half);
+      const { placed, next } = place(state.bottom, board.tiles[i], half, "bottom");
       state.placed.set(keys[i], placed);
       state.bottom = next;
     }
@@ -226,7 +253,7 @@ export function useBoardLayout(board: BoardState, opts: { canvas: number }): Boa
     // the one *closest* to the previously-known chain (index grewCount - 1)
     // is the one that actually attaches to it, so it must be placed first.
     for (let i = grewCount - 1; i >= 0; i--) {
-      const { placed, next } = place(state.top, board.tiles[i], half);
+      const { placed, next } = place(state.top, board.tiles[i], half, "top");
       state.placed.set(keys[i], placed);
       state.top = next;
     }
@@ -251,7 +278,7 @@ function buildLayout(board: BoardState, state: LayoutState): BoardLayout {
   const tiles: LaidOutTile[] = board.tiles.map((tile) => {
     const key = tileToString(tile);
     const p = state.placed.get(key)!;
-    return { key, tile, rotate: p.rotate, left: p.left - minLeft, top: p.top - minTop };
+    return { key, tile, rotation: p.rotation, left: p.left - minLeft, top: p.top - minTop };
   });
 
   const slotBox = (cursor: Cursor): EndSlotPixel => {

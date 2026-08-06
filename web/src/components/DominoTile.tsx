@@ -28,10 +28,13 @@ function PipHalf({ value }: { value: number }) {
 interface DominoTileProps {
   tile: Tile;
   size?: "sm" | "md" | "lg";
-  // True for doubles laid across the chain, as in real play — rotates the
-  // whole tile 90° as a rigid piece (pip halves stay left/right internally,
-  // they just read as top/bottom once rotated).
-  rotate?: boolean;
+  // Clockwise degrees (0/90/180/270) to rotate the whole tile as a rigid
+  // piece — pip halves stay left/right internally, they just read as
+  // top/bottom (and, at 180, swap left-right) once rotated. Used both for
+  // doubles laid across the chain and for tiles on a vertical spiral run,
+  // where the exact angle (not just 90-or-not) is what keeps the matching
+  // pip facing the neighbor it actually connects to.
+  rotation?: number;
   selected?: boolean;
   disabled?: boolean;
   onClick?: () => void;
@@ -52,19 +55,23 @@ const ROTATED_SIZE_CLASSES: Record<NonNullable<DominoTileProps["size"]>, string>
   lg: "h-32 w-16",
 };
 
-export function DominoTile({ tile, size = "md", rotate, selected, disabled, onClick, className }: DominoTileProps) {
+export function DominoTile({ tile, size = "md", rotation = 0, selected, disabled, onClick, className }: DominoTileProps) {
   const interactive = !!onClick && !disabled;
+  // 90/270 swap the footprint's bounding box; 0/180 keep it as drawn.
+  const aspectSwapped = rotation === 90 || rotation === 270;
   return (
-    <div className={cn("flex shrink-0 items-center justify-center", rotate ? ROTATED_SIZE_CLASSES[size] : undefined)}>
+    <div
+      className={cn("flex shrink-0 items-center justify-center", aspectSwapped ? ROTATED_SIZE_CLASSES[size] : undefined)}
+    >
       <div
         role={interactive ? "button" : undefined}
         tabIndex={interactive ? 0 : undefined}
         onClick={interactive ? onClick : undefined}
         onKeyDown={interactive ? (e) => (e.key === "Enter" || e.key === " ") && onClick?.() : undefined}
+        style={rotation ? { transform: `rotate(${rotation}deg)` } : undefined}
         className={cn(
           "flex shrink-0 overflow-hidden rounded-md border-2 bg-card shadow-sm transition-all duration-150",
           SIZE_CLASSES[size],
-          rotate && "rotate-90",
           interactive && "cursor-pointer hover:-translate-y-1 hover:shadow-md",
           selected && "-translate-y-2 border-primary shadow-md",
           disabled && "opacity-40",

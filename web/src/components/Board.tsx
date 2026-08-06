@@ -31,7 +31,7 @@ export function Board({ board, canPlayLeft, canPlayRight, onDropEnd }: BoardProp
         <div className="relative" style={{ width: layout.width, height: layout.height }}>
           {layout.tiles.map((lt) => (
             <div key={lt.key} className="absolute" style={{ left: lt.left, top: lt.top }}>
-              <DominoTile tile={lt.tile} size="sm" rotate={lt.rotate} />
+              <DominoTile tile={lt.tile} size="sm" rotation={lt.rotation} />
             </div>
           ))}
           {canPlayLeft && (
