@@ -108,3 +108,10 @@ export interface PlayerConnectionData {
   userID: string;
   lobbyID: string;
 }
+
+export interface PlayerJoinedData {
+  userID: string;
+  displayName: string;
+  playerCount: number;
+  maxPlayers: number;
+}

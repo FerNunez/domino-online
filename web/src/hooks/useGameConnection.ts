@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { WEBSOCKET_URL } from "@/lib/constants";
 import { GameEvents, isValidServerWsMessage, LobbyEvents, ServerWsMessage } from "@/lib/contracts";
 import { applyMove, BoardState, emptyBoard } from "@/lib/board";
-import { parseTileString, RoundResult, Side, Tile } from "@/lib/types";
+import { parseTileString, PlayerModel, RoundResult, Side, Tile } from "@/lib/types";
 
 interface GameConnectionState {
   connected: boolean;
@@ -14,6 +14,10 @@ interface GameConnectionState {
   roundResult: RoundResult | null;
   error: string | null;
   playerConnectivity: Record<string, boolean>;
+  // Players who joined after this client's initial getLobby snapshot,
+  // relayed live via lobby.player_joined. Merged onto that snapshot in
+  // the lobby page rather than replacing it.
+  joinedPlayers: PlayerModel[];
   // userID -> remaining tile count, for every seat (opponents included —
   // their actual tiles are private and never sent to other clients).
   handCounts: Record<string, number>;
@@ -29,6 +33,7 @@ const initialState: GameConnectionState = {
   roundResult: null,
   error: null,
   playerConnectivity: {},
+  joinedPlayers: [],
   handCounts: {},
 };
 
@@ -115,6 +120,25 @@ export function useGameConnection(lobbyID: string | undefined, wsToken: string |
         case LobbyEvents.PlayerDisconnected: {
           const { userID } = message.data;
           setState((s) => ({ ...s, playerConnectivity: { ...s.playerConnectivity, [userID]: false } }));
+          break;
+        }
+        case LobbyEvents.PlayerJoined: {
+          // playerCount is the joining player's slot: JoinLobby assigns
+          // slot = len(players)+1 and publishes after adding, so the two
+          // always match (see services/lobby-service/internal/service/lobby.go).
+          const { userID: joinedID, displayName, playerCount } = message.data;
+          if (joinedID === userID) break;
+          setState((s) =>
+            s.joinedPlayers.some((p) => p.id === joinedID)
+              ? s
+              : {
+                  ...s,
+                  joinedPlayers: [
+                    ...s.joinedPlayers,
+                    { id: joinedID, name: displayName, slot: playerCount, isConnected: false },
+                  ],
+                }
+          );
           break;
         }
       }

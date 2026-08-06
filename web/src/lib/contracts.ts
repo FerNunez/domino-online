@@ -8,6 +8,7 @@ import {
   MoveMadeData,
   PassTurnResponseData,
   PlayerConnectionData,
+  PlayerJoinedData,
   PlayerPassedData,
   PlayTileResponseData,
   Side,
@@ -32,6 +33,7 @@ export enum GameEvents {
 export enum LobbyEvents {
   PlayerConnected = "lobby.player_connected",
   PlayerDisconnected = "lobby.player_disconnected",
+  PlayerJoined = "lobby.player_joined",
 }
 
 // Messages sent from the server to the client via the websocket.
@@ -43,7 +45,8 @@ export type ServerWsMessage =
   | { type: GameEvents.PlayTileResponse; data: PlayTileResponseData }
   | { type: GameEvents.PassTurnResponse; data: PassTurnResponseData }
   | { type: LobbyEvents.PlayerConnected; data: PlayerConnectionData }
-  | { type: LobbyEvents.PlayerDisconnected; data: PlayerConnectionData };
+  | { type: LobbyEvents.PlayerDisconnected; data: PlayerConnectionData }
+  | { type: LobbyEvents.PlayerJoined; data: PlayerJoinedData };
 
 // Messages sent from the client to the server via the websocket.
 export type ClientWsMessage =
