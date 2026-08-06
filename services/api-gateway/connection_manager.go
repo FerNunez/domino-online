@@ -1,4 +1,4 @@
-package messaging
+package main
 
 //When a RabbitMQ message arrives addressed to user X,
 //the gateway looks up X's WebSocket connection and writes the message to it.
