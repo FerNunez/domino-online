@@ -27,8 +27,9 @@ func main() {
 	}
 	defer rabbitmq.Close()
 
+	// NOTE: Should I create a ApiGatewayQueueConsummer
 	// Declare and bind new queue and consomme it
-	queueName, err := rabbitmq.DeclareGatewayQueue([]string{"lobby.*", "game.*"}, messaging.DominoExchange)
+	queueName, err := rabbitmq.DeclareQueueAndBind("", []string{"lobby.*", "game.*"}, messaging.DominoExchange)
 	if err != nil {
 		log.Fatal(err)
 	}

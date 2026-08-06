@@ -40,4 +40,25 @@ func (p *LobbyEventPublisher) PublishStartGame(ctx context.Context, lobby *domai
 	})
 }
 
+// Publishes contracts.PlayerJoinedLobby so lobby members already connected
+// learn about a new player
+func (p *LobbyEventPublisher) PublishPlayerJoined(ctx context.Context, lobby *domain.LobbyModel, player *domain.PlayerModel) error {
+	payload := messaging.PlayerJoinedData{
+		UserID:      player.ID,
+		DisplayName: player.Name,
+		PlayerCount: len(lobby.Players),
+		MaxPlayers:  lobby.MaxPlayers,
+	}
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+
+	return p.rabbitmq.PublishMessage(ctx, contracts.PlayerJoinedLobby, &contracts.DominoEvent{
+		LobbyID:  lobby.ID,
+		TargetID: "",
+		Data:     data,
+	})
+}
+
 // TODO: PublishPauseGame?

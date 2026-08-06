@@ -49,9 +49,23 @@ func main() {
 	// 3. Redis Client
 	redisClient := db.NewRedisClient(db.NewRedisDefaultConfig())
 
-	// 4.  Wire the dependency graph (innermost first)
+	// 4. Wire the dependency graph (innermost first)
 	repo := repository.NewRedisRepository(redisClient)
-	svc := service.NewService(repo)
+	svc := service.NewService(repo, pub)
+
+	// 5. Consume PlayerConnected/PlayerDisconnected
+	go func() {
+		consumer, err := events.NewLobbyConsumer(rabbitmq, svc)
+		if err != nil {
+			log.Printf("Failed to create lobby consumer: %v", err)
+			cancel()
+			return
+		}
+		if err := consumer.Listen(); err != nil {
+			log.Printf("consumer error: %v", err)
+			cancel()
+		}
+	}()
 
 	// 6. Start the Grpc Server. Listen
 	lis, err := net.Listen("tcp", grpcAddr)

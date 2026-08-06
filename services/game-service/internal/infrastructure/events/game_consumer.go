@@ -18,17 +18,22 @@ type gameConsumer struct {
 	service  domain.GameService
 }
 
-func NewGameConsumer(rabbitmq *messaging.RabbitMQ, service domain.GameService) *gameConsumer {
+func NewGameConsumer(rabbitmq *messaging.RabbitMQ, service domain.GameService) (*gameConsumer, error) {
+	_, err := rabbitmq.DeclareQueueAndBind(messaging.GameQueue, []string{contracts.GameStartCmd}, messaging.DominoExchange)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't bind to game queue %w:", err)
+	}
+
 	return &gameConsumer{
 		rabbitmq: rabbitmq,
 		service:  service,
-	}
+	}, nil
 }
 
 // Listen consumes lobby broadcast events (GameStarted) and player commands
 // (play tile / pass) directed at this service.
 func (c *gameConsumer) Listen() error {
-	if err := c.rabbitmq.ConsumeMessages(messaging.NotifyLobby, c.handleDominoEvent); err != nil {
+	if err := c.rabbitmq.ConsumeMessages(messaging.GameQueue, c.handleDominoEvent); err != nil {
 		return err
 	}
 	// TODO: To consume game? or rather to publish into game?
