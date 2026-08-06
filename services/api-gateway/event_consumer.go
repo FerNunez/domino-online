@@ -1,28 +1,28 @@
-package messaging
+package main
 
 import (
 	"domino/shared/contracts"
+	"domino/shared/messaging"
 	"encoding/json"
 	"log"
 )
 
-// QueueConsumer reads from a rabbitMQ queue and forwards msg to the Websocket client indentified by
-// AmqpMessage.OwnerID
-type QueueConsumer struct {
-	rb        *RabbitMQ
+// WebsocketEventConsumer takes a domain event off RabbitMQ and pushes it down a websocket to a connected browser client.
+type WebsocketEventConsumer struct {
+	rb        *messaging.RabbitMQ
 	connMgr   *ConnectionManager
 	queueName string
 }
 
-func NewQueueConsumer(rb *RabbitMQ, connMgr *ConnectionManager, queueName string) *QueueConsumer {
-	return &QueueConsumer{
+func NewWebsocketEventConsumer(rb *messaging.RabbitMQ, connMgr *ConnectionManager, queueName string) *WebsocketEventConsumer {
+	return &WebsocketEventConsumer{
 		rb:        rb,
 		connMgr:   connMgr,
 		queueName: queueName,
 	}
 }
 
-func (qc *QueueConsumer) Start() error {
+func (qc *WebsocketEventConsumer) Start() error {
 	msgs, err := qc.rb.Channel.Consume(qc.queueName,
 		"",
 		true, // auto-ack: message is acknowledged immediately on delivery
@@ -36,7 +36,7 @@ func (qc *QueueConsumer) Start() error {
 			// here msg is marshaled in bytes
 			var envelope contracts.DominoEvent
 			if err := json.Unmarshal(msg.Body, &envelope); err != nil {
-				log.Println("QueueConsumer: failed to unmarshal envelope: ", err)
+				log.Println("WebsocketEventConsumer: failed to unmarshal envelope: ", err)
 				continue
 			}
 
@@ -45,7 +45,7 @@ func (qc *QueueConsumer) Start() error {
 			var payload any
 			if envelope.Data != nil {
 				if err := json.Unmarshal(envelope.Data, &payload); err != nil {
-					log.Println("QueueConsumer: failed to unmarshal payload", err)
+					log.Println("WebsocketEventConsumer: failed to unmarshal payload", err)
 					continue
 				}
 			}
@@ -58,7 +58,7 @@ func (qc *QueueConsumer) Start() error {
 			// TargetID set -> directed to one player. Empty -> lobby-wide broadcast.
 			if envelope.TargetID != "" {
 				if err := qc.connMgr.SendMessage(envelope.TargetID, wsMsg); err != nil {
-					log.Printf("QueueConsumer: failed to send to user %s: %v", envelope.TargetID, err)
+					log.Printf("WebsocketEventConsumer: failed to send to user %s: %v", envelope.TargetID, err)
 				}
 				continue
 			}

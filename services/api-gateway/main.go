@@ -17,7 +17,7 @@ var (
 	httpAddr    = env.GetString("HTTP_ADDR", ":8081")
 	rabbitMqURI = env.GetString("RABBITMQ_URI", "amqp://guest:guest@rabbitmq:5672/")
 )
-var connManager = messaging.NewConnectionManager()
+var connManager = NewConnectionManager()
 
 func main() {
 	// RabbitMQ connection
@@ -27,13 +27,12 @@ func main() {
 	}
 	defer rabbitmq.Close()
 
-	// NOTE: Should I create a ApiGatewayQueueConsummer
 	// Declare and bind new queue and consomme it
 	queueName, err := rabbitmq.DeclareQueueAndBind("", []string{"lobby.*", "game.*"}, messaging.DominoExchange)
 	if err != nil {
 		log.Fatal(err)
 	}
-	consumer := messaging.NewQueueConsumer(rabbitmq, connManager, queueName)
+	consumer := NewWebsocketEventConsumer(rabbitmq, connManager, queueName)
 	if err := consumer.Start(); err != nil {
 		log.Fatal(err)
 	}
