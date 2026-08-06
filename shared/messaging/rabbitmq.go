@@ -39,11 +39,6 @@ func NewRabbitMQ(uri string) (*RabbitMQ, error) {
 		Channel: ch,
 	}
 
-	if err := rmq.setupExchangesAndQueues(); err != nil {
-		rmq.Close()
-		return nil, fmt.Errorf("failed to setup exchanges and queues: %v", err)
-	}
-
 	return rmq, nil
 }
 
@@ -142,45 +137,57 @@ func (r *RabbitMQ) publish(ctx context.Context, exchange, routingKey string, msg
 
 }
 
-// / privates:
 func (r *RabbitMQ) setupExchangesAndQueues() any {
 	// DeadLetter Exchange
 	if err := r.setupDeadLetterExchange(); err != nil {
 		return err
 	}
 
-	// Trip Exchange declaration
+	// Domino Exchange declaration
 	if err := r.Channel.ExchangeDeclare(DominoExchange, "topic", true, false, false, false, nil); err != nil {
 		return fmt.Errorf("failed to declare exchange %s: %v", DominoExchange, err)
 	}
-
-	// Each queue binds to one or more routing keys on the TripExchange
-	type queueDef struct {
-		name        string
-		routingKeys []string
-	}
-	queues := []queueDef{
-		{
-			name: NotifyLobby,
-			routingKeys: []string{
-				"lobby.#",
-				"game.*",
-			},
-		},
-		{
-			name: NotifyGame,
-			routingKeys: []string{
-				"game.cmd.*",
-			},
-		},
-	}
-	for _, q := range queues {
-		if err := r.declareAndBindQueue(q.name, q.routingKeys, DominoExchange); err != nil {
-			return err
-		}
-	}
 	return nil
 }
+
+// 	// Each queue binds to one or more routing keys on the TripExchange
+// 	type queueDef struct {
+// 		name        string
+// 		routingKeys []string
+// 	}
+// 	queues := []queueDef{
+// 		{
+// 			name: NotifyLobby,
+// 			routingKeys: []string{
+// 				"lobby.#",
+// 				"game.*",
+// 			},
+// 		},
+// 		{
+// 			// Dedicated queue for lobby-service's own connectivity handling —
+// 			// must not share NotifyLobby with game-service, since two
+// 			// consumers on the same queue would compete for deliveries
+// 			// instead of each seeing every message.
+// 			name: NotifyLobbyConnectivity,
+// 			routingKeys: []string{
+// 				contracts.PlayerConnected,
+// 				contracts.PlayerDisconnected,
+// 			},
+// 		},
+// 		{
+// 			name: NotifyGame,
+// 			routingKeys: []string{
+// 				"game.cmd.*",
+// 			},
+// 		},
+// 	}
+// 	for _, q := range queues {
+// 		if err := r.declareAndBindQueue(q.name, q.routingKeys, DominoExchange); err != nil {
+// 			return err
+// 		}
+// 	}
+// 	return nil
+// }
 
 func (r *RabbitMQ) setupDeadLetterExchange() any {
 	if err := r.Channel.ExchangeDeclare(DeadLetterExchange, "topic", true, false, false, false, nil); err != nil {
@@ -217,14 +224,14 @@ func (r *RabbitMQ) declareAndBindQueue(name string, routineKeys []string, exchan
 	return nil
 }
 
-// Declare name-unique, not-durable, autoDelete, exclusive
-func (r *RabbitMQ) DeclareGatewayQueue(routineKeys []string, exchange string) (string, error) {
-	q, err := r.Channel.QueueDeclare("", false, false, true, false, nil)
+// DeclareQueueAndBind queue Name to the routeKeys
+func (r *RabbitMQ) DeclareQueueAndBind(queueName string, routingKeys []string, exchange string) (string, error) {
+	q, err := r.Channel.QueueDeclare(queueName, false, false, true, false, nil)
 	if err != nil {
 		return "", fmt.Errorf("failed to declare gateway queue %v", err)
 	}
 
-	for _, key := range routineKeys {
+	for _, key := range routingKeys {
 		if err := r.Channel.QueueBind(q.Name, key, exchange, false, nil); err != nil {
 			return "", fmt.Errorf("failed to bind queue %s to key %s: %v", q.Name, key, err)
 		}

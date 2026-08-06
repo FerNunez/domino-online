@@ -53,8 +53,14 @@ func main() {
 
 	// 5. Consumer
 	go func() {
-		if err := events.NewGameConsumer(rabbitmq, svc).Listen(); err != nil {
-			log.Printf(" consumer error: %v", err)
+		consumer, err := events.NewGameConsumer(rabbitmq, svc)
+		if err != nil {
+			log.Printf("failed to create game consumer: %v", err)
+			cancel()
+			return
+		}
+		if err := consumer.Listen(); err != nil {
+			log.Printf("consumer error: %v", err)
 			cancel()
 		}
 	}()

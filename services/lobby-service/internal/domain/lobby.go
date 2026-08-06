@@ -86,6 +86,10 @@ func (p *PlayerModel) ToProto() *pbl.Player {
 	}
 }
 
+type LobbyEventPublisher interface {
+	PublishPlayerJoined(ctx context.Context, lobby *LobbyModel, player *PlayerModel) error
+}
+
 type LobbyRepository interface {
 	CreateLobby(ctx context.Context, l *LobbyModel) (*LobbyModel, error)
 	GetLobbyByID(ctx context.Context, id string) (*LobbyModel, error)

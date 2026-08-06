@@ -5,8 +5,10 @@ import "domino/shared/types"
 // Queue name constants: single source of truth
 const (
 	DeaedLetterQueue = "deaed_letter_queue"
-	NotifyLobby      = "notify_lobby_queue"
-	NotifyGame       = "notify_game_queue"
+	// Each gateway has its unique queue
+	GameQueue      = "game_queue"       // game service consomes this queue
+	LobbyQueue     = "lobby_queue"      // lobby service consomes this queue
+	GameStoreQueue = "game_store_queue" // game service consomes thies queue
 )
 
 type PlayerJoinedData struct {

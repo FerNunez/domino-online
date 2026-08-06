@@ -9,13 +9,15 @@ import (
 )
 
 type service struct {
-	repo domain.LobbyRepository
+	repo      domain.LobbyRepository
+	publisher domain.LobbyEventPublisher
 }
 
 // NewService creates the service layer wired to the given repository
-func NewService(repo domain.LobbyRepository) *service {
+func NewService(repo domain.LobbyRepository, publisher domain.LobbyEventPublisher) *service {
 	return &service{
-		repo: repo,
+		repo:      repo,
+		publisher: publisher,
 	}
 }
 
@@ -54,6 +56,7 @@ func (s *service) JoinLobby(ctx context.Context, lobbyID string, userID string) 
 		return nil, fmt.Errorf("full lobby")
 	}
 
+	// Add player to lobby
 	player := &domain.PlayerModel{
 		ID:          userID,
 		Name:        userID, // FIX:
@@ -64,6 +67,12 @@ func (s *service) JoinLobby(ctx context.Context, lobbyID string, userID string) 
 		return nil, fmt.Errorf("couldn't add player: %w", err)
 	}
 	lobby.Players[userID] = player
+
+	// Publish that a player joined lobby
+	if err := s.publisher.PublishPlayerJoined(ctx, lobby, player); err != nil {
+		return nil, fmt.Errorf("couldn't notify player joined: %w", err)
+	}
+
 	return lobby, nil
 }
 

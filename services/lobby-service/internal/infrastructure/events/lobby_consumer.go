@@ -6,6 +6,7 @@ import (
 	"domino/shared/contracts"
 	"domino/shared/messaging"
 	"encoding/json"
+	"fmt"
 	"log"
 
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -16,17 +17,22 @@ type lobbyConsumer struct {
 	service  domain.LobbyService
 }
 
-func NewLobbyConsumer(rabbitmq *messaging.RabbitMQ, service domain.LobbyService) *lobbyConsumer {
+func NewLobbyConsumer(rabbitmq *messaging.RabbitMQ, service domain.LobbyService) (*lobbyConsumer, error) {
+	_, err := rabbitmq.DeclareQueueAndBind(messaging.LobbyQueue, []string{contracts.PlayerConnected, contracts.PlayerDisconnected}, messaging.DominoExchange)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't bind to lobby queue: %w", err)
+	}
+
 	return &lobbyConsumer{
 		rabbitmq: rabbitmq,
 		service:  service,
-	}
+	}, nil
 }
 
 // Listen consumes lobby broadcast events (GameStarted) and player commands
 // (play tile / pass) directed at this service.
 func (c *lobbyConsumer) Listen() error {
-	if err := c.rabbitmq.ConsumeMessages(messaging.NotifyLobby, c.handleLobbyMessages); err != nil {
+	if err := c.rabbitmq.ConsumeMessages(messaging.LobbyQueue, c.handleLobbyMessages); err != nil {
 		return err
 	}
 	// TODO: To consume game? or rather to publish into game?
