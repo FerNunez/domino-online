@@ -1,4 +1,3 @@
-go.sum
 infra/development/k8s/secrets.yaml
 
 build/

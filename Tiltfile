@@ -5,6 +5,9 @@ load('ext://restart_process', 'docker_build_with_restart')
 ### Secrets
 k8s_yaml('./infra/development/k8s/secrets.yaml')
 
+### Config
+k8s_yaml('./infra/development/k8s/app-config.yaml')
+
 ### RabbitMQ
 k8s_yaml('./infra/development/k8s/rabbitmq-deployment.yaml')
 k8s_resource('rabbitmq', port_forwards=['5672', '15672'], labels='tooling')
