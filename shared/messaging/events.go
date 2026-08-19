@@ -1,3 +1,4 @@
+// Package messaging contains all datatypes for  message transmitted as events
 package messaging
 
 import "domino/shared/types"
@@ -5,7 +6,7 @@ import "domino/shared/types"
 // Queue name constants: single source of truth
 const (
 	DeaedLetterQueue = "deaed_letter_queue"
-	// Each gateway has its unique queue
+	// "" // Each gateway has its unique queue
 	GameQueue      = "game_queue"       // game service consomes this queue
 	LobbyQueue     = "lobby_queue"      // lobby service consomes this queue
 	GameStoreQueue = "game_store_queue" // game service consomes thies queue
@@ -35,45 +36,68 @@ type PlayerDisconnectedData struct {
 
 type GameStartCmd struct {
 	PlayersID []string `json:"playerID"`
+	GameID    string   `json:"gameID"`
 }
 
 type GameStartedData struct {
-	PlayerOrder []string       `json:"playerOrder"` // userIDs, order: 0, 1, 2 ,3
-	HandsSize   map[string]int `json:"handsSize"`
-	CurrentTurn string         `json:"currentTurn"` // an userID
+	PlayerOrder []string             `json:"playerOrder"` // userIDs, order: 0, 1, 2 ,3
+	HandsSize   map[string]int       `json:"handsSize"`
+	CurrentTurn string               `json:"currentTurn"` // an userID
+	Scores      map[types.TeamID]int `json:"scores"`
+}
+type GameOverData struct {
+	LobbyID   string               `json:"lobbyID"`
+	GameID    string               `json:"gameID"`
+	GameState string               `json:"gameState"`
+	GameScore map[types.TeamID]int `json:"gameScore"`
 }
 
 type HandDeltData struct {
-	PlayerID    string   `json:"playerID"`
-	PlayerTiles []string `json:"playerTiles"`
+	PlayerID    string       `json:"playerID"`
+	PlayerTiles []types.Tile `json:"playerTiles"`
 }
 
 type MoveMadeData struct {
 	UserID      string             `json:"userID"`
 	Tile        types.Tile         `json:"tile"`
-	Side        string             `json:"side"`
-	NextTurn    string             `json:"next_turn"`
-	RoundResult *types.RoundResult `json:"round_result,omitempty"`
+	Side        types.Side         `json:"side"`
+	NextTurn    string             `json:"nextTurn"`
+	RoundResult *types.RoundResult `json:"roundResult,omitempty"`
 }
 
 type PlayerPassedData struct {
 	UserID      string             `json:"userID"`
-	NextTurn    string             `json:"next_turn"`
-	RoundResult *types.RoundResult `json:"round_result,omitempty"`
+	NextTurn    string             `json:"nextTurn"`
+	RoundResult *types.RoundResult `json:"roundResult,omitempty"`
 }
 
-type GameEndedData struct {
-	WinnerID string         `json:"winnerID"`
-	Reason   string         `json:"reason"` // "domino" | "blocked"
-	Scores   map[string]int `json:"scores"`
+type RoundStartedData struct {
+	LobbyID        string  `json:"lobbyID"`
+	RoundID        string  `json:"roundID"`
+	StartingPlayer *string `json:"nextStartingPlayer"`
+	RoundNumber    int     `json:"roundNumber"`
+}
+
+type RoundOverData struct {
+	LobbyID     string               `json:"lobbyID"`
+	RoundID     string               `json:"roundID"`
+	RoundNumber int                  `json:"roundNumber"`
+	RoundResult types.RoundResult    `json:"roundResult"`
+	GameScore   map[types.TeamID]int `json:"gameScores"`
+	GameState   string               `json:"gameState"`
+	TeamWinner  types.TeamID         `json:"teamWinner"`
 }
 
 type PlayTileResponseData struct {
 	Board       []types.Tile       `json:"board"`
 	Hand        []types.Tile       `json:"hand"`
-	RoundResult *types.RoundResult `json:"round_result,omitempty"`
+	RoundResult *types.RoundResult `json:"roundResult,omitempty"`
 }
 
 type PassTurnResponseData struct {
-	RoundResult *types.RoundResult `json:"round_result,omitempty"`
+	RoundResult *types.RoundResult `json:"roundResult,omitempty"`
+}
+
+type NextRoundResponseData struct {
+	RoundNumber int `json:"roundNumber"`
 }

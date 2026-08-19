@@ -28,14 +28,18 @@ const (
 	GameStarted    = "game.game_started"     // Should I add game ID and lobbyID
 	PlayerPassed   = "game.player_passed"    // {userID}
 	PlayerMoveMade = "game.player_move_made" // {userID, tile, side}	// should I add here the next user and the reuslt?
+	RoundStarted   = "game.round_started"    //
+	RoundOver      = "game.round_over"       // {winnerTeamID, Scores, currentScore}
 	GameEnded      = "game.ended"            // {winnerID, reason, scores}
 
 	// GPRC commands from player/apiGateway-wS to services
-	PlayTileCmd = "game.cmd.play_tile" // {userID, tile, side}
-	PassTurnCmd = "game.cmd.pass"      // {userID}
+	PlayTileCmd  = "game.cmd.play_tile" // {userID, tile, side}
+	PassTurnCmd  = "game.cmd.pass"      // {userID}
+	NextRoundCmd = "game.cmd.round"     // {userID}
 
 	// GPRC response to players/apiGateway-wS from a service rpc response
-	PlayTileResponse = "game.play_tile_response" // {Board, Hand, RoundResult} // uses grpc response btw
-	PassTurnResponse = "game.pass_turn_response" // {RoundResult}
+	PlayTileResponse  = "game.play_tile_response"  // {Board, Hand, RoundResult} // uses grpc response btw
+	PassTurnResponse  = "game.pass_turn_response"  // {RoundResult}
+	NextRoundResponse = "game.next_round_response" // {RoundNumber}
 
 )

@@ -2,27 +2,24 @@ package domain
 
 import (
 	"context"
-	"domino/shared/types"
 	"errors"
-	"fmt"
+
+	"domino/shared/types"
 )
+
+// alias so domain code say Tile instead of types.Tile
+type Tile = types.Tile
 
 type GameStatus string
 
 const (
-	GameStatusDealt      GameStatus = "GAME_STATUS_DEALT"
 	GameStatusInProgress GameStatus = "GAME_STATUS_IN_PROGRESS"
-	GameStatusRoundOver  GameStatus = "GAME_STATUS_ROUND_OVER"
+	GameStatusGameOver   GameStatus = "GAME_STATUS_FINISHED"
 )
 
 const (
-	SideLeft  = "left"
-	SideRight = "right"
-)
-
-const (
-	ReasonDomino  = "domino"
-	ReasonBlocked = "blocked"
+	SideLeft  = types.Left
+	SideRight = types.Right
 )
 
 var (
@@ -35,294 +32,82 @@ var (
 	ErrWrongPlayerCnt = errors.New("standard block domino requires exactly 4 players")
 )
 
-// noEnd is the sentinel value for Board.LeftEnd/RightEnd when the board is empty.
-const noEnd = -1
-
-// Board tracks the tiles played, in play order, and the two pip values
-// currently open for matching.
-type Board struct {
-	Tiles    []types.Tile
-	LeftEnd  int
-	RightEnd int
-}
-
-func emptyBoard() Board {
-	return Board{Tiles: []types.Tile{}, LeftEnd: noEnd, RightEnd: noEnd}
-}
-
-func (b Board) IsEmpty() bool {
-	return len(b.Tiles) == 0
-}
-
-// Move describes a candidate legal play: a tile from hand and which open end it matches.
-type Move struct {
-	Tile types.Tile
-	Side string
-}
-
 type GameModel struct {
-	LobbyID     string
-	Status      GameStatus
-	PlayerOrder []string                // turn rotation order
-	Hands       map[string][]types.Tile // map of PlayerId -> []Tiles{}
-	Board       Board
-	CurrentTurn string
-	PassStreak  int
-
-	// roundOverReason is set internally by PlayTile/PassTurn when they conclude
-	// the round, so ResolveRoundResult knows which outcome to compute.
-	roundOverReason string
+	LobbyID      string
+	ID           string // GameID: uuid, unique across all games ever played
+	GameNumber   int    // 1, 2, 3... sequential within LobbyID, for ordering/display
+	Status       GameStatus
+	TeamScores   map[types.TeamID]int
+	TeamWinner   types.TeamID
+	CurrentRound *RoundModel
+	GoalScore    int // MaxGame
 }
 
-type GameRepository interface {
-	CreateGame(ctx context.Context, g *GameModel) (*GameModel, error)
-	GetGameByLobbyID(ctx context.Context, lobbyID string) (*GameModel, error)
-	UpdateGame(ctx context.Context, lobbyID string, g *GameModel) (*GameModel, error)
-}
+// TODO: Add this as config sent from LobbyService
+// GoalScore is the default team score a match plays to.
+const GoalScore = 100
 
-type GameService interface {
-	CreateGame(ctx context.Context, lobbyID string, playerIDs []string) (*GameModel, error)
-	PlayTile(ctx context.Context, lobbyID, userID string, tile types.Tile, side string) (*GameModel, *types.RoundResult, error)
-	PassTurn(ctx context.Context, lobbyID, userID string) (*GameModel, *types.RoundResult, error)
-}
-
-// NewGame builds a fresh standard-block domino game: shuffles a double-six
-// set, deals 7 tiles to each of the 4 players, and sets the starting player
-// to whoever holds the 6-6 double (guaranteed present since all 28 tiles are dealt).
-func NewGame(lobbyID string, playerIDs []string) (*GameModel, error) {
+// NewGame: creates game with a first round, and 0 scores
+func NewGame(lobbyID, gameID string, gameNumber int, playerIDs []string) (*GameModel, error) {
 	if len(playerIDs) != 4 {
 		return nil, ErrWrongPlayerCnt
 	}
 
-	pile := FullSet()
-	if err := shuffleTiles(pile); err != nil {
-		return nil, fmt.Errorf("couldn't shuffle tiles: %w", err)
-	}
-
-	const handSize = 7
-	hands := make(map[string][]types.Tile, len(playerIDs))
-	for idx, playerID := range playerIDs {
-		hands[playerID] = pile[idx*handSize : (idx+1)*handSize]
-	}
-
-	startingPlayer := ""
-	for playerID, hand := range hands {
-		for _, t := range hand {
-			if t == (types.Tile{Left: 6, Right: 6}) {
-				startingPlayer = playerID
-			}
-		}
-	}
-	if startingPlayer == "" {
-		panic("expected a player to hold the 6-6 double")
+	// crete first round
+	firstRound, err := NewRound(lobbyID, gameID, 1, playerIDs, "")
+	if err != nil {
+		return nil, err
 	}
 
 	return &GameModel{
-		LobbyID:     lobbyID,
-		Status:      GameStatusDealt,
-		PlayerOrder: playerIDs,
-		Hands:       hands,
-		Board:       emptyBoard(),
-		CurrentTurn: startingPlayer,
+		LobbyID:      lobbyID,
+		ID:           gameID,
+		GameNumber:   gameNumber,
+		Status:       GameStatusInProgress,
+		TeamScores:   map[types.TeamID]int{types.TeamA: 0, types.TeamB: 0},
+		CurrentRound: firstRound,
+		GoalScore:    GoalScore,
 	}, nil
 }
 
-// sameTile compares tiles ignoring orientation (2-5 == 5-2).
-func sameTile(a, b types.Tile) bool {
-	return a == b || a == b.Flip()
-}
-
-// ValidMoves returns every legal (tile, side) combination playable from hand
-// given the current board state.
-func ValidMoves(hand []types.Tile, b Board) []Move {
-	moves := make([]Move, 0)
-	if b.IsEmpty() {
-		for _, t := range hand {
-			moves = append(moves, Move{Tile: t, Side: SideLeft})
-		}
-		return moves
-	}
-
-	for _, t := range hand {
-		if t.Has(b.LeftEnd) {
-			moves = append(moves, Move{Tile: t, Side: SideLeft})
-		}
-		if t.Has(b.RightEnd) {
-			moves = append(moves, Move{Tile: t, Side: SideRight})
-		}
-	}
-	return moves
-}
-
-func (g *GameModel) nextTurn() string {
-	for idx, playerID := range g.PlayerOrder {
-		if playerID == g.CurrentTurn {
-			return g.PlayerOrder[(idx+1)%len(g.PlayerOrder)]
-		}
-	}
-	panic("current turn is not part of the player order")
-}
-
-// PlayTile validates and applies userID playing tile against the open end on side.
-func (g *GameModel) PlayTile(userID string, tile types.Tile, side string) error {
-	if g.Status == GameStatusRoundOver {
-		return ErrRoundOver
-	}
-	if g.CurrentTurn != userID {
-		return ErrNotYourTurn
-	}
-	if side != SideLeft && side != SideRight {
-		return ErrInvalidSide
-	}
-
-	// Check if player has the tile it wants to play
-	hand := g.Hands[userID]
-	handIdx := -1
-	for idx, t := range hand {
-		if sameTile(t, tile) {
-			handIdx = idx
-			break
-		}
-	}
-	if handIdx == -1 {
-		return ErrTileNotInHand
-	}
-
-	// Check if move is approuved
-	placed := hand[handIdx]
-	if g.Board.IsEmpty() {
-		//	Place first tile
-		g.Board.Tiles = append(g.Board.Tiles, placed)
-		g.Board.LeftEnd = placed.Left
-		g.Board.RightEnd = placed.Right
-	} else if side == SideLeft {
-		// Check if can be placed left
-		if !placed.Has(g.Board.LeftEnd) {
-			return ErrIllegalMove
-		}
-		// Check if needs to flip
-		oriented := placed
-		if oriented.Right != g.Board.LeftEnd {
-			oriented = oriented.Flip()
-		}
-		g.Board.Tiles = append([]types.Tile{oriented}, g.Board.Tiles...)
-		g.Board.LeftEnd = oriented.Left
-	} else {
-		// Check if can be placed left
-		if !placed.Has(g.Board.RightEnd) {
-			return ErrIllegalMove
-		}
-		// Check if needs to flip
-		oriented := placed
-		if oriented.Left != g.Board.RightEnd {
-			oriented = oriented.Flip()
-		}
-		g.Board.Tiles = append(g.Board.Tiles, oriented)
-		g.Board.RightEnd = oriented.Right
-	}
-
-	// remove user place tile
-	g.Hands[userID] = append(hand[:handIdx], hand[handIdx+1:]...)
-	// reset pass counter for block state
-	g.PassStreak = 0
-
-	// Check if current player won by placing
-	if len(g.Hands[userID]) == 0 {
-		g.Status = GameStatusRoundOver
-		g.roundOverReason = ReasonDomino
-		return nil
-	}
-
-	g.Status = GameStatusInProgress
-	g.CurrentTurn = g.nextTurn()
-	return nil
-}
-
-// PassTurn validates that userID genuinely has no legal move and advances the turn.
-// A pass streak covering every player means the board is blocked and the round ends.
-func (g *GameModel) PassTurn(userID string) error {
-	if g.Status == GameStatusRoundOver {
-		return ErrRoundOver
-	}
-	if g.CurrentTurn != userID {
-		return ErrNotYourTurn
-	}
-	// Check incorrect passing!! mmeaning no valid moves in its hands
-	if len(ValidMoves(g.Hands[userID], g.Board)) > 0 {
-		return ErrHasLegalMove
-	}
-
-	// keep memory of how many consecutives players passed, if reaches 4 => game over
-	g.PassStreak++
-	if g.PassStreak >= len(g.PlayerOrder) {
-		g.Status = GameStatusRoundOver
-		g.roundOverReason = ReasonBlocked
-		return nil
-	}
-
-	g.Status = GameStatusInProgress
-	g.CurrentTurn = g.nextTurn()
-	return nil
-}
-
-// TODO: Change to proper 2 v 2 scoring system
-// ResolveRoundResult computes the winner and score once the round has ended.
-// It must only be called when Status == GameStatusRoundOver.
-func (g *GameModel) ResolveRoundResult() types.RoundResult {
-	pipSum := func(hand []types.Tile) int {
-		total := 0
-		for _, t := range hand {
-			total += t.Pips()
-		}
-		return total
-	}
-
-	switch g.roundOverReason {
-	case ReasonDomino:
-		winnerID := ""
-		for playerID, hand := range g.Hands {
-			if len(hand) == 0 {
-				winnerID = playerID
-				break
-			}
-		}
-		scores := make(map[string]int)
-		for playerID, hand := range g.Hands {
-			if playerID == winnerID {
-				continue
-			}
-			scores[playerID] = pipSum(hand)
-		}
-		return types.RoundResult{WinnerID: winnerID, Reason: ReasonDomino, Scores: scores}
-
-	case ReasonBlocked:
-		lowest := -1
-		winnerID := ""
-		tie := false
-		for playerID, hand := range g.Hands {
-			total := pipSum(hand)
-			switch {
-			case lowest == -1 || total < lowest:
-				lowest = total
-				winnerID = playerID
-				tie = false
-			case total == lowest:
-				tie = true
-			}
-		}
-		if tie {
-			return types.RoundResult{Reason: ReasonBlocked, Scores: map[string]int{}}
-		}
-		scores := make(map[string]int)
-		for playerID, hand := range g.Hands {
-			if playerID == winnerID {
-				continue
-			}
-			scores[playerID] = pipSum(hand)
-		}
-		return types.RoundResult{WinnerID: winnerID, Reason: ReasonBlocked, Scores: scores}
-
+func (g *GameModel) UpdateScore(roundResult *types.RoundResult) error {
+	switch roundResult.WinnerTeamID {
+	case types.TeamA:
+		g.TeamScores[types.TeamA] += roundResult.Scores[types.TeamB]
+	case types.TeamB:
+		g.TeamScores[types.TeamB] += roundResult.Scores[types.TeamA]
 	default:
-		panic("ResolveRoundResult called before the round ended")
+		// Draw - Return gmae unchanged
+		return nil
 	}
+
+	if g.GoalScore <= g.TeamScores[types.TeamA] {
+		g.Status = GameStatusGameOver
+		g.TeamWinner = types.TeamA
+	} else if g.GoalScore <= g.TeamScores[types.TeamB] {
+		g.Status = GameStatusGameOver
+		g.TeamWinner = types.TeamB
+	}
+
+	return nil
+}
+
+type GameService interface {
+	CreateGameWithID(ctx context.Context, gameID, lobbyID string, playerIDs []string) (*GameModel, error)
+	PlayTile(ctx context.Context, lobbyID, userID string, tile types.Tile, side types.Side) (*GameModel, *types.RoundResult, error)
+	PassTurn(ctx context.Context, lobbyID, userID string) (*GameModel, *types.RoundResult, error)
+	// NextRound resolves the finished current round, applies its score to the
+	// match, and deals the next round (or ends the match if GoalScore was reached).
+	NextRound(ctx context.Context, lobbyID, userID string) (*GameModel, error)
+}
+
+type GameRepository interface {
+	CreateGame(ctx context.Context, g *GameModel) (*GameModel, error)
+	// GetCurrentGame fetches the lobby's in-progress game (the normal path for gameplay RPCs).
+	GetCurrentGame(ctx context.Context, lobbyID string) (*GameModel, error)
+	// GetGameByID fetches any game ever played, by its uuid, e.g. for history/replay.
+	GetGameByID(ctx context.Context, gameID string) (*GameModel, error)
+	UpdateGame(ctx context.Context, g *GameModel) (*GameModel, error)
+	// NextGameNumber atomically reserves the next sequential game number for lobbyID.
+	NextGameNumber(ctx context.Context, lobbyID string) (int, error)
 }

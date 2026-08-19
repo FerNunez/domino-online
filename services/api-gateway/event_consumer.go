@@ -1,10 +1,11 @@
 package main
 
 import (
-	"domino/shared/contracts"
-	"domino/shared/messaging"
 	"encoding/json"
 	"log"
+
+	"domino/shared/contracts"
+	"domino/shared/messaging"
 )
 
 // WebsocketEventConsumer takes a domain event off RabbitMQ and pushes it down a websocket to a connected browser client.

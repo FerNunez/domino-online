@@ -39,6 +39,11 @@ func NewRabbitMQ(uri string) (*RabbitMQ, error) {
 		Channel: ch,
 	}
 
+	if err := rmq.setupExchangesAndQueues(); err != nil {
+		rmq.Close()
+		return nil, fmt.Errorf("failed to setup exchanges and queues: %v", err)
+	}
+
 	return rmq, nil
 }
 
@@ -137,7 +142,7 @@ func (r *RabbitMQ) publish(ctx context.Context, exchange, routingKey string, msg
 
 }
 
-func (r *RabbitMQ) setupExchangesAndQueues() any {
+func (r *RabbitMQ) setupExchangesAndQueues() error {
 	// DeadLetter Exchange
 	if err := r.setupDeadLetterExchange(); err != nil {
 		return err
@@ -189,7 +194,7 @@ func (r *RabbitMQ) setupExchangesAndQueues() any {
 // 	return nil
 // }
 
-func (r *RabbitMQ) setupDeadLetterExchange() any {
+func (r *RabbitMQ) setupDeadLetterExchange() error {
 	if err := r.Channel.ExchangeDeclare(DeadLetterExchange, "topic", true, false, false, false, nil); err != nil {
 		return fmt.Errorf("failed to declare exchange %s: %v", DeadLetterExchange, err)
 	}

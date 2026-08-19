@@ -6,6 +6,8 @@ import (
 	"domino/shared/contracts"
 	"domino/shared/messaging"
 	"encoding/json"
+
+	"github.com/google/uuid"
 )
 
 type LobbyEventPublisher struct {
@@ -27,6 +29,7 @@ func (p *LobbyEventPublisher) PublishStartGame(ctx context.Context, lobby *domai
 	}
 	payload := messaging.GameStartCmd{
 		PlayersID: playersID,
+		GameID:    uuid.NewString(), // ID of the new game Lobby commands //NOTE: todo if make sense
 	}
 	data, err := json.Marshal(payload)
 	if err != nil {

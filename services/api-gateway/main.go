@@ -2,15 +2,16 @@ package main
 
 import (
 	"context"
-	"domino/shared/env"
-	"domino/shared/messaging"
-	"domino/shared/tracing"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"domino/shared/env"
+	"domino/shared/messaging"
+	"domino/shared/tracing"
 )
 
 var (

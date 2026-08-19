@@ -21,7 +21,7 @@ type gameConsumer struct {
 func NewGameConsumer(rabbitmq *messaging.RabbitMQ, service domain.GameService) (*gameConsumer, error) {
 	_, err := rabbitmq.DeclareQueueAndBind(messaging.GameQueue, []string{contracts.GameStartCmd}, messaging.DominoExchange)
 	if err != nil {
-		return nil, fmt.Errorf("couldn't bind to game queue %w:", err)
+		return nil, fmt.Errorf("couldn't bind to game queue %w", err)
 	}
 
 	return &gameConsumer{
@@ -37,7 +37,7 @@ func (c *gameConsumer) Listen() error {
 		return err
 	}
 	// TODO: To consume game? or rather to publish into game?
-	//return c.rabbitmq.ConsumeMessages(messaging.NotifyGame, c.handleGameCmd)
+	// return c.rabbitmq.ConsumeMessages(messaging.NotifyGame, c.handleGameCmd)
 	return nil
 }
 
@@ -49,11 +49,11 @@ func (c *gameConsumer) handleDominoEvent(ctx context.Context, msg amqp.Delivery)
 
 	switch msg.RoutingKey {
 	case contracts.GameStartCmd:
-		var payload messaging.GameStartCmd
-		if err := json.Unmarshal(envelope.Data, &payload); err != nil {
+		var cmd messaging.GameStartCmd // GameStart Command from LobbyService
+		if err := json.Unmarshal(envelope.Data, &cmd); err != nil {
 			return err
 		}
-		return c.handleGameStarted(ctx, envelope.LobbyID, payload)
+		return c.handleGameStarted(ctx, cmd.GameID, envelope.LobbyID, cmd)
 	default:
 		log.Printf("game-service: unknown routing key %s", msg.RoutingKey)
 		return nil
@@ -64,20 +64,26 @@ func (c *gameConsumer) handleDominoEvent(ctx context.Context, msg amqp.Delivery)
 // 1) creates game for the lobby
 // 2) publishes new broadcast game data
 // 3) player's hand plus the starting player's turn.
-func (c *gameConsumer) handleGameStarted(ctx context.Context, lobbyID string, payload messaging.GameStartCmd) error {
-	game, err := c.service.CreateGame(ctx, lobbyID, payload.PlayersID)
+func (c *gameConsumer) handleGameStarted(ctx context.Context, gameID, lobbyID string, payload messaging.GameStartCmd) error {
+	game, err := c.service.CreateGameWithID(ctx, gameID, lobbyID, payload.PlayersID)
 	if err != nil {
 		return fmt.Errorf("couldn't create game: %w", err)
 	}
-	// Create game /Start game message response payload
-	handSize := make(map[string]int, len(game.PlayerOrder))
-	for userID, tiles := range game.Hands {
+	round := game.CurrentRound
+	if round == nil {
+		panic("it should have a round not null")
+	}
+
+	// compute map UserID -> hand size
+	handSize := make(map[string]int, len(round.PlayerOrder))
+	for userID, tiles := range round.Hands {
 		handSize[userID] = len(tiles)
 	}
 	payloadOut := messaging.GameStartedData{
-		PlayerOrder: game.PlayerOrder,
+		PlayerOrder: round.PlayerOrder,
 		HandsSize:   handSize,
-		CurrentTurn: game.CurrentTurn,
+		CurrentTurn: round.CurrentTurn,
+		Scores:      game.TeamScores,
 	}
 	data, err := json.Marshal(payloadOut)
 	if err != nil {
@@ -93,18 +99,8 @@ func (c *gameConsumer) handleGameStarted(ctx context.Context, lobbyID string, pa
 		return err
 	}
 
-	// Convert PlayerID to []Tile into []string
-	handString := make(map[string][]string, len(game.Hands))
-	for playerID, hand := range game.Hands {
-		tiles := make([]string, len(hand))
-		for idx, t := range hand {
-			tiles[idx] = t.String()
-		}
-		handString[playerID] = tiles
-	}
-
-	// Publish: Deal Hand string
-	for playerID, tiles := range handString {
+	// Publish: Deal Hand
+	for playerID, tiles := range round.Hands {
 		payloadOut := messaging.HandDeltData{
 			PlayerTiles: tiles,
 			PlayerID:    playerID,
@@ -120,7 +116,6 @@ func (c *gameConsumer) handleGameStarted(ctx context.Context, lobbyID string, pa
 		}); err != nil {
 			return err
 		}
-
 	}
 
 	return nil

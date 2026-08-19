@@ -129,7 +129,7 @@ func handleLobbyWebsocket(w http.ResponseWriter, r *http.Request, rmq *messaging
 		// Handle by Msg Type
 		switch playerMsg.Type {
 
-		// Play a tile
+		// -- Play a tile
 		case contracts.PlayTileCmd:
 			var cmd playTileCmd
 			if err := json.Unmarshal(playerMsg.Data, &cmd); err != nil {
@@ -163,8 +163,8 @@ func handleLobbyWebsocket(w http.ResponseWriter, r *http.Request, rmq *messaging
 				log.Printf("couldt send message: %v", err)
 			}
 
+		// -- PassTurn
 		case contracts.PassTurnCmd:
-			// Pass cmd doesnt pass anything
 			req := &pbg.PassTurnRequest{
 				LobbyId: lobbyID,
 				UserId:  claims.UserID,
@@ -183,13 +183,33 @@ func handleLobbyWebsocket(w http.ResponseWriter, r *http.Request, rmq *messaging
 				Type: contracts.PassTurnResponse,
 				Data: response,
 			}
-
 			if err := connManager.SendMessage(claims.UserID, WSMsg); err != nil {
 				log.Printf("couldt send message: %v", err)
 			}
 
-			log.Printf("TODO: Handle of %s", playerMsg.Type)
+		// -- PassTurn
+		case contracts.NextRoundCmd:
+			req := &pbg.NextRoundRequest{
+				LobbyId: lobbyID,
+				UserId:  claims.UserID,
+			}
+			responseGrpc, err := gameSvc.Client.NextRound(r.Context(), req)
+			if err != nil {
+				log.Printf("couldn't request next round to server: %v", err)
+				continue
+			}
+			response := messaging.NextRoundResponseData{
+				RoundNumber: int(responseGrpc.RoundNumber),
+			}
 
+			// Send response to WebSocket
+			WSMsg := contracts.WSMessage{
+				Type: contracts.NextRoundResponse,
+				Data: response,
+			}
+			if err := connManager.SendMessage(claims.UserID, WSMsg); err != nil {
+				log.Printf("couldt send message: %v", err)
+			}
 		default:
 			log.Printf("Unknown message type: %s", playerMsg.Type)
 		}
@@ -207,13 +227,20 @@ func toTiles(tiles []*pbg.Tile) []types.Tile {
 	return out
 }
 
+// Converts a proto RoundResult to a type Round RoundResult. It can be nil
 func toRoundResult(roundResult *pbg.RoundResult) *types.RoundResult {
 	if roundResult == nil {
 		return nil
 	}
+
+	scores := make(map[types.TeamID]int, len(roundResult.Scores))
+	for key, val := range roundResult.Scores {
+		scores[types.TeamID(key)] = int(val)
+	}
+
 	return &types.RoundResult{
-		WinnerID: roundResult.WinnerId,
-		Reason:   roundResult.Reason,
-		Scores:   map[string]int{},
+		WinnerTeamID: types.TeamID(roundResult.WinnerId),
+		Reason:       types.Reason(roundResult.Reason),
+		Scores:       scores,
 	}
 }
