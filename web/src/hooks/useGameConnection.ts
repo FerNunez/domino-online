@@ -218,6 +218,16 @@ export function useGameConnection(
           });
           break;
         }
+        case GameEvents.GameEnded: {
+          const { gameState, teamWinner, gameScore } = message.data;
+          setState((s) => ({
+            ...s,
+            gameStatus: gameState,
+            teamWinner: teamWinner || null,
+            gameScores: gameScore,
+          }));
+          break;
+        }
         case GameEvents.NextRoundResponse: {
           clearNextRoundTimeout();
           setState((s) => ({ ...s, nextRoundRequested: false }));

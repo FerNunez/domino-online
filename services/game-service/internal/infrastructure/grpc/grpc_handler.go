@@ -55,6 +55,11 @@ func (h *gRPCHandler) PlayTile(ctx context.Context, req *pbg.PlayTileRequest) (*
 		if err := h.publisher.PublishRoundOver(ctx, game, roundResult); err != nil {
 			return nil, status.Errorf(codes.Internal, "failed to publish GameStarted: %v", err)
 		}
+		if game.Status == domain.GameStatusGameOver {
+			if err := h.publisher.PublishGameOver(ctx, game); err != nil {
+				return nil, status.Errorf(codes.Internal, "failed to publish GameOver: %v", err)
+			}
+		}
 	}
 
 	// return grpc
@@ -81,6 +86,11 @@ func (h *gRPCHandler) PassTurn(ctx context.Context, req *pbg.PassTurnRequest) (*
 	if round.Status == domain.RoundStatusRoundOver && roundResult != nil {
 		if err := h.publisher.PublishRoundOver(ctx, game, roundResult); err != nil {
 			return nil, status.Errorf(codes.Internal, "failed to publish GameStarted: %v", err)
+		}
+		if game.Status == domain.GameStatusGameOver {
+			if err := h.publisher.PublishGameOver(ctx, game); err != nil {
+				return nil, status.Errorf(codes.Internal, "failed to publish GameOver: %v", err)
+			}
 		}
 	}
 

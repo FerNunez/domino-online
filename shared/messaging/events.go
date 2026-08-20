@@ -46,10 +46,11 @@ type GameStartedData struct {
 	Scores      map[types.TeamID]int `json:"scores"`
 }
 type GameOverData struct {
-	LobbyID   string               `json:"lobbyID"`
-	GameID    string               `json:"gameID"`
-	GameState string               `json:"gameState"`
-	GameScore map[types.TeamID]int `json:"gameScore"`
+	LobbyID    string               `json:"lobbyID"`
+	GameID     string               `json:"gameID"`
+	GameState  string               `json:"gameState"`
+	GameScore  map[types.TeamID]int `json:"gameScore"`
+	TeamWinner types.TeamID         `json:"teamWinner"`
 }
 
 type HandDeltData struct {

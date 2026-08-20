@@ -86,6 +86,26 @@ func (p *GameEventPublisher) PublishRoundOver(ctx context.Context, game *domain.
 	})
 }
 
+func (p *GameEventPublisher) PublishGameOver(ctx context.Context, game *domain.GameModel) error {
+	payload := messaging.GameOverData{
+		LobbyID:    game.LobbyID,
+		GameID:     game.ID,
+		GameState:  string(game.Status),
+		GameScore:  game.TeamScores,
+		TeamWinner: game.TeamWinner,
+	}
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+
+	return p.rabbitmq.PublishMessage(ctx, contracts.GameEnded, &contracts.DominoEvent{
+		LobbyID:  game.LobbyID,
+		TargetID: "",
+		Data:     data,
+	})
+}
+
 func (p *GameEventPublisher) PublishRoundStarted(ctx context.Context, round *domain.RoundModel) error {
 	// create event
 	payload := messaging.RoundStartedData{

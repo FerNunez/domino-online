@@ -104,6 +104,18 @@ export interface RoundOverData {
   teamWinner?: string;
 }
 
+// Broadcast once, immediately after the RoundOver event that ends the
+// match. Durable, explicit game-over signal — carries the same terminal
+// fields RoundOver already carries (gameState/teamWinner/gameScore); not a
+// second place to derive different game-over logic from.
+export interface GameOverData {
+  lobbyID: string;
+  gameID: string;
+  gameState: "GAME_STATUS_IN_PROGRESS" | "GAME_STATUS_FINISHED";
+  gameScore: Record<string, number>;
+  teamWinner: string;
+}
+
 // Direct ack to the client that sent game.cmd.round; the actual round
 // transition arrives separately via the RoundStarted broadcast.
 export interface NextRoundResponseData {

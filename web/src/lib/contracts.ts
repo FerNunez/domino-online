@@ -3,6 +3,7 @@
 // shared/messaging/queue_consumer.go for how broadcast/targeted events are
 // relayed to the client.
 import {
+  GameOverData,
   GameStartedData,
   HandDealtData,
   MoveMadeData,
@@ -27,6 +28,7 @@ export enum GameEvents {
   PassTurnResponse = "game.pass_turn_response",
   RoundStarted = "game.round_started",
   RoundOver = "game.round_over",
+  GameEnded = "game.ended",
   NextRoundResponse = "game.next_round_response",
   PlayTileCmd = "game.cmd.play_tile",
   PassTurnCmd = "game.cmd.pass",
@@ -53,6 +55,7 @@ export type ServerWsMessage =
   | { type: GameEvents.PassTurnResponse; data: PassTurnResponseData }
   | { type: GameEvents.RoundStarted; data: RoundStartedData }
   | { type: GameEvents.RoundOver; data: RoundOverData }
+  | { type: GameEvents.GameEnded; data: GameOverData }
   | { type: GameEvents.NextRoundResponse; data: NextRoundResponseData }
   | { type: LobbyEvents.PlayerConnected; data: PlayerConnectionData }
   | { type: LobbyEvents.PlayerDisconnected; data: PlayerConnectionData }
