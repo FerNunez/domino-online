@@ -4,9 +4,11 @@ import { useState } from "react";
 import { Board } from "./Board";
 import { Hand } from "./Hand";
 import { PlayersPanel } from "./PlayersPanel";
+import { RoundSummary } from "./RoundSummary";
+import { Scoreboard } from "./Scoreboard";
 import { TurnIndicator } from "./TurnIndicator";
 import { BoardState, legalSides } from "@/lib/board";
-import { LobbyModel, RoundResult, Side, Tile } from "@/lib/types";
+import { LobbyModel, RoundOverData, Side, Tile, slotToTeamID } from "@/lib/types";
 
 interface GameScreenProps {
   userID: string | undefined;
@@ -16,9 +18,15 @@ interface GameScreenProps {
   board: BoardState;
   hand: Tile[];
   currentTurn: string | null;
-  roundResult: RoundResult | null;
+  roundOver: RoundOverData | null;
+  gameScores: Record<string, number>;
+  roundNumber: number;
+  latestRoundOverPoints: Record<string, number> | null;
+  nextRoundRequested: boolean;
+  isHost: boolean;
   playTile: (tile: Tile, side: Side) => void;
   pass: () => void;
+  nextRound: () => void;
 }
 
 export function GameScreen({
@@ -29,12 +37,20 @@ export function GameScreen({
   board,
   hand,
   currentTurn,
-  roundResult,
+  roundOver,
+  gameScores,
+  roundNumber,
+  latestRoundOverPoints,
+  nextRoundRequested,
+  isHost,
   playTile,
   pass,
+  nextRound,
 }: GameScreenProps) {
   const [selectedTile, setSelectedTile] = useState<Tile | null>(null);
   const isYourTurn = !!currentTurn && currentTurn === userID;
+  const yourSlot = lobby.players.find((p) => p.id === userID)?.slot;
+  const yourTeamID = yourSlot !== undefined ? slotToTeamID(yourSlot) : undefined;
 
   const handSideOptions = new Map(hand.map((t) => [t, legalSides(board, t)]));
   const hasLegalMove = isYourTurn && Array.from(handSideOptions.values()).some((sides) => sides.length > 0);
@@ -55,14 +71,20 @@ export function GameScreen({
 
   return (
     <div className="flex w-full max-w-5xl flex-col gap-4 p-4">
-      <TurnIndicator
-        currentTurn={currentTurn}
-        userID={userID}
-        hasLegalMove={hasLegalMove}
-        roundResult={roundResult}
-        onPass={pass}
-      />
-      <PlayersPanel players={lobby.players} playerOrder={playerOrder} handCounts={handCounts} currentTurn={currentTurn} userID={userID}>
+      <Scoreboard gameScores={gameScores} goalScore={lobby.settings.maxScore} roundNumber={roundNumber} yourTeamID={yourTeamID} />
+      {roundOver ? (
+        <RoundSummary
+          roundOver={roundOver}
+          yourTeamID={yourTeamID}
+          canStartNextRound={isHost}
+          nextRoundRequested={nextRoundRequested}
+          pointsThisRound={latestRoundOverPoints}
+          onNextRound={nextRound}
+        />
+      ) : (
+        <TurnIndicator currentTurn={currentTurn} userID={userID} hasLegalMove={hasLegalMove} onPass={pass} />
+      )}
+      <PlayersPanel players={lobby.players} playerOrder={playerOrder} handCounts={handCounts} currentTurn={currentTurn} userID={userID} yourTeamID={yourTeamID}>
         <Board
           board={board}
           canPlayLeft={dropSides.includes("left")}

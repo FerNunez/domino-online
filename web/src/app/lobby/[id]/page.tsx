@@ -68,9 +68,15 @@ export default function LobbyPage({ params }: { params: Promise<{ id: string }> 
             board={conn.board}
             hand={conn.hand}
             currentTurn={conn.currentTurn}
-            roundResult={conn.roundResult}
+            roundOver={conn.roundOver}
+            gameScores={conn.gameScores}
+            roundNumber={conn.roundNumber}
+            latestRoundOverPoints={conn.latestRoundOverPoints}
+            nextRoundRequested={conn.nextRoundRequested}
+            isHost={isHost}
             playTile={conn.playTile}
             pass={conn.pass}
+            nextRound={conn.nextRound}
           />
         ) : (
           <p className="text-sm text-muted-foreground">Loading players…</p>

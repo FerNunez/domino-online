@@ -6,11 +6,14 @@ import {
   GameStartedData,
   HandDealtData,
   MoveMadeData,
+  NextRoundResponseData,
   PassTurnResponseData,
   PlayerConnectionData,
   PlayerJoinedData,
   PlayerPassedData,
   PlayTileResponseData,
+  RoundOverData,
+  RoundStartedData,
   Side,
   Tile,
 } from "./types";
@@ -22,8 +25,12 @@ export enum GameEvents {
   PlayerPassed = "game.player_passed",
   PlayTileResponse = "game.play_tile_response",
   PassTurnResponse = "game.pass_turn_response",
+  RoundStarted = "game.round_started",
+  RoundOver = "game.round_over",
+  NextRoundResponse = "game.next_round_response",
   PlayTileCmd = "game.cmd.play_tile",
   PassTurnCmd = "game.cmd.pass",
+  NextRoundCmd = "game.cmd.round",
 }
 
 // Relayed verbatim by the gateway from lobby.player_connected /
@@ -44,6 +51,9 @@ export type ServerWsMessage =
   | { type: GameEvents.PlayerPassed; data: PlayerPassedData }
   | { type: GameEvents.PlayTileResponse; data: PlayTileResponseData }
   | { type: GameEvents.PassTurnResponse; data: PassTurnResponseData }
+  | { type: GameEvents.RoundStarted; data: RoundStartedData }
+  | { type: GameEvents.RoundOver; data: RoundOverData }
+  | { type: GameEvents.NextRoundResponse; data: NextRoundResponseData }
   | { type: LobbyEvents.PlayerConnected; data: PlayerConnectionData }
   | { type: LobbyEvents.PlayerDisconnected; data: PlayerConnectionData }
   | { type: LobbyEvents.PlayerJoined; data: PlayerJoinedData };
@@ -51,7 +61,8 @@ export type ServerWsMessage =
 // Messages sent from the client to the server via the websocket.
 export type ClientWsMessage =
   | { type: GameEvents.PlayTileCmd; data: { tile: Tile; side: Side } }
-  | { type: GameEvents.PassTurnCmd; data: Record<string, never> };
+  | { type: GameEvents.PassTurnCmd; data: Record<string, never> }
+  | { type: GameEvents.NextRoundCmd; data: Record<string, never> };
 
 export function isValidGameEvent(event: string): event is GameEvents {
   return Object.values(GameEvents).includes(event as GameEvents);

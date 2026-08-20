@@ -6,18 +6,21 @@ interface PlayerSeatProps {
   handCount: number;
   isCurrentTurn: boolean;
   isSelf: boolean;
+  isYourTeam?: boolean;
 }
 
 const MAX_TILE_BACKS = 7;
 
-export function PlayerSeat({ player, handCount, isCurrentTurn, isSelf }: PlayerSeatProps) {
+export function PlayerSeat({ player, handCount, isCurrentTurn, isSelf, isYourTeam }: PlayerSeatProps) {
   const name = player?.name ?? "…";
 
   return (
     <div
       className={cn(
-        "flex flex-col items-center gap-1 rounded-lg border-2 bg-card p-2 text-center transition-colors",
-        isCurrentTurn ? "border-primary shadow-md" : "border-border"
+        "flex flex-col items-center gap-1 rounded-lg border-2 border-l-4 bg-card p-2 text-center transition-colors",
+        isCurrentTurn ? "border-primary shadow-md" : "border-border",
+        isYourTeam === true && "border-l-blue-500",
+        isYourTeam === false && "border-l-amber-500"
       )}
     >
       <div
