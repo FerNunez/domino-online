@@ -19,60 +19,119 @@ func NewService(repo domain.GameRepository) *service {
 }
 
 // Async called
-func (s *service) CreateGame(ctx context.Context, lobbyID string, playerIDs []string) (*domain.GameModel, error) {
-	game, err := domain.NewGame(lobbyID, playerIDs)
+func (s *service) CreateGameWithID(ctx context.Context, gameID, lobbyID string, playerIDs []string) (*domain.GameModel, error) {
+	// game next number obtained from lobby ID
+	gameNumber, err := s.repo.NextGameNumber(ctx, lobbyID)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't reserve game number: %w", err)
+	}
+
+	game, err := domain.NewGame(lobbyID, gameID, gameNumber, playerIDs)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't create game: %w", err)
 	}
-	return s.repo.CreateGame(ctx, game)
+	game, err = s.repo.CreateGame(ctx, game)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't persist game: %w", err)
+	}
+	return game, nil
 }
 
 // Sync called
 // PlayTile if valid, update game and send result if over
-func (s *service) PlayTile(ctx context.Context, lobbyID, userID string, tile types.Tile, side string) (*domain.GameModel, *types.RoundResult, error) {
-	game, err := s.repo.GetGameByLobbyID(ctx, lobbyID)
+func (s *service) PlayTile(ctx context.Context, lobbyID, userID string, tile types.Tile, side types.Side) (*domain.RoundModel, *types.RoundResult, error) {
+	game, err := s.repo.GetCurrentGame(ctx, lobbyID)
 	if err != nil {
 		return nil, nil, fmt.Errorf("couldn't get game: %w", err)
 	}
 
-	if err := game.PlayTile(userID, tile, side); err != nil {
+	round := game.CurrentRound
+	if round == nil {
+		return nil, nil, fmt.Errorf("couldn't find current round for game")
+	}
+
+	if err := round.PlayTile(userID, tile, side); err != nil {
 		return nil, nil, err
 	}
 
-	game, err = s.repo.UpdateGame(ctx, lobbyID, game)
-	if err != nil {
+	if _, err = s.repo.UpdateGame(ctx, game); err != nil {
 		return nil, nil, fmt.Errorf("couldn't update game: %w", err)
 	}
 
-	if game.Status == domain.GameStatusRoundOver {
-		result := game.ResolveRoundResult()
-		return game, &result, nil
+	if round.Status == domain.RoundStatusRoundOver {
+		result := round.ResolveResult()
+		return round, &result, nil
 	}
-	return game, nil, nil
+	return round, nil, nil
 }
 
 // Sync called:
 // Check if pass move is valid, then pass to next user and updates game.
-// Game can end if 4 players already passed!!
-func (s *service) PassTurn(ctx context.Context, lobbyID, userID string) (*domain.GameModel, *types.RoundResult, error) {
-	game, err := s.repo.GetGameByLobbyID(ctx, lobbyID)
+// Round can end if all 4 players pass in a row (blocked board).
+func (s *service) PassTurn(ctx context.Context, lobbyID, userID string) (*domain.RoundModel, *types.RoundResult, error) {
+	game, err := s.repo.GetCurrentGame(ctx, lobbyID)
 	if err != nil {
 		return nil, nil, fmt.Errorf("couldn't get game: %w", err)
 	}
 
-	if err := game.PassTurn(userID); err != nil {
+	round := game.CurrentRound
+	if round == nil {
+		return nil, nil, fmt.Errorf("couldn't find current round for game")
+	}
+
+	if err := round.PassTurn(userID); err != nil {
 		return nil, nil, err
 	}
 
-	game, err = s.repo.UpdateGame(ctx, lobbyID, game)
-	if err != nil {
+	if _, err = s.repo.UpdateGame(ctx, game); err != nil {
 		return nil, nil, fmt.Errorf("couldn't update game: %w", err)
 	}
 
-	// Return result of play when game round over
-	if game.Status == domain.GameStatusRoundOver {
-		result := game.ResolveRoundResult()
-		return game, &result, nil
+	if round.Status == domain.RoundStatusRoundOver {
+		result := round.ResolveResult()
+		return round, &result, nil
 	}
-	return game, nil, nil
+	return round, nil, nil
+}
+
+// Sync called:
+// Resolves the just-finished round into the match score, then either ends
+// the match (a team reached GoalScore) or deals the next round.
+func (s *service) NextRound(ctx context.Context, lobbyID string) (*domain.RoundModel, *types.RoundResult, error) {
+	game, err := s.repo.GetCurrentGame(ctx, lobbyID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("couldn't get game: %w", err)
+	}
+
+	round := game.CurrentRound
+	if round == nil {
+		return nil, nil, fmt.Errorf("couldn't find current round for game")
+	}
+	if round.Status != domain.RoundStatusRoundOver {
+		return nil, nil, fmt.Errorf("current round is not over")
+	}
+
+	result := round.ResolveResult()
+	for teamID, pips := range result.Scores {
+		game.TeamScores[teamID] += pips
+	}
+
+	if game.TeamScores[types.TeamA] >= game.GoalScore || game.TeamScores[types.TeamB] >= game.GoalScore {
+		game.Status = domain.GameStatusGameOver
+		if _, err = s.repo.UpdateGame(ctx, game); err != nil {
+			return nil, nil, fmt.Errorf("couldn't update game: %w", err)
+		}
+		return round, &result, nil
+	}
+
+	nextRound, err := domain.NewRound(lobbyID, game.ID, round.ID+1, round.PlayerOrder, round.CurrentTurn)
+	if err != nil {
+		return nil, nil, fmt.Errorf("couldn't deal next round: %w", err)
+	}
+	game.CurrentRound = nextRound
+
+	if _, err = s.repo.UpdateGame(ctx, game); err != nil {
+		return nil, nil, fmt.Errorf("couldn't update game: %w", err)
+	}
+	return nextRound, &result, nil
 }

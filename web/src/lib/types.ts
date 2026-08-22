@@ -14,13 +14,11 @@ export function tileToString(tile: Tile): string {
   return `${tile.left}-${tile.right}`;
 }
 
-export function parseTileString(raw: string): Tile {
-  const [left, right] = raw.split("-").map(Number);
-  return { left: left ?? 0, right: right ?? 0 };
-}
-
 export function sameTile(a: Tile, b: Tile): boolean {
-  return (a.left === b.left && a.right === b.right) || (a.left === b.right && a.right === b.left);
+  return (
+    (a.left === b.left && a.right === b.right) ||
+    (a.left === b.right && a.right === b.left)
+  );
 }
 
 // Raw gRPC-shaped response fields (proto `RoundResult` has no scores).
@@ -76,15 +74,15 @@ export interface GameStartedData {
 
 export interface HandDealtData {
   playerID: string;
-  playerTiles: string[]; // "L-R" strings, see parseTileString
+  playerTiles: Tile[];
 }
 
 export interface MoveMadeData {
   userID: string;
   tile: Tile;
   side: Side;
-  next_turn: string;
-  round_result?: RoundResult;
+  nextTurn: string;
+  roundResult?: RoundResult;
 }
 
 export interface PlayerPassedData {

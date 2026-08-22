@@ -28,6 +28,7 @@ const (
 	GameStarted    = "game.game_started"     // Should I add game ID and lobbyID
 	PlayerPassed   = "game.player_passed"    // {userID}
 	PlayerMoveMade = "game.player_move_made" // {userID, tile, side}	// should I add here the next user and the reuslt?
+	RoundOver      = "game.round_over"       // {winnerTeamID, Scores, currentScore}
 	GameEnded      = "game.ended"            // {winnerID, reason, scores}
 
 	// GPRC commands from player/apiGateway-wS to services

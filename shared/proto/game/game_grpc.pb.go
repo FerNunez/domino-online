@@ -19,8 +19,9 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	GameService_PlayTile_FullMethodName = "/game.GameService/PlayTile"
-	GameService_PassTurn_FullMethodName = "/game.GameService/PassTurn"
+	GameService_PlayTile_FullMethodName  = "/game.GameService/PlayTile"
+	GameService_PassTurn_FullMethodName  = "/game.GameService/PassTurn"
+	GameService_NextRound_FullMethodName = "/game.GameService/NextRound"
 )
 
 // GameServiceClient is the client API for GameService service.
@@ -29,6 +30,7 @@ const (
 type GameServiceClient interface {
 	PlayTile(ctx context.Context, in *PlayTileRequest, opts ...grpc.CallOption) (*PlayTileResponse, error)
 	PassTurn(ctx context.Context, in *PassTurnRequest, opts ...grpc.CallOption) (*PassTurnResponse, error)
+	NextRound(ctx context.Context, in *NextRoundRequest, opts ...grpc.CallOption) (*NextRoundResponse, error)
 }
 
 type gameServiceClient struct {
@@ -59,12 +61,23 @@ func (c *gameServiceClient) PassTurn(ctx context.Context, in *PassTurnRequest, o
 	return out, nil
 }
 
+func (c *gameServiceClient) NextRound(ctx context.Context, in *NextRoundRequest, opts ...grpc.CallOption) (*NextRoundResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(NextRoundResponse)
+	err := c.cc.Invoke(ctx, GameService_NextRound_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // GameServiceServer is the server API for GameService service.
 // All implementations must embed UnimplementedGameServiceServer
 // for forward compatibility.
 type GameServiceServer interface {
 	PlayTile(context.Context, *PlayTileRequest) (*PlayTileResponse, error)
 	PassTurn(context.Context, *PassTurnRequest) (*PassTurnResponse, error)
+	NextRound(context.Context, *NextRoundRequest) (*NextRoundResponse, error)
 	mustEmbedUnimplementedGameServiceServer()
 }
 
@@ -80,6 +93,9 @@ func (UnimplementedGameServiceServer) PlayTile(context.Context, *PlayTileRequest
 }
 func (UnimplementedGameServiceServer) PassTurn(context.Context, *PassTurnRequest) (*PassTurnResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method PassTurn not implemented")
+}
+func (UnimplementedGameServiceServer) NextRound(context.Context, *NextRoundRequest) (*NextRoundResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method NextRound not implemented")
 }
 func (UnimplementedGameServiceServer) mustEmbedUnimplementedGameServiceServer() {}
 func (UnimplementedGameServiceServer) testEmbeddedByValue()                     {}
@@ -138,6 +154,24 @@ func _GameService_PassTurn_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _GameService_NextRound_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(NextRoundRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GameServiceServer).NextRound(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GameService_NextRound_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GameServiceServer).NextRound(ctx, req.(*NextRoundRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // GameService_ServiceDesc is the grpc.ServiceDesc for GameService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -152,6 +186,10 @@ var GameService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "PassTurn",
 			Handler:    _GameService_PassTurn_Handler,
+		},
+		{
+			MethodName: "NextRound",
+			Handler:    _GameService_NextRound_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

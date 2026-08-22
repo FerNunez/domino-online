@@ -1,8 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { WEBSOCKET_URL } from "@/lib/constants";
-import { GameEvents, isValidServerWsMessage, LobbyEvents, ServerWsMessage } from "@/lib/contracts";
+import {
+  GameEvents,
+  isValidServerWsMessage,
+  LobbyEvents,
+  ServerWsMessage,
+} from "@/lib/contracts";
 import { applyMove, BoardState, emptyBoard } from "@/lib/board";
-import { parseTileString, PlayerModel, RoundResult, Side, Tile } from "@/lib/types";
+import { PlayerModel, RoundResult, Side, Tile } from "@/lib/types";
 
 interface GameConnectionState {
   connected: boolean;
@@ -40,19 +45,26 @@ const initialState: GameConnectionState = {
 // Mirrors web/src/hooks/useRiderStreamConnection.ts's shape: connect in a
 // useEffect, switch incoming messages into state slices, guard sends on
 // readyState. No reconnect/backoff for this first version.
-export function useGameConnection(lobbyID: string | undefined, wsToken: string | undefined, userID: string | undefined) {
+export function useGameConnection(
+  lobbyID: string | undefined,
+  wsToken: string | undefined,
+  userID: string | undefined,
+) {
   const [state, setState] = useState<GameConnectionState>(initialState);
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
     if (!lobbyID || !wsToken) return;
 
-    const ws = new WebSocket(`${WEBSOCKET_URL}/lobbies/${lobbyID}/ws?wsToken=${wsToken}`);
+    const ws = new WebSocket(
+      `${WEBSOCKET_URL}/lobbies/${lobbyID}/ws?wsToken=${wsToken}`,
+    );
     wsRef.current = ws;
 
     ws.onopen = () => setState((s) => ({ ...s, connected: true }));
     ws.onclose = () => setState((s) => ({ ...s, connected: false }));
-    ws.onerror = () => setState((s) => ({ ...s, error: "WebSocket error occurred" }));
+    ws.onerror = () =>
+      setState((s) => ({ ...s, error: "WebSocket error occurred" }));
 
     ws.onmessage = (event) => {
       let message: ServerWsMessage;
@@ -79,17 +91,22 @@ export function useGameConnection(lobbyID: string | undefined, wsToken: string |
         }
         case GameEvents.HandDealt: {
           if (message.data.playerID !== userID) break;
-          const hand = message.data.playerTiles.map(parseTileString);
-          setState((s) => ({ ...s, hand }));
+          setState((s) => ({ ...s, hand: message.data.playerTiles }));
           break;
         }
         case GameEvents.PlayerMoveMade: {
-          const { userID: actorID, tile, side, next_turn, round_result } = message.data;
+          const {
+            userID: actorID,
+            tile,
+            side,
+            nextTurn: nextTurn,
+            roundResult: roundResult,
+          } = message.data;
           setState((s) => ({
             ...s,
             board: applyMove(s.board, tile, side as Side),
-            currentTurn: next_turn,
-            roundResult: round_result ?? s.roundResult,
+            currentTurn: nextTurn,
+            roundResult: roundResult ?? s.roundResult,
             handCounts: {
               ...s.handCounts,
               [actorID]: Math.max(0, (s.handCounts[actorID] ?? 0) - 1),
@@ -98,8 +115,12 @@ export function useGameConnection(lobbyID: string | undefined, wsToken: string |
           break;
         }
         case GameEvents.PlayerPassed: {
-          const { next_turn, round_result } = message.data;
-          setState((s) => ({ ...s, currentTurn: next_turn, roundResult: round_result ?? s.roundResult }));
+          const { next_turn, round_result: roundResult } = message.data;
+          setState((s) => ({
+            ...s,
+            currentTurn: next_turn,
+            roundResult: roundResult ?? s.roundResult,
+          }));
           break;
         }
         case GameEvents.PlayTileResponse: {
@@ -114,12 +135,18 @@ export function useGameConnection(lobbyID: string | undefined, wsToken: string |
           break;
         case LobbyEvents.PlayerConnected: {
           const { userID } = message.data;
-          setState((s) => ({ ...s, playerConnectivity: { ...s.playerConnectivity, [userID]: true } }));
+          setState((s) => ({
+            ...s,
+            playerConnectivity: { ...s.playerConnectivity, [userID]: true },
+          }));
           break;
         }
         case LobbyEvents.PlayerDisconnected: {
           const { userID } = message.data;
-          setState((s) => ({ ...s, playerConnectivity: { ...s.playerConnectivity, [userID]: false } }));
+          setState((s) => ({
+            ...s,
+            playerConnectivity: { ...s.playerConnectivity, [userID]: false },
+          }));
           break;
         }
         case LobbyEvents.PlayerJoined: {
@@ -135,9 +162,14 @@ export function useGameConnection(lobbyID: string | undefined, wsToken: string |
                   ...s,
                   joinedPlayers: [
                     ...s.joinedPlayers,
-                    { id: joinedID, name: displayName, slot: playerCount, isConnected: false },
+                    {
+                      id: joinedID,
+                      name: displayName,
+                      slot: playerCount,
+                      isConnected: false,
+                    },
                   ],
-                }
+                },
           );
           break;
         }
@@ -156,7 +188,9 @@ export function useGameConnection(lobbyID: string | undefined, wsToken: string |
       setState((s) => ({ ...s, error: "not connected" }));
       return;
     }
-    ws.send(JSON.stringify({ type: GameEvents.PlayTileCmd, data: { tile, side } }));
+    ws.send(
+      JSON.stringify({ type: GameEvents.PlayTileCmd, data: { tile, side } }),
+    );
   };
 
   const pass = () => {

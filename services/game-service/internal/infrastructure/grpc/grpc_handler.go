@@ -32,14 +32,14 @@ func NewGRPCHandler(server *grpc.Server, service domain.GameService, publisher *
 
 func (h *gRPCHandler) PlayTile(ctx context.Context, req *pbg.PlayTileRequest) (*pbg.PlayTileResponse, error) {
 	// check req validity
-	if req.Side != "left" && req.Side != "right" {
+	side := types.Side(req.Side)
+	if side != types.Left && side != types.Right {
 		return nil, status.Error(codes.Internal, "failed to parse side")
 	}
 	tile := types.Tile{Left: int(req.Tile.Left), Right: int(req.Tile.Right)}
-	// NOTE: should
 
 	// Play tile
-	game, roundResult, err := h.service.PlayTile(ctx, req.LobbyId, req.UserId, tile, req.Side)
+	game, roundResult, err := h.service.PlayTile(ctx, req.LobbyId, req.UserId, tile, side)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to play tile: %v", err)
 	}
@@ -47,6 +47,11 @@ func (h *gRPCHandler) PlayTile(ctx context.Context, req *pbg.PlayTileRequest) (*
 	// publish move made
 	if err := h.publisher.PublishMoveMade(ctx, req, game, roundResult); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to publish move made: %v", err)
+	}
+
+	// Round finished,
+	if roundResult != nil {
+
 	}
 
 	// return grpc
@@ -65,11 +70,24 @@ func (h *gRPCHandler) PassTurn(ctx context.Context, req *pbg.PassTurnRequest) (*
 	}
 
 	// publish turn passed
-	if err := h.publisher.PublishTurnChanged(ctx, req, game, roundResult); err != nil {
+	if err := h.publisher.PublishTurnPassed(ctx, req, game, roundResult); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to publish GameStarted: %v", err)
 	}
 
 	return &pbg.PassTurnResponse{
+		RoundResult: toProtoRoundResult(roundResult),
+	}, nil
+}
+
+func (h *gRPCHandler) NextRound(ctx context.Context, req *pbg.NextRoundRequest) (*pbg.NextRoundResponse, error) {
+	round, roundResult, err := h.service.NextRound(ctx, req.LobbyId)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to start next round: %v", err)
+	}
+
+	return &pbg.NextRoundResponse{
+		Board:       toProtoTiles(round.Board.Tiles),
+		Hand:        toProtoTiles(round.Hands[req.UserId]),
 		RoundResult: toProtoRoundResult(roundResult),
 	}, nil
 }
@@ -79,8 +97,8 @@ func toProtoRoundResult(rr *types.RoundResult) *pbg.RoundResult {
 		return nil
 	}
 	return &pbg.RoundResult{
-		WinnerId: rr.WinnerID,
-		Reason:   rr.Reason,
+		WinnerId: string(rr.WinnerTeamID),
+		Reason:   string(rr.Reason),
 	}
 }
 

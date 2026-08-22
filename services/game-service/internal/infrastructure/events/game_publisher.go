@@ -20,12 +20,12 @@ func NewGameEventPublisher(rmq *messaging.RabbitMQ) *GameEventPublisher {
 	}
 }
 
-func (p *GameEventPublisher) PublishMoveMade(ctx context.Context, req *pbg.PlayTileRequest, game *domain.GameModel, roundResult *types.RoundResult) error {
+func (p *GameEventPublisher) PublishMoveMade(ctx context.Context, req *pbg.PlayTileRequest, game *domain.RoundModel, roundResult *types.RoundResult) error {
 	// create event
 	payload := messaging.MoveMadeData{
 		UserID:      req.UserId,
 		Tile:        toTile(req.Tile),
-		Side:        req.Side,
+		Side:        types.Side(req.Side),
 		NextTurn:    game.CurrentTurn,
 		RoundResult: roundResult,
 	}
@@ -42,7 +42,7 @@ func (p *GameEventPublisher) PublishMoveMade(ctx context.Context, req *pbg.PlayT
 	})
 }
 
-func (p *GameEventPublisher) PublishTurnChanged(ctx context.Context, req *pbg.PassTurnRequest, game *domain.GameModel, roundResult *types.RoundResult) error {
+func (p *GameEventPublisher) PublishTurnPassed(ctx context.Context, req *pbg.PassTurnRequest, game *domain.RoundModel, roundResult *types.RoundResult) error {
 	// create event
 	payload := messaging.PlayerPassedData{
 		UserID:      req.UserId,
@@ -62,6 +62,29 @@ func (p *GameEventPublisher) PublishTurnChanged(ctx context.Context, req *pbg.Pa
 	})
 }
 
+func (p *GameEventPublisher) PublishRoundOver(ctx context.Context, game *domain.RoundModel, roundResult *types.RoundResult) error {
+	// create event
+	payload := messaging.RoundOverData{
+		UserID:             req.UserId,
+		Tile:               toTile(req.Tile),
+		Side:               types.Side(req.Side),
+		NextStartingPlayer: game.CurrentTurn,
+		RoundResult:        roundResult,
+	}
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+
+	// Publish to MoveMade
+	return p.rabbitmq.PublishMessage(ctx, contracts.PlayerMoveMade, &contracts.DominoEvent{
+		LobbyID:  game.LobbyID,
+		TargetID: "",
+		Data:     data,
+	})
+}
+
+// -- Helper
 func toTile(tile *pbg.Tile) types.Tile {
 	return types.Tile{
 		Left:  int(tile.Left),
