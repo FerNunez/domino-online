@@ -73,6 +73,7 @@ export interface LobbyModel {
 // --- server -> client WS event payloads ---
 
 export interface GameStartedData {
+  gameID: string;
   playerOrder: string[];
   handsSize: Record<string, number>;
   currentTurn: string;
@@ -106,13 +107,13 @@ export interface RoundOverData {
 
 // Broadcast once, immediately after the RoundOver event that ends the
 // match. Durable, explicit game-over signal — carries the same terminal
-// fields RoundOver already carries (gameState/teamWinner/gameScore); not a
+// fields RoundOver already carries (gameState/teamWinner/gameScores); not a
 // second place to derive different game-over logic from.
 export interface GameOverData {
   lobbyID: string;
   gameID: string;
   gameState: "GAME_STATUS_IN_PROGRESS" | "GAME_STATUS_FINISHED";
-  gameScore: Record<string, number>;
+  gameScores: Record<string, number>;
   teamWinner: string;
 }
 
@@ -122,8 +123,10 @@ export interface NextRoundResponseData {
   roundNumber: number;
 }
 
-// Client-only — accumulated locally from RoundOver events, since the
-// backend only persists the current round (no history endpoint exists).
+// Accumulated client-side from RoundOver events for the lifetime of this
+// connection only — lost on refresh/reconnect. The backend now durably
+// persists round history and exposes it via GET /games/{id}/history
+// (see services/history-service), but the frontend doesn't fetch it yet.
 export interface RoundHistoryEntry {
   roundNumber: number;
   roundID: string;
@@ -172,4 +175,49 @@ export interface PlayerJoinedData {
   displayName: string;
   playerCount: number;
   maxPlayers: number;
+}
+
+// --- REST history endpoints (services/history-service, via api-gateway) ---
+// proto/history.proto's fields are written camelCase (like lobby.proto's
+// hostId/maxPlayers), so these match the wire JSON directly — see lib/api.ts,
+// which fetches them with no translation layer, same as getLobby.
+
+export interface GameSummary {
+  gameId: string;
+  lobbyId: string;
+  finalScores: Record<string, number>;
+  teamWinner?: string;
+  gameState: "GAME_STATUS_IN_PROGRESS" | "GAME_STATUS_FINISHED" | string;
+  createdAt: string; // RFC3339
+}
+
+// One row of GET /games/{id}/history. Distinct from RoundResult (the WS
+// shape embedded in RoundOver) since this carries its own roundId/
+// roundNumber/startingPlayerId rather than being scoped to a live event.
+export interface GameRoundSummary {
+  roundId: string;
+  roundNumber: number;
+  startingPlayerId: string;
+  winnerTeamId?: string;
+  reason?: string;
+  scores: Record<string, number>;
+}
+
+// One row of GET /rounds/{id}/actions' `actions` array — enough, together
+// with HistoryHand, to replay a round move by move.
+export interface HistoryAction {
+  actionNumber: number;
+  playerId: string;
+  actionType: "play" | "pass" | string;
+  tile?: Tile;
+  side?: string;
+  resultingLeftEnd: number;
+  resultingRightEnd: number;
+}
+
+// One row of GET /rounds/{id}/actions' `hands` array — the hand each player
+// was dealt at the start of that round.
+export interface HistoryHand {
+  playerId: string;
+  tiles: Tile[];
 }

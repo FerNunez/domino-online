@@ -14,19 +14,21 @@ import (
 )
 
 type gameConsumer struct {
-	rabbitmq *messaging.RabbitMQ
-	service  domain.GameService
+	rabbitmq  *messaging.RabbitMQ
+	service   domain.GameService
+	publisher *GameEventPublisher
 }
 
-func NewGameConsumer(rabbitmq *messaging.RabbitMQ, service domain.GameService) (*gameConsumer, error) {
+func NewGameConsumer(rabbitmq *messaging.RabbitMQ, service domain.GameService, publisher *GameEventPublisher) (*gameConsumer, error) {
 	_, err := rabbitmq.DeclareQueueAndBind(messaging.GameQueue, []string{contracts.GameStartCmd}, messaging.DominoExchange)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't bind to game queue %w", err)
 	}
 
 	return &gameConsumer{
-		rabbitmq: rabbitmq,
-		service:  service,
+		rabbitmq:  rabbitmq,
+		service:   service,
+		publisher: publisher,
 	}, nil
 }
 
@@ -71,7 +73,7 @@ func (c *gameConsumer) handleGameStarted(ctx context.Context, gameID, lobbyID st
 	}
 	round := game.CurrentRound
 	if round == nil {
-		panic("it should have a round not null")
+		return fmt.Errorf("can't retrieve the current game: %w", err)
 	}
 
 	// compute map UserID -> hand size
@@ -80,6 +82,7 @@ func (c *gameConsumer) handleGameStarted(ctx context.Context, gameID, lobbyID st
 		handSize[userID] = len(tiles)
 	}
 	payloadOut := messaging.GameStartedData{
+		GameID:      gameID,
 		PlayerOrder: round.PlayerOrder,
 		HandsSize:   handSize,
 		CurrentTurn: round.CurrentTurn,
@@ -99,24 +102,9 @@ func (c *gameConsumer) handleGameStarted(ctx context.Context, gameID, lobbyID st
 		return err
 	}
 
-	// Publish: Deal Hand
-	for playerID, tiles := range round.Hands {
-		payloadOut := messaging.HandDeltData{
-			PlayerTiles: tiles,
-			PlayerID:    playerID,
-		}
-		data, err := json.Marshal(payloadOut)
-		if err != nil {
-			return err
-		}
-		if err := c.rabbitmq.PublishMessage(ctx, contracts.HandDealt, &contracts.DominoEvent{
-			LobbyID:  lobbyID,
-			Data:     data,
-			TargetID: playerID, // target
-		}); err != nil {
-			return err
-		}
+	// Publish: Round Started + Deal Hand (same as every later round, via NextRound)
+	if err := c.publisher.PublishRoundStarted(ctx, round); err != nil {
+		return err
 	}
-
-	return nil
+	return c.publisher.PublishHandsDealt(ctx, round)
 }

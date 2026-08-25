@@ -1,5 +1,12 @@
 package types
 
+type ActionType string
+
+const (
+	Play ActionType = "play"
+	Pass ActionType = "pass"
+)
+
 type Reason string
 
 const (
@@ -46,7 +53,6 @@ const (
 	Right Side = "right"
 )
 
-// -- TEAMS
 type TeamID string
 
 const (
@@ -54,7 +60,7 @@ const (
 	TeamB TeamID = "TEAM_B"
 )
 
-// Define player team: 1,3 vs 2,4
+// SlotToTeamID Define player team: 1,3 vs 2,4
 func SlotToTeamID(slot int) TeamID {
 	switch slot {
 	case 1, 3:

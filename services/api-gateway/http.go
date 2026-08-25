@@ -1,19 +1,27 @@
 package main
 
 import (
-	"domino/services/api-gateway/grpc_clients"
-	"domino/shared/contracts"
-	"domino/shared/jwt"
-	pbl "domino/shared/proto/lobby"
-	pbu "domino/shared/proto/user"
-	"domino/shared/tracing"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+
+	"domino/services/api-gateway/grpc_clients"
+	"domino/shared/contracts"
+	"domino/shared/jwt"
+	pbh "domino/shared/proto/history"
+	pbl "domino/shared/proto/lobby"
+	pbu "domino/shared/proto/user"
+	"domino/shared/tracing"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 var tracer = tracing.GetTracer("api-gateway")
+
+// historySvc is a single long-lived connection shared across requests
+var historySvc, historySvcErr = grpc_clients.NewHistoryServiceClient()
 
 func handleCreateLobby(w http.ResponseWriter, r *http.Request) {
 	ctx, span := tracer.Start(r.Context(), "handleCreateLobby")
@@ -77,7 +85,6 @@ func handleGetUser(w http.ResponseWriter, r *http.Request) {
 	user, err := userSvc.Client.GetUser(ctx, &pbu.GetUserRequest{
 		UserID: userID,
 	})
-
 	if err != nil {
 		http.Error(w, fmt.Sprintf("ailed to get user: %v", err), http.StatusInternalServerError)
 		return
@@ -157,7 +164,6 @@ func handleStartGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: Should I add a grpc call to game start?
 	writeJSON(w, http.StatusCreated, contracts.APIResponse{Data: game})
 }
 
@@ -183,6 +189,74 @@ func handleGetLobby(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, contracts.APIResponse{Data: lobby.Lobby})
+}
+
+// returns []actions and []hands for a round
+func handleGetRoundActions(w http.ResponseWriter, r *http.Request) {
+	ctx, span := tracer.Start(r.Context(), "handleGetRoundActions")
+	defer span.End()
+
+	roundID := r.PathValue("id")
+	if roundID == "" {
+		http.Error(w, "round id is required", http.StatusBadRequest)
+		return
+	}
+
+	actions, err := historySvc.Client.GetRoundActions(ctx, &pbh.GetRoundActionsRequest{RoundId: roundID})
+	if err != nil {
+		// NotFound means the round hasn't been fully persisted by history-service yet
+		if status.Code(err) == codes.NotFound {
+			http.Error(w, "round history not available yet", http.StatusNotFound)
+			return
+		}
+		http.Error(w, fmt.Sprintf("failed to get round actions: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, contracts.APIResponse{Data: struct {
+		Actions []*pbh.Action `json:"actions"`
+		Hands   []*pbh.Hand   `json:"hands"`
+	}{Actions: actions.Actions, Hands: actions.Hands}})
+}
+
+// returns []GameSumary for a user
+func handleGetPlayerGames(w http.ResponseWriter, r *http.Request) {
+	ctx, span := tracer.Start(r.Context(), "handleGetPlayerGames")
+	defer span.End()
+
+	userID, ok := ctx.Value("userID").(string)
+	if !ok || userID == "" {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	games, err := historySvc.Client.GetPlayerGames(ctx, &pbh.GetPlayerGamesRequest{PlayerId: userID})
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to get player games: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, contracts.APIResponse{Data: games.Games})
+}
+
+// GameHistory means []RoundSumary for a game
+func handleGetGameHistory(w http.ResponseWriter, r *http.Request) {
+	ctx, span := tracer.Start(r.Context(), "handleGetGameHistory")
+	defer span.End()
+
+	gameID := r.PathValue("id")
+	if gameID == "" {
+		http.Error(w, "game id is required", http.StatusBadRequest)
+		return
+	}
+
+	history, err := historySvc.Client.GetGameHistory(ctx, &pbh.GetGameHistoryRequest{GameId: gameID})
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to get game history: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, contracts.APIResponse{Data: history.Rounds})
 }
 
 func handleAuthGuest(w http.ResponseWriter, r *http.Request) {

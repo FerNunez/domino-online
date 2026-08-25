@@ -1,12 +1,16 @@
 package contracts
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"time"
+)
 
 // DominoEvent is the envelope for every message published to RabbitMQ
 type DominoEvent struct {
-	LobbyID  string          `json:"lobbyID"`
-	TargetID string          `json:"targetID,omitempty"`
-	Data     json.RawMessage `json:"data"`
+	LobbyID    string          `json:"lobbyID"`
+	TargetID   string          `json:"targetID,omitempty"`
+	Data       json.RawMessage `json:"data"`
+	OccurredAt time.Time       `json:"occurredAt"`
 }
 
 // EVENTS:

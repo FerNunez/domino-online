@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: history-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: history-service
+  template:
+    metadata:
+      labels:
+        app: history-service
+    spec:
+      containers:
+        - name: history-service
+          image: domino/history-service
+          ports:
+            - containerPort: 9094
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "100m"
+            limits:
+              memory: "128Mi"
+              cpu: "200m"
+          env:
+            - name: POSTGRESQL_URI
+              valueFrom:
+                secretKeyRef:
+                  name: postgres
+                  key: uri
+            - name: RABBITMQ_URI
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-credentials
+                  key: uri
+            - name: JAEGER_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  key: JAEGER_ENDPOINT
+                  name: app-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: history-service
+spec:
+  selector:
+    app: history-service
+  ports:
+    - port: 9094
+      name: grpc
+      targetPort: 9094
+  type: ClusterIP

@@ -83,6 +83,37 @@ k8s_yaml('./infra/development/k8s/user-service-deployment.yaml')
 k8s_resource('user-service', resource_deps=['user-service-compile'], labels="services")
 
 
+### History Service
+history_compile_cmd = 'CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o build/history-service ./services/history-service/cmd/main.go'
+if os.name == 'nt':
+    history_compile_cmd= './infra/development/docker/history-build.bat'
+
+local_resource(
+    'history-service-compile',
+    history_compile_cmd,
+    deps=['./services/history-service/', './shared'],
+    labels="compiles"
+)
+
+docker_build_with_restart(
+    'domino/history-service',
+    '.',
+    entrypoint=['./build/history-service'],
+    dockerfile='./infra/development/docker/history-service.Dockerfile',
+    only=[
+       './build/history-service',
+       './shared',
+    ],
+    live_update=[
+        sync('./build', '/app/build'),
+        sync('./shared', '/app/shared'),
+    ],
+)
+
+k8s_yaml('./infra/development/k8s/history-service-deployment.yaml')
+k8s_resource('history-service', resource_deps=['history-service-compile'], labels="services")
+
+
 ### lobby Service
 lobby_compile_cmd = 'CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o build/lobby-service ./services/lobby-service/cmd/main.go'
 if os.name == 'nt':

@@ -1,0 +1,77 @@
+syntax = "proto3";
+
+package history;
+
+option go_package = "shared/proto/history;history";
+
+service HistoryService{
+  rpc GetRoundActions(GetRoundActionsRequest) returns (GetRoundActionsResponse);
+  rpc GetGameHistory(GetGameHistoryRequest) returns (GetGameHistoryResponse);
+  rpc GetPlayerGames(GetPlayerGamesRequest) returns (GetPlayerGamesResponse);
+}
+
+// RoundActions
+message GetRoundActionsRequest{
+  string roundId = 1;
+}
+message GetRoundActionsResponse{
+  repeated Action actions = 1;
+  repeated Hand hands = 2; // initial dealt hands, enough (with actions) to replay the round
+}
+
+// GameHistory
+message GetGameHistoryRequest{
+  string gameId = 1;
+}
+message GetGameHistoryResponse{
+  repeated RoundSummary rounds = 1;
+}
+
+// PlayerGames
+message GetPlayerGamesRequest{
+  string playerId = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
+message GetPlayerGamesResponse{
+  repeated GameSummary games = 1;
+}
+
+// -- 
+message Action{
+  int32 actionNumber = 1;
+  string playerId = 2;
+  string actionType = 3; // "play" | "pass"
+  Tile tile = 4; // unset when actionType == "pass"
+  string side = 5;
+  int32 resultingLeftEnd = 6;
+  int32 resultingRightEnd = 7;
+}
+
+message Hand{
+  string playerId = 1;
+  repeated Tile tiles = 2;
+}
+
+message RoundSummary{
+  string roundId = 1;
+  int32 roundNumber = 2;
+  string startingPlayerId = 3;
+  string winnerTeamId = 4;
+  string reason = 5; // ReasonDomino | ReasonBlocked
+  map<string, int32> scores = 6; // map[TeamID] -> score (sum of tiles for that round)
+}
+
+message GameSummary{
+  string gameId = 1;
+  string lobbyId = 2;
+  map<string, int32> finalScores = 3; // map[TeamID] -> points
+  string teamWinner = 4;
+  string gameState = 5;
+  string createdAt = 6;
+}
+
+message Tile{
+  int32 left = 1;
+  int32 right = 2;
+}

@@ -25,6 +25,8 @@ interface GameConnectionState {
   currentTurn: string | null;
   hand: Tile[];
   board: BoardState;
+  // Set on GameStarted; null until the first game of the match begins.
+  gameID: string | null;
   // Cumulative match score per team, updated on GameStarted/RoundOver.
   gameScores: Record<string, number>;
   roundNumber: number;
@@ -35,7 +37,8 @@ interface GameConnectionState {
   // Points scored by each team in the round that just ended (gameScores delta,
   // not roundOver.roundResult.scores, which is pip-liability, not points).
   latestRoundOverPoints: Record<string, number> | null;
-  // Accumulated client-side only — the backend doesn't persist past rounds.
+  // Accumulated client-side only, for this connection's lifetime — see the
+  // RoundHistoryEntry comment in lib/types.ts for the backend history gap.
   roundHistory: RoundHistoryEntry[];
   nextRoundRequested: boolean;
   error: string | null;
@@ -56,6 +59,7 @@ const initialState: GameConnectionState = {
   currentTurn: null,
   hand: [],
   board: emptyBoard,
+  gameID: null,
   gameScores: {},
   roundNumber: 1,
   gameStatus: "GAME_STATUS_IN_PROGRESS",
@@ -115,11 +119,12 @@ export function useGameConnection(
 
       switch (message.type) {
         case GameEvents.GameStarted: {
-          const { playerOrder, currentTurn, handsSize, scores } =
+          const { gameID, playerOrder, currentTurn, handsSize, scores } =
             message.data;
           setState((s) => ({
             ...s,
             gameStarted: true,
+            gameID,
             playerOrder,
             currentTurn,
             board: emptyBoard,
@@ -219,12 +224,12 @@ export function useGameConnection(
           break;
         }
         case GameEvents.GameEnded: {
-          const { gameState, teamWinner, gameScore } = message.data;
+          const { gameState, teamWinner, gameScores } = message.data;
           setState((s) => ({
             ...s,
             gameStatus: gameState,
             teamWinner: teamWinner || null,
-            gameScores: gameScore,
+            gameScores,
           }));
           break;
         }

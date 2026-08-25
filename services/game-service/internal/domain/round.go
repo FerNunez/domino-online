@@ -45,6 +45,7 @@ type RoundModel struct {
 	StartingPlayer string
 	CurrentTurn    string
 	PassStreak     uint
+	ActionCount    int // count of accepted plays/passes this round, used for history ordering
 
 	// roundOverReason is set internally by PlayTile/PassTurn when they conclude
 	// the round, so ResolveResult knows which outcome to compute.
@@ -170,6 +171,7 @@ func (r *RoundModel) PlayTile(userID string, tile types.Tile, side types.Side) e
 	r.Hands[userID] = append(hand[:handIdx], hand[handIdx+1:]...)
 	// reset pass counter for block state
 	r.PassStreak = 0
+	r.ActionCount++
 
 	// Check if current player won by placing
 	if len(r.Hands[userID]) == 0 {
@@ -198,6 +200,7 @@ func (r *RoundModel) PassTurn(userID string) error {
 	}
 
 	// keep memory of how many consecutives players passed, if reaches 4 => game over
+	r.ActionCount++
 	r.PassStreak++
 	if int(r.PassStreak) >= len(r.PlayerOrder) {
 		r.Status = RoundStatusRoundOver
@@ -257,7 +260,7 @@ func (r *RoundModel) ResolveResult() types.RoundResult {
 			scores[teamID] += pipSum(hand)
 		}
 		if scores[types.TeamA] == scores[types.TeamB] {
-			return types.RoundResult{Reason: types.ReasonBlocked, Scores: map[types.TeamID]int{}}
+			return types.RoundResult{Reason: types.ReasonBlocked, Scores: scores}
 		}
 		// Lowest pip count wins a blocked round.
 		var winnerID types.TeamID

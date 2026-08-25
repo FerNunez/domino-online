@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Board } from "./Board";
 import { Hand } from "./Hand";
 import { PlayersPanel } from "./PlayersPanel";
+import { RoundActionsPanel } from "./RoundActionsPanel";
 import { RoundSummary } from "./RoundSummary";
 import { Scoreboard } from "./Scoreboard";
 import { TurnIndicator } from "./TurnIndicator";
@@ -73,14 +74,19 @@ export function GameScreen({
     <div className="flex w-full max-w-5xl flex-col gap-4 p-4">
       <Scoreboard gameScores={gameScores} goalScore={lobby.settings.maxScore} roundNumber={roundNumber} yourTeamID={yourTeamID} />
       {roundOver ? (
-        <RoundSummary
-          roundOver={roundOver}
-          yourTeamID={yourTeamID}
-          canStartNextRound={isHost}
-          nextRoundRequested={nextRoundRequested}
-          pointsThisRound={latestRoundOverPoints}
-          onNextRound={nextRound}
-        />
+        <>
+          <RoundSummary
+            roundOver={roundOver}
+            yourTeamID={yourTeamID}
+            canStartNextRound={isHost}
+            nextRoundRequested={nextRoundRequested}
+            pointsThisRound={latestRoundOverPoints}
+            onNextRound={nextRound}
+          />
+          <div className="rounded-lg border bg-card p-3">
+            <RoundActionsPanel roundID={roundOver.roundID} players={lobby.players} />
+          </div>
+        </>
       ) : (
         <TurnIndicator currentTurn={currentTurn} userID={userID} hasLegalMove={hasLegalMove} onPass={pass} />
       )}

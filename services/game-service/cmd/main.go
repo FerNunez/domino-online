@@ -51,9 +51,12 @@ func main() {
 	repo := repository.NewRedisRepository(redisClient)
 	svc := service.NewService(repo)
 
-	// 5. Consumer
+	// 5. Publisher
+	pub := events.NewGameEventPublisher(rabbitmq)
+
+	// 6. Consumer
 	go func() {
-		consumer, err := events.NewGameConsumer(rabbitmq, svc)
+		consumer, err := events.NewGameConsumer(rabbitmq, svc, pub)
 		if err != nil {
 			log.Printf("failed to create game consumer: %v", err)
 			cancel()
@@ -64,8 +67,6 @@ func main() {
 			cancel()
 		}
 	}()
-	// 6. Publisher
-	pub := events.NewGameEventPublisher(rabbitmq)
 
 	// 7. Start the Grpc Server. Listen
 	lis, err := net.Listen("tcp", grpcAddr)

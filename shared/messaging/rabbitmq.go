@@ -2,12 +2,14 @@ package messaging
 
 import (
 	"context"
-	"domino/shared/contracts"
-	"domino/shared/retry"
-	"domino/shared/tracing"
 	"encoding/json"
 	"fmt"
 	"log"
+	"time"
+
+	"domino/shared/contracts"
+	"domino/shared/retry"
+	"domino/shared/tracing"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -80,7 +82,6 @@ func (r *RabbitMQ) ConsumeMessages(queueName string, handler MessageHandler) err
 				err := retry.WithBackoff(ctx, cfg, func() error {
 					return handler(ctx, d)
 				})
-
 				// Handler never succeeded after retries -> sent to DeadLetterQueue
 				if err != nil {
 					log.Printf("Message processing failed after %d retries: %v", cfg.MaxRetries, err)
@@ -119,6 +120,7 @@ func (r *RabbitMQ) ConsumeMessages(queueName string, handler MessageHandler) err
 // The msg is persistent
 func (r *RabbitMQ) PublishMessage(ctx context.Context, routingKey string, message *contracts.DominoEvent) error {
 	log.Printf("Publishing message with routing key: %s", routingKey)
+	message.OccurredAt = time.Now().UTC()
 	jsonMsg, err := json.Marshal(message)
 	if err != nil {
 		return fmt.Errorf("failed to marshal message: %v", err)
@@ -135,11 +137,10 @@ func (r *RabbitMQ) publish(ctx context.Context, exchange, routingKey string, msg
 	return r.Channel.PublishWithContext(ctx,
 		exchange,
 		routingKey,
-		false, //mandatory: dont return the message if no queue matches
-		false, //immediate: dont require an active consumer
+		false, // mandatory: dont return the message if no queue matches
+		false, // immediate: dont require an active consumer
 		msg,
 	)
-
 }
 
 func (r *RabbitMQ) setupExchangesAndQueues() error {
@@ -209,8 +210,8 @@ func (r *RabbitMQ) setupDeadLetterExchange() error {
 	return nil
 }
 
-// Declare and bind Queues with dead letter exchange setted
-func (r *RabbitMQ) declareAndBindQueue(name string, routineKeys []string, exchange string) error {
+// DeclareAndBindQueueWithDLQ declares a durable queue with x-dead-letter-exchange
+func (r *RabbitMQ) DeclareAndBindQueueWithDLQ(name string, routineKeys []string, exchange string) error {
 	// x-dead-letter-exchange routes rejected messgaes to the DLX
 	args := amqp.Table{
 		"x-dead-letter-exchange": DeadLetterExchange,

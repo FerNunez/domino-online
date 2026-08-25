@@ -23,11 +23,15 @@ func NewGameEventPublisher(rmq *messaging.RabbitMQ) *GameEventPublisher {
 
 func (p *GameEventPublisher) PublishMoveMade(ctx context.Context, req *pbg.PlayTileRequest, round *domain.RoundModel, roundResult *types.RoundResult) error {
 	payload := messaging.MoveMadeData{
-		UserID:      req.UserId,
-		Tile:        toTile(req.Tile),
-		Side:        types.Side(req.Side),
-		NextTurn:    round.CurrentTurn,
-		RoundResult: roundResult,
+		UserID:            req.UserId,
+		Tile:              toTile(req.Tile),
+		Side:              types.Side(req.Side),
+		NextTurn:          round.CurrentTurn,
+		RoundResult:       roundResult,
+		RoundID:           round.ID,
+		ActionNumber:      round.ActionCount,
+		ResultingLeftEnd:  round.Board.LeftEnd,
+		ResultingRightEnd: round.Board.RightEnd,
 	}
 	data, err := json.Marshal(payload)
 	if err != nil {
@@ -44,9 +48,11 @@ func (p *GameEventPublisher) PublishMoveMade(ctx context.Context, req *pbg.PlayT
 
 func (p *GameEventPublisher) PublishTurnPassed(ctx context.Context, req *pbg.PassTurnRequest, game *domain.RoundModel, roundResult *types.RoundResult) error {
 	payload := messaging.PlayerPassedData{
-		UserID:      req.UserId,
-		NextTurn:    game.CurrentTurn,
-		RoundResult: roundResult,
+		UserID:       req.UserId,
+		NextTurn:     game.CurrentTurn,
+		RoundResult:  roundResult,
+		RoundID:      game.ID,
+		ActionNumber: game.ActionCount,
 	}
 	data, err := json.Marshal(payload)
 	if err != nil {
@@ -65,13 +71,17 @@ func (p *GameEventPublisher) PublishRoundOver(ctx context.Context, game *domain.
 	round := game.CurrentRound
 	// create event
 	payload := messaging.RoundOverData{
-		LobbyID:     round.LobbyID,
-		RoundID:     round.ID,
-		RoundNumber: round.RoundNumber,
-		RoundResult: *roundResult,
-		GameScore:   game.TeamScores,
-		GameState:   string(game.Status),
-		TeamWinner:  game.TeamWinner,
+		LobbyID:        round.LobbyID,
+		GameID:         game.ID,
+		RoundID:        round.ID,
+		RoundNumber:    round.RoundNumber,
+		StartingPlayer: round.StartingPlayer,
+		PlayerOrder:    round.PlayerOrder,
+		RoundResult:    *roundResult,
+		ActionCount:    round.ActionCount,
+		GameScore:      game.TeamScores,
+		GameState:      string(game.Status),
+		TeamWinner:     game.TeamWinner,
 	}
 	data, err := json.Marshal(payload)
 	if err != nil {
@@ -107,7 +117,6 @@ func (p *GameEventPublisher) PublishGameOver(ctx context.Context, game *domain.G
 }
 
 func (p *GameEventPublisher) PublishRoundStarted(ctx context.Context, round *domain.RoundModel) error {
-	// create event
 	payload := messaging.RoundStartedData{
 		LobbyID:        round.LobbyID,
 		RoundID:        round.ID,
@@ -119,21 +128,21 @@ func (p *GameEventPublisher) PublishRoundStarted(ctx context.Context, round *dom
 		return err
 	}
 
-	if err := p.rabbitmq.PublishMessage(ctx, contracts.RoundStarted, &contracts.DominoEvent{
+	return p.rabbitmq.PublishMessage(ctx, contracts.RoundStarted, &contracts.DominoEvent{
 		LobbyID:  round.LobbyID,
 		TargetID: "",
 		Data:     data,
-	}); err != nil {
-		return err
-	}
+	})
+}
 
-	// Publish: Deal Hand
+func (p *GameEventPublisher) PublishHandsDealt(ctx context.Context, round *domain.RoundModel) error {
 	for playerID, tiles := range round.Hands {
-		payloadOut := messaging.HandDeltData{
+		payload := messaging.HandDeltData{
+			RoundID:     round.ID,
 			PlayerTiles: tiles,
 			PlayerID:    playerID,
 		}
-		data, err := json.Marshal(payloadOut)
+		data, err := json.Marshal(payload)
 		if err != nil {
 			return err
 		}

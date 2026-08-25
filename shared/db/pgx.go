@@ -2,13 +2,14 @@ package db
 
 import (
 	"context"
-	"domino/shared/env"
 	"fmt"
 	"time"
 
+	"domino/shared/env"
+
 	"domino/shared/db/sql"
 
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 const (
@@ -27,8 +28,7 @@ func NewSQLDefaultConfig() *SQLConfig {
 	}
 }
 
-func NewSqlQueries(ctx context.Context, cfg *SQLConfig) (*sql.Queries, error) {
-
+func NewSQLQueries(ctx context.Context, cfg *SQLConfig) (*sql.Queries, error) {
 	if cfg.URI == "" {
 		return nil, fmt.Errorf("mongodb URI is required")
 	}
@@ -36,10 +36,13 @@ func NewSqlQueries(ctx context.Context, cfg *SQLConfig) (*sql.Queries, error) {
 	connCtx, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()
 
-	conn, err := pgx.Connect(connCtx, cfg.URI)
+	pool, err := pgxpool.New(connCtx, cfg.URI)
 	if err != nil {
 		return nil, err
 	}
-	q := sql.New(conn)
+	if err := pool.Ping(connCtx); err != nil {
+		return nil, err
+	}
+	q := sql.New(pool)
 	return q, nil
 }

@@ -109,6 +109,9 @@ func (h *gRPCHandler) NextRound(ctx context.Context, req *pbg.NextRoundRequest) 
 	if err := h.publisher.PublishRoundStarted(ctx, round); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to publish RoundStarted: %v", err)
 	}
+	if err := h.publisher.PublishHandsDealt(ctx, round); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to publish HandsDealt: %v", err)
+	}
 
 	return &pbg.NextRoundResponse{
 		RoundNumber: int32(round.RoundNumber),

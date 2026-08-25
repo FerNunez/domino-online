@@ -9,7 +9,7 @@ const (
 	// "" // Each gateway has its unique queue
 	GameQueue      = "game_queue"       // game service consomes this queue
 	LobbyQueue     = "lobby_queue"      // lobby service consomes this queue
-	GameStoreQueue = "game_store_queue" // game service consomes thies queue
+	GameStoreQueue = "game_store_queue" // history service consumes this queue
 )
 
 type PlayerJoinedData struct {
@@ -40,6 +40,7 @@ type GameStartCmd struct {
 }
 
 type GameStartedData struct {
+	GameID      string               `json:"gameID"`
 	PlayerOrder []string             `json:"playerOrder"` // userIDs, order: 0, 1, 2 ,3
 	HandsSize   map[string]int       `json:"handsSize"`
 	CurrentTurn string               `json:"currentTurn"` // an userID
@@ -49,27 +50,34 @@ type GameOverData struct {
 	LobbyID    string               `json:"lobbyID"`
 	GameID     string               `json:"gameID"`
 	GameState  string               `json:"gameState"`
-	GameScore  map[types.TeamID]int `json:"gameScore"`
+	GameScore  map[types.TeamID]int `json:"gameScores"`
 	TeamWinner types.TeamID         `json:"teamWinner"`
 }
 
 type HandDeltData struct {
+	RoundID     string       `json:"roundID"`
 	PlayerID    string       `json:"playerID"`
 	PlayerTiles []types.Tile `json:"playerTiles"`
 }
 
 type MoveMadeData struct {
-	UserID      string             `json:"userID"`
-	Tile        types.Tile         `json:"tile"`
-	Side        types.Side         `json:"side"`
-	NextTurn    string             `json:"nextTurn"`
-	RoundResult *types.RoundResult `json:"roundResult,omitempty"`
+	UserID            string             `json:"userID"`
+	Tile              types.Tile         `json:"tile"`
+	Side              types.Side         `json:"side"`
+	NextTurn          string             `json:"nextTurn"`
+	RoundResult       *types.RoundResult `json:"roundResult,omitempty"`
+	RoundID           string             `json:"roundID"`
+	ActionNumber      int                `json:"actionNumber"`
+	ResultingLeftEnd  int                `json:"resultingLeftEnd"`
+	ResultingRightEnd int                `json:"resultingRightEnd"`
 }
 
 type PlayerPassedData struct {
-	UserID      string             `json:"userID"`
-	NextTurn    string             `json:"nextTurn"`
-	RoundResult *types.RoundResult `json:"roundResult,omitempty"`
+	UserID       string             `json:"userID"`
+	NextTurn     string             `json:"nextTurn"`
+	RoundResult  *types.RoundResult `json:"roundResult,omitempty"`
+	RoundID      string             `json:"roundID"`
+	ActionNumber int                `json:"actionNumber"`
 }
 
 type RoundStartedData struct {
@@ -80,10 +88,18 @@ type RoundStartedData struct {
 }
 
 type RoundOverData struct {
-	LobbyID     string               `json:"lobbyID"`
-	RoundID     string               `json:"roundID"`
-	RoundNumber int                  `json:"roundNumber"`
-	RoundResult types.RoundResult    `json:"roundResult"`
+	LobbyID        string            `json:"lobbyID"`
+	GameID         string            `json:"gameID"`
+	RoundID        string            `json:"roundID"`
+	RoundNumber    int               `json:"roundNumber"`
+	StartingPlayer string            `json:"startingPlayer"`
+	PlayerOrder    []string          `json:"playerOrder"`
+	RoundResult    types.RoundResult `json:"roundResult"`
+	// Total accepted plays/passes this round produced — lets history-service
+	// verify its `actions` rows for this round are fully persisted before
+	// serving them, instead of assuming completeness from delivery order
+	// (which doesn't hold once history-service runs more than one replica).
+	ActionCount int                  `json:"actionCount"`
 	GameScore   map[types.TeamID]int `json:"gameScores"`
 	GameState   string               `json:"gameState"`
 	TeamWinner  types.TeamID         `json:"teamWinner"`

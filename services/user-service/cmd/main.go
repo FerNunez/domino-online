@@ -34,8 +34,8 @@ func main() {
 	defer cancel()
 	defer sh(ctx)
 
-	//2. Connect to MongoDB
-	sqlQueries, err := db.NewSqlQueries(ctx, db.NewSQLDefaultConfig())
+	// 2. Connect to MongoDB
+	sqlQueries, err := db.NewSQLQueries(ctx, db.NewSQLDefaultConfig())
 	if err != nil {
 		log.Fatalf("Failed to connect to Queries: %v", err)
 	}
@@ -72,5 +72,4 @@ func main() {
 
 	log.Println("Shutting down user services...")
 	server.GracefulStop() // wait gor in-flight RPCs to complete
-
 }

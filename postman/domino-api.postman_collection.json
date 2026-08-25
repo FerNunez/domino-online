@@ -161,6 +161,37 @@
           }
         }
       ]
+    },
+    {
+      "name": "History",
+      "item": [
+        {
+          "name": "Get round actions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/rounds/{{roundID}}/actions",
+              "host": ["{{baseUrl}}"],
+              "path": ["rounds", "{{roundID}}", "actions"]
+            },
+            "description": "Requires Authorization: Bearer {{token}}. Returns the ordered list of accepted plays/passes for a completed round, as persisted by history-service. Set {{roundID}} manually (not yet captured by any script) from a round-over event's roundID."
+          }
+        },
+        {
+          "name": "Get game history",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/games/{{gameID}}/history",
+              "host": ["{{baseUrl}}"],
+              "path": ["games", "{{gameID}}", "history"]
+            },
+            "description": "Requires Authorization: Bearer {{token}}. Returns per-round summaries (winner, reason, starting player) for a game, as persisted by history-service. Set {{gameID}} manually (not yet captured by any script) from a game-started/game-over event's gameID."
+          }
+        }
+      ]
     }
   ]
 }

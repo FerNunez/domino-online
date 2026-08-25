@@ -1,5 +1,5 @@
 import { API_URL } from "./constants";
-import { LobbyModel, LobbyStatus } from "./types";
+import { GameRoundSummary, GameSummary, HistoryAction, HistoryHand, LobbyModel, LobbyStatus } from "./types";
 
 const GUEST_TOKEN_KEY = "domino_guest_token";
 
@@ -29,6 +29,15 @@ interface APIResponse<T> {
   data: T;
 }
 
+// Carries the HTTP status alongside the message so callers can distinguish
+// e.g. a 404 "not ready yet" (worth retrying) from a real failure.
+export class ApiError extends Error {
+  constructor(message: string, public status: number) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
 async function request<T>(
   path: string,
   options: RequestInit = {},
@@ -44,7 +53,7 @@ async function request<T>(
   const res = await fetch(`${API_URL}${path}`, { ...options, headers });
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(`${options.method ?? "GET"} ${path} failed (${res.status}): ${text}`);
+    throw new ApiError(`${options.method ?? "GET"} ${path} failed (${res.status}): ${text}`, res.status);
   }
   const body: APIResponse<T> = await res.json();
   return body.data;
@@ -87,4 +96,38 @@ export async function getLobby(lobbyID: string): Promise<LobbyModel> {
 // returns &pbl.StartLobbyResponse{}) — poll getLobby / wait for game.game_started over WS for the result.
 export async function startLobby(lobbyID: string): Promise<void> {
   await request(`/lobbies/${lobbyID}/start`, { method: "POST" });
+}
+
+// --- history-service reads ---
+// proto/history.proto's fields are camelCase, so api-gateway's plain
+// encoding/json marshaling already matches lib/types.ts on the wire — no
+// mapping layer needed here, same as getLobby above.
+
+// Backend defaults to the caller's 20 most recent games (history-service's
+// GetPlayerGames) — api-gateway doesn't forward limit/offset query params
+// yet, so pagination isn't available from here.
+export async function getPlayerGames(): Promise<GameSummary[]> {
+  const games = await request<GameSummary[]>("/players/me/games", { method: "GET" });
+  return (games ?? []).sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
+}
+
+// No game-level fields (final scores, winner, created date) come back here —
+// GetGameHistoryResponse only carries rounds. Callers that need those should
+// pull the matching entry out of getPlayerGames() instead.
+export async function getGameHistory(gameId: string): Promise<GameRoundSummary[]> {
+  const rounds = await request<GameRoundSummary[]>(`/games/${gameId}/history`, { method: "GET" });
+  return (rounds ?? []).sort((a, b) => a.roundNumber - b.roundNumber);
+}
+
+export async function getRoundActions(
+  roundId: string
+): Promise<{ actions: HistoryAction[]; hands: HistoryHand[] }> {
+  const data = await request<{ actions?: HistoryAction[]; hands?: HistoryHand[] }>(
+    `/rounds/${roundId}/actions`,
+    { method: "GET" }
+  );
+  return {
+    actions: (data.actions ?? []).sort((a, b) => a.actionNumber - b.actionNumber),
+    hands: data.hands ?? [],
+  };
 }
