@@ -2,12 +2,18 @@ package repository
 
 import (
 	"context"
-	"domino/services/game-service/internal/domain"
 	"encoding/json"
+	"errors"
 	"fmt"
+
+	"domino/services/game-service/internal/domain"
 
 	redis "github.com/redis/go-redis/v9"
 )
+
+// maxCASRetries bounds how many times UpdateCurrentGame will re-run mutate
+// against a fresh read after losing a race to another writer.
+const maxCASRetries = 5
 
 type redisRepository struct {
 	client *redis.Client
@@ -33,15 +39,6 @@ func (rdb *redisRepository) CreateGame(ctx context.Context, g *domain.GameModel)
 	return g, nil
 }
 
-// GetCurrentGame resolves the lobby's in-progress game via its pointer key.
-func (rdb *redisRepository) GetCurrentGame(ctx context.Context, lobbyID string) (*domain.GameModel, error) {
-	gameID, err := rdb.client.Get(ctx, generateCurrentGameKey(lobbyID)).Result()
-	if err != nil {
-		return nil, err
-	}
-	return rdb.GetGameByID(ctx, gameID)
-}
-
 func (rdb *redisRepository) GetGameByID(ctx context.Context, gameID string) (*domain.GameModel, error) {
 	val, err := rdb.client.Get(ctx, generateGameKey(gameID)).Result()
 	if err != nil {
@@ -54,15 +51,52 @@ func (rdb *redisRepository) GetGameByID(ctx context.Context, gameID string) (*do
 	return &game, nil
 }
 
-func (rdb *redisRepository) UpdateGame(ctx context.Context, g *domain.GameModel) (*domain.GameModel, error) {
-	gameData, err := json.Marshal(g)
+// UpdateCurrentGame resolves lobbyID's current game and atomically applies mutate to it using Redis's WATCH/MULTI/EXEC
+func (rdb *redisRepository) UpdateCurrentGame(ctx context.Context, lobbyID string, mutate func(*domain.GameModel) error) (*domain.GameModel, error) {
+	gameID, err := rdb.client.Get(ctx, generateCurrentGameKey(lobbyID)).Result()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("couldn't resolve current game for lobby %s: %w", lobbyID, err)
 	}
-	if err := rdb.client.Set(ctx, generateGameKey(g.ID), gameData, 0).Err(); err != nil {
-		return nil, err
+	key := generateGameKey(gameID)
+
+	var game domain.GameModel
+	for range maxCASRetries {
+		txErr := rdb.client.Watch(ctx, func(tx *redis.Tx) error {
+			val, err := tx.Get(ctx, key).Result()
+			if err != nil {
+				return err
+			}
+			game = domain.GameModel{}
+			if err := json.Unmarshal([]byte(val), &game); err != nil {
+				return err
+			}
+
+			if err := mutate(&game); err != nil {
+				return err // domain rejection: WATCH is released, nothing is queued/written
+			}
+
+			data, err := json.Marshal(game)
+			if err != nil {
+				return err
+			}
+			_, err = tx.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
+				pipe.Set(ctx, key, data, 0)
+				return nil
+			})
+			return err
+		}, key)
+
+		if txErr == nil {
+			return &game, nil
+		}
+		if !errors.Is(txErr, redis.TxFailedErr) {
+			// Domain error or infra failure: retrying would fail the same way.
+			return nil, txErr
+		}
+		// Lost the race: `key` changed between our GET and EXEC. Loop and
+		// retry mutate against a fresh read.
 	}
-	return g, nil
+	return nil, fmt.Errorf("couldn't update game %s after %d attempts: too much contention", gameID, maxCASRetries)
 }
 
 // NextGameNumber atomically reserves the next sequential game number for

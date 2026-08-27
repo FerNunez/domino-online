@@ -103,11 +103,10 @@ type GameService interface {
 
 type GameRepository interface {
 	CreateGame(ctx context.Context, g *GameModel) (*GameModel, error)
-	// GetCurrentGame fetches the lobby's in-progress game (the normal path for gameplay RPCs).
-	GetCurrentGame(ctx context.Context, lobbyID string) (*GameModel, error)
 	// GetGameByID fetches any game ever played, by its uuid, e.g. for history/replay.
 	GetGameByID(ctx context.Context, gameID string) (*GameModel, error)
-	UpdateGame(ctx context.Context, g *GameModel) (*GameModel, error)
+	// UpdateCurrentGame atomically applies mutate to the lobby's current game
+	UpdateCurrentGame(ctx context.Context, lobbyID string, mutate func(*GameModel) error) (*GameModel, error)
 	// NextGameNumber atomically reserves the next sequential game number for lobbyID.
 	NextGameNumber(ctx context.Context, lobbyID string) (int, error)
 }
