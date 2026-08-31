@@ -34,7 +34,7 @@ func main() {
 	defer rabbitmq.Close()
 
 	// Declare and bind new queue and consomme it
-	queueName, err := rabbitmq.DeclareQueueAndBind("", []string{"lobby.*", "game.*"}, messaging.DominoExchange)
+	queueName, err := rabbitmq.DeclareAndBindExclusiveQueue([]string{"lobby.*", "game.*"}, messaging.DominoExchange)
 	if err != nil {
 		log.Fatal(err)
 	}

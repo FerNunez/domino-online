@@ -20,7 +20,7 @@ type gameConsumer struct {
 }
 
 func NewGameConsumer(rabbitmq *messaging.RabbitMQ, service domain.GameService, publisher *GameEventPublisher) (*gameConsumer, error) {
-	_, err := rabbitmq.DeclareQueueAndBind(messaging.GameQueue, []string{contracts.GameStartCmd}, messaging.DominoExchange)
+	err := rabbitmq.DeclareAndBindSharedQueue(messaging.GameQueue, []string{contracts.GameStartCmd}, messaging.DominoExchange)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't bind to game queue %w", err)
 	}

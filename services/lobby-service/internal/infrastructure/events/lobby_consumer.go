@@ -18,7 +18,7 @@ type lobbyConsumer struct {
 }
 
 func NewLobbyConsumer(rabbitmq *messaging.RabbitMQ, service domain.LobbyService) (*lobbyConsumer, error) {
-	_, err := rabbitmq.DeclareQueueAndBind(messaging.LobbyQueue, []string{contracts.PlayerConnected, contracts.PlayerDisconnected}, messaging.DominoExchange)
+	err := rabbitmq.DeclareAndBindSharedQueue(messaging.LobbyQueue, []string{contracts.PlayerConnected, contracts.PlayerDisconnected}, messaging.DominoExchange)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't bind to lobby queue: %w", err)
 	}
