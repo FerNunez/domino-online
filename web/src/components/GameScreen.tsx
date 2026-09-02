@@ -15,6 +15,10 @@ interface GameScreenProps {
   userID: string | undefined;
   lobby: LobbyModel;
   playerOrder: string[];
+  // Live connect/disconnect updates for the lifetime of this connection —
+  // see useGameConnection's playerConnectivity. A player not yet present
+  // here (no live event seen) falls back to the lobby snapshot's isConnected.
+  playerConnectivity: Record<string, boolean>;
   handCounts: Record<string, number>;
   board: BoardState;
   hand: Tile[];
@@ -34,6 +38,7 @@ export function GameScreen({
   userID,
   lobby,
   playerOrder,
+  playerConnectivity,
   handCounts,
   board,
   hand,
@@ -52,6 +57,14 @@ export function GameScreen({
   const isYourTurn = !!currentTurn && currentTurn === userID;
   const yourSlot = lobby.players.find((p) => p.id === userID)?.slot;
   const yourTeamID = yourSlot !== undefined ? slotToTeamID(yourSlot) : undefined;
+
+  const currentTurnPlayer = currentTurn ? lobby.players.find((p) => p.id === currentTurn) : undefined;
+  // Live event wins when present; otherwise fall back to the one-shot lobby
+  // snapshot so a player who's been connected the whole session (no live
+  // connect/disconnect event ever fired for them) doesn't show as offline.
+  const currentTurnConnected = currentTurn
+    ? (playerConnectivity[currentTurn] ?? currentTurnPlayer?.isConnected ?? true)
+    : true;
 
   const handSideOptions = new Map(hand.map((t) => [t, legalSides(board, t)]));
   const hasLegalMove = isYourTurn && Array.from(handSideOptions.values()).some((sides) => sides.length > 0);
@@ -88,7 +101,14 @@ export function GameScreen({
           </div>
         </>
       ) : (
-        <TurnIndicator currentTurn={currentTurn} userID={userID} hasLegalMove={hasLegalMove} onPass={pass} />
+        <TurnIndicator
+          currentTurn={currentTurn}
+          currentTurnName={currentTurnPlayer?.name}
+          currentTurnConnected={currentTurnConnected}
+          userID={userID}
+          hasLegalMove={hasLegalMove}
+          onPass={pass}
+        />
       )}
       <PlayersPanel players={lobby.players} playerOrder={playerOrder} handCounts={handCounts} currentTurn={currentTurn} userID={userID} yourTeamID={yourTeamID}>
         <Board

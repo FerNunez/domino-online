@@ -118,6 +118,49 @@ export function useGameConnection(
       if (!isValidServerWsMessage(message)) return;
 
       switch (message.type) {
+        case GameEvents.GameStateSync: {
+          // Sent once, right after the socket opens, only when a game was
+          // already in progress — seeds full state in one shot instead of
+          // waiting on live events (which is all initialState otherwise
+          // relies on). See services/api-gateway/ws.go.
+          const snap = message.data;
+          setState((s) => {
+            let roundOver: RoundOverData | null = s.roundOver;
+            if (snap.roundStatus === "ROUND_STATUS_OVER" && snap.roundResult) {
+              roundOver = {
+                lobbyID: lobbyID ?? "",
+                roundID: snap.roundID,
+                roundNumber: snap.roundNumber,
+                roundResult: snap.roundResult,
+                gameScores: snap.teamScores,
+                gameState: snap.status,
+                teamWinner: snap.teamWinner,
+              };
+            }
+            return {
+              ...s,
+              gameStarted: true,
+              gameID: snap.gameID,
+              playerOrder: snap.playerOrder,
+              currentTurn: snap.currentTurn,
+              hand: snap.hand,
+              board: snap.board,
+              handCounts: snap.handSizes,
+              gameScores: snap.teamScores,
+              roundNumber: snap.roundNumber,
+              gameStatus: snap.status,
+              teamWinner: snap.teamWinner || null,
+              roundOver,
+              // Can't recompute this round's point delta without the
+              // pre-round score, which the snapshot doesn't carry — omit
+              // rather than show a wrong number. RoundSummary already
+              // treats a null pointsThisRound as "don't show the list".
+              latestRoundOverPoints: roundOver ? null : s.latestRoundOverPoints,
+              nextRoundRequested: false,
+            };
+          });
+          break;
+        }
         case GameEvents.GameStarted: {
           const { gameID, playerOrder, currentTurn, handsSize, scores } =
             message.data;

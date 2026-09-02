@@ -21,15 +21,14 @@ export function sameTile(a: Tile, b: Tile): boolean {
   );
 }
 
-// Mirrors shared/types.RoundResult. Winner/scores are per-team, not
+// Mirrors shared/types.RoundResult. Winner/pip counts are per-team, not
 // per-player — domino is played 1&3 vs 2&4 (see slotToTeamID below).
 export interface RoundResult {
   winnerTeamID?: string;
   reason?: "REASON_DOMINO" | "REASON_BLOCKED" | string;
-  // Only present on events relayed from RabbitMQ (shared/messaging events use
-  // types.RoundResult, which does carry scores); absent on the direct
-  // game.play_tile_response / game.pass_turn_response echoed to the actor.
-  scores?: Record<string, number>;
+  // Summed pip liability of each team's remaining hand when the round ended
+  // (not points scored — see latestRoundOverPoints in useGameConnection.ts).
+  pipCounts?: Record<string, number>;
 }
 
 // Mirrors shared/types.SlotToTeamID: slots 1&3 are one team, 2&4 the other.
@@ -121,6 +120,31 @@ export interface GameOverData {
 // transition arrives separately via the RoundStarted broadcast.
 export interface NextRoundResponseData {
   roundNumber: number;
+}
+
+// Sent directly (not via a broadcast) right after the WebSocket opens, if a
+// game was already in progress for this lobby — lets a (re)connecting client
+// seed full state instead of waiting on the next live event. See
+// services/api-gateway/ws.go and shared/messaging.GameStateSnapshotData.
+// `board` is structurally identical to BoardState (lib/board.ts) so it can
+// be assigned directly with no replay — not imported from there to avoid a
+// circular import (board.ts already imports from this file).
+export interface GameStateSnapshotData {
+  gameID: string;
+  gameNumber: number;
+  status: "GAME_STATUS_IN_PROGRESS" | "GAME_STATUS_FINISHED";
+  teamScores: Record<string, number>;
+  teamWinner?: string;
+  goalScore: number;
+  roundID: string;
+  roundNumber: number;
+  roundStatus: "ROUND_STATUS_DEALT" | "ROUND_STATUS_IN_PROGRESS" | "ROUND_STATUS_OVER";
+  playerOrder: string[];
+  currentTurn: string;
+  board: { tiles: Tile[]; leftEnd: number; rightEnd: number };
+  hand: Tile[];
+  handSizes: Record<string, number>;
+  roundResult?: RoundResult;
 }
 
 // Accumulated client-side from RoundOver events for the lifetime of this

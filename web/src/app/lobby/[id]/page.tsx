@@ -64,6 +64,7 @@ export default function LobbyPage({ params }: { params: Promise<{ id: string }> 
             userID={userID}
             lobby={lobby}
             playerOrder={conn.playerOrder}
+            playerConnectivity={conn.playerConnectivity}
             handCounts={conn.handCounts}
             board={conn.board}
             hand={conn.hand}

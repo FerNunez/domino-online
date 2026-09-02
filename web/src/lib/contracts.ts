@@ -5,6 +5,7 @@
 import {
   GameOverData,
   GameStartedData,
+  GameStateSnapshotData,
   HandDealtData,
   MoveMadeData,
   NextRoundResponseData,
@@ -33,6 +34,7 @@ export enum GameEvents {
   PlayTileCmd = "game.cmd.play_tile",
   PassTurnCmd = "game.cmd.pass",
   NextRoundCmd = "game.cmd.round",
+  GameStateSync = "game.state_sync",
 }
 
 // Relayed verbatim by the gateway from lobby.player_connected /
@@ -59,7 +61,8 @@ export type ServerWsMessage =
   | { type: GameEvents.NextRoundResponse; data: NextRoundResponseData }
   | { type: LobbyEvents.PlayerConnected; data: PlayerConnectionData }
   | { type: LobbyEvents.PlayerDisconnected; data: PlayerConnectionData }
-  | { type: LobbyEvents.PlayerJoined; data: PlayerJoinedData };
+  | { type: LobbyEvents.PlayerJoined; data: PlayerJoinedData }
+  | { type: GameEvents.GameStateSync; data: GameStateSnapshotData };
 
 // Messages sent from the client to the server via the websocket.
 export type ClientWsMessage =
