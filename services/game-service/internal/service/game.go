@@ -42,14 +42,8 @@ func (s *service) CreateGameWithID(ctx context.Context, gameID, lobbyID string, 
 
 // Sync called
 // PlayTile if valid, update game and send result if over
-func (s *service) PlayTile(ctx context.Context, lobbyID, userID string, tile types.Tile, side types.Side) (*domain.GameModel, *types.RoundResult, error) {
-	var result *types.RoundResult
-
+func (s *service) PlayTile(ctx context.Context, lobbyID, userID string, tile types.Tile, side types.Side) (*domain.GameModel, error) {
 	game, err := s.repo.UpdateCurrentGame(ctx, lobbyID, func(g *domain.GameModel) error {
-		// Reset in case a previous attempt got this far before losing the
-		// CAS race — mutate can run more than once per call.
-		result = nil
-
 		round := g.CurrentRound
 		if round == nil {
 			return fmt.Errorf("couldn't find current round for game")
@@ -60,29 +54,23 @@ func (s *service) PlayTile(ctx context.Context, lobbyID, userID string, tile typ
 		}
 
 		if round.Status == domain.RoundStatusRoundOver {
-			r := round.ResolveResult()
-			if err := g.UpdateScore(&r); err != nil {
+			if err := g.UpdateScore(round.Result); err != nil {
 				return err
 			}
-			result = &r
 		}
 		return nil
 	})
 	if err != nil {
-		return nil, nil, fmt.Errorf("couldn't update game: %w", err)
+		return nil, fmt.Errorf("couldn't update game: %w", err)
 	}
-	return game, result, nil
+	return game, nil
 }
 
 // Sync called:
 // Check if pass move is valid, then pass to next user and updates game.
 // Round can end if all 4 players pass in a row (blocked board).
-func (s *service) PassTurn(ctx context.Context, lobbyID, userID string) (*domain.GameModel, *types.RoundResult, error) {
-	var result *types.RoundResult
-
+func (s *service) PassTurn(ctx context.Context, lobbyID, userID string) (*domain.GameModel, error) {
 	game, err := s.repo.UpdateCurrentGame(ctx, lobbyID, func(g *domain.GameModel) error {
-		result = nil
-
 		round := g.CurrentRound
 		if round == nil {
 			return fmt.Errorf("couldn't find current round for game")
@@ -93,21 +81,19 @@ func (s *service) PassTurn(ctx context.Context, lobbyID, userID string) (*domain
 		}
 
 		if round.Status == domain.RoundStatusRoundOver {
-			r := round.ResolveResult()
-			if err := g.UpdateScore(&r); err != nil {
+			if err := g.UpdateScore(round.Result); err != nil {
 				return err
 			}
-			result = &r
 		}
 		return nil
 	})
 	if err != nil {
-		return nil, nil, fmt.Errorf("couldn't update game: %w", err)
+		return nil, fmt.Errorf("couldn't update game: %w", err)
 	}
-	return game, result, nil
+	return game, nil
 }
 
-// NextRound creates a new round
+// NextRound creates a new round and updates the game state
 func (s *service) NextRound(ctx context.Context, lobbyID, userID string) (*domain.GameModel, error) {
 	game, err := s.repo.UpdateCurrentGame(ctx, lobbyID, func(g *domain.GameModel) error {
 		if g.Status == domain.GameStatusGameOver {
@@ -136,4 +122,9 @@ func (s *service) NextRound(ctx context.Context, lobbyID, userID string) (*domai
 		return nil, fmt.Errorf("couldn't update game: %w", err)
 	}
 	return game, nil
+}
+
+// GetCurrentGame returns lobbyID's in-progress game for resync purposes.
+func (s *service) GetCurrentGame(ctx context.Context, lobbyID string) (*domain.GameModel, error) {
+	return s.repo.GetCurrentGame(ctx, lobbyID)
 }

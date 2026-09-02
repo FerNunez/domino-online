@@ -49,7 +49,7 @@ func NewRabbitMQ(uri string) (*RabbitMQ, error) {
 	return rmq, nil
 }
 
-// Messages handle is the function signature every service consumer must implement
+// MessageHandler handle is the function signature every service consumer must implement
 type MessageHandler func(context.Context, amqp.Delivery) error
 
 // ConsumeMessages starts a consumer on queueName
@@ -156,45 +156,6 @@ func (r *RabbitMQ) setupExchangesAndQueues() error {
 	return nil
 }
 
-// 	// Each queue binds to one or more routing keys on the TripExchange
-// 	type queueDef struct {
-// 		name        string
-// 		routingKeys []string
-// 	}
-// 	queues := []queueDef{
-// 		{
-// 			name: NotifyLobby,
-// 			routingKeys: []string{
-// 				"lobby.#",
-// 				"game.*",
-// 			},
-// 		},
-// 		{
-// 			// Dedicated queue for lobby-service's own connectivity handling —
-// 			// must not share NotifyLobby with game-service, since two
-// 			// consumers on the same queue would compete for deliveries
-// 			// instead of each seeing every message.
-// 			name: NotifyLobbyConnectivity,
-// 			routingKeys: []string{
-// 				contracts.PlayerConnected,
-// 				contracts.PlayerDisconnected,
-// 			},
-// 		},
-// 		{
-// 			name: NotifyGame,
-// 			routingKeys: []string{
-// 				"game.cmd.*",
-// 			},
-// 		},
-// 	}
-// 	for _, q := range queues {
-// 		if err := r.declareAndBindQueue(q.name, q.routingKeys, DominoExchange); err != nil {
-// 			return err
-// 		}
-// 	}
-// 	return nil
-// }
-
 func (r *RabbitMQ) setupDeadLetterExchange() error {
 	if err := r.Channel.ExchangeDeclare(DeadLetterExchange, "topic", true, false, false, false, nil); err != nil {
 		return fmt.Errorf("failed to declare exchange %s: %v", DeadLetterExchange, err)
@@ -230,11 +191,11 @@ func (r *RabbitMQ) DeclareAndBindQueueWithDLQ(name string, routineKeys []string,
 	return nil
 }
 
-// DeclareQueueAndBind queue Name to the routeKeys
-func (r *RabbitMQ) DeclareQueueAndBind(queueName string, routingKeys []string, exchange string) (string, error) {
-	q, err := r.Channel.QueueDeclare(queueName, false, false, true, false, nil)
+// DeclareAndBindExclusiveQueue declares an anonymous, exclusive, auto-delete queue used for Apigatway
+func (r *RabbitMQ) DeclareAndBindExclusiveQueue(routingKeys []string, exchange string) (string, error) {
+	q, err := r.Channel.QueueDeclare("", false, false, true, false, nil)
 	if err != nil {
-		return "", fmt.Errorf("failed to declare gateway queue %v", err)
+		return "", fmt.Errorf("failed to declare exclusive queue: %v", err)
 	}
 
 	for _, key := range routingKeys {
@@ -243,6 +204,21 @@ func (r *RabbitMQ) DeclareQueueAndBind(queueName string, routingKeys []string, e
 		}
 	}
 	return q.Name, nil
+}
+
+// DeclareAndBindSharedQueue declares a named, non-exclusive queue that persists across service restarts use on horizontal scalable queues: game_queue, lobby_queue
+func (r *RabbitMQ) DeclareAndBindSharedQueue(queueName string, routingKeys []string, exchange string) error {
+	q, err := r.Channel.QueueDeclare(queueName, false, false, false, false, nil)
+	if err != nil {
+		return fmt.Errorf("failed to declare queue %s: %v", queueName, err)
+	}
+
+	for _, key := range routingKeys {
+		if err := r.Channel.QueueBind(q.Name, key, exchange, false, nil); err != nil {
+			return fmt.Errorf("failed to bind queue %s to key %s: %v", q.Name, key, err)
+		}
+	}
+	return nil
 }
 
 func (r *RabbitMQ) Close() {

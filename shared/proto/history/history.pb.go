@@ -21,58 +21,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type Tile struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Left          int32                  `protobuf:"varint,1,opt,name=left,proto3" json:"left,omitempty"`
-	Right         int32                  `protobuf:"varint,2,opt,name=right,proto3" json:"right,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *Tile) Reset() {
-	*x = Tile{}
-	mi := &file_history_proto_msgTypes[0]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Tile) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Tile) ProtoMessage() {}
-
-func (x *Tile) ProtoReflect() protoreflect.Message {
-	mi := &file_history_proto_msgTypes[0]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Tile.ProtoReflect.Descriptor instead.
-func (*Tile) Descriptor() ([]byte, []int) {
-	return file_history_proto_rawDescGZIP(), []int{0}
-}
-
-func (x *Tile) GetLeft() int32 {
-	if x != nil {
-		return x.Left
-	}
-	return 0
-}
-
-func (x *Tile) GetRight() int32 {
-	if x != nil {
-		return x.Right
-	}
-	return 0
-}
-
+// RoundActions
 type GetRoundActionsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	RoundId       string                 `protobuf:"bytes,1,opt,name=roundId,proto3" json:"roundId,omitempty"`
@@ -82,7 +31,7 @@ type GetRoundActionsRequest struct {
 
 func (x *GetRoundActionsRequest) Reset() {
 	*x = GetRoundActionsRequest{}
-	mi := &file_history_proto_msgTypes[1]
+	mi := &file_history_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -94,7 +43,7 @@ func (x *GetRoundActionsRequest) String() string {
 func (*GetRoundActionsRequest) ProtoMessage() {}
 
 func (x *GetRoundActionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_history_proto_msgTypes[1]
+	mi := &file_history_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -107,7 +56,7 @@ func (x *GetRoundActionsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRoundActionsRequest.ProtoReflect.Descriptor instead.
 func (*GetRoundActionsRequest) Descriptor() ([]byte, []int) {
-	return file_history_proto_rawDescGZIP(), []int{1}
+	return file_history_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *GetRoundActionsRequest) GetRoundId() string {
@@ -117,6 +66,253 @@ func (x *GetRoundActionsRequest) GetRoundId() string {
 	return ""
 }
 
+type GetRoundActionsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Actions       []*Action              `protobuf:"bytes,1,rep,name=actions,proto3" json:"actions,omitempty"`
+	Hands         []*Hand                `protobuf:"bytes,2,rep,name=hands,proto3" json:"hands,omitempty"` // initial dealt hands, enough (with actions) to replay the round
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetRoundActionsResponse) Reset() {
+	*x = GetRoundActionsResponse{}
+	mi := &file_history_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetRoundActionsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetRoundActionsResponse) ProtoMessage() {}
+
+func (x *GetRoundActionsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_history_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetRoundActionsResponse.ProtoReflect.Descriptor instead.
+func (*GetRoundActionsResponse) Descriptor() ([]byte, []int) {
+	return file_history_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *GetRoundActionsResponse) GetActions() []*Action {
+	if x != nil {
+		return x.Actions
+	}
+	return nil
+}
+
+func (x *GetRoundActionsResponse) GetHands() []*Hand {
+	if x != nil {
+		return x.Hands
+	}
+	return nil
+}
+
+// GameHistory
+type GetGameHistoryRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	GameId        string                 `protobuf:"bytes,1,opt,name=gameId,proto3" json:"gameId,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetGameHistoryRequest) Reset() {
+	*x = GetGameHistoryRequest{}
+	mi := &file_history_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetGameHistoryRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetGameHistoryRequest) ProtoMessage() {}
+
+func (x *GetGameHistoryRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_history_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetGameHistoryRequest.ProtoReflect.Descriptor instead.
+func (*GetGameHistoryRequest) Descriptor() ([]byte, []int) {
+	return file_history_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *GetGameHistoryRequest) GetGameId() string {
+	if x != nil {
+		return x.GameId
+	}
+	return ""
+}
+
+type GetGameHistoryResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Rounds        []*RoundSummary        `protobuf:"bytes,1,rep,name=rounds,proto3" json:"rounds,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetGameHistoryResponse) Reset() {
+	*x = GetGameHistoryResponse{}
+	mi := &file_history_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetGameHistoryResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetGameHistoryResponse) ProtoMessage() {}
+
+func (x *GetGameHistoryResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_history_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetGameHistoryResponse.ProtoReflect.Descriptor instead.
+func (*GetGameHistoryResponse) Descriptor() ([]byte, []int) {
+	return file_history_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *GetGameHistoryResponse) GetRounds() []*RoundSummary {
+	if x != nil {
+		return x.Rounds
+	}
+	return nil
+}
+
+// PlayerGames
+type GetPlayerGamesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PlayerId      string                 `protobuf:"bytes,1,opt,name=playerId,proto3" json:"playerId,omitempty"`
+	Limit         int32                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
+	Offset        int32                  `protobuf:"varint,3,opt,name=offset,proto3" json:"offset,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetPlayerGamesRequest) Reset() {
+	*x = GetPlayerGamesRequest{}
+	mi := &file_history_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetPlayerGamesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetPlayerGamesRequest) ProtoMessage() {}
+
+func (x *GetPlayerGamesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_history_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetPlayerGamesRequest.ProtoReflect.Descriptor instead.
+func (*GetPlayerGamesRequest) Descriptor() ([]byte, []int) {
+	return file_history_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *GetPlayerGamesRequest) GetPlayerId() string {
+	if x != nil {
+		return x.PlayerId
+	}
+	return ""
+}
+
+func (x *GetPlayerGamesRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *GetPlayerGamesRequest) GetOffset() int32 {
+	if x != nil {
+		return x.Offset
+	}
+	return 0
+}
+
+type GetPlayerGamesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Games         []*GameSummary         `protobuf:"bytes,1,rep,name=games,proto3" json:"games,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetPlayerGamesResponse) Reset() {
+	*x = GetPlayerGamesResponse{}
+	mi := &file_history_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetPlayerGamesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetPlayerGamesResponse) ProtoMessage() {}
+
+func (x *GetPlayerGamesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_history_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetPlayerGamesResponse.ProtoReflect.Descriptor instead.
+func (*GetPlayerGamesResponse) Descriptor() ([]byte, []int) {
+	return file_history_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *GetPlayerGamesResponse) GetGames() []*GameSummary {
+	if x != nil {
+		return x.Games
+	}
+	return nil
+}
+
+// --
 type Action struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
 	ActionNumber      int32                  `protobuf:"varint,1,opt,name=actionNumber,proto3" json:"actionNumber,omitempty"`
@@ -132,7 +328,7 @@ type Action struct {
 
 func (x *Action) Reset() {
 	*x = Action{}
-	mi := &file_history_proto_msgTypes[2]
+	mi := &file_history_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -144,7 +340,7 @@ func (x *Action) String() string {
 func (*Action) ProtoMessage() {}
 
 func (x *Action) ProtoReflect() protoreflect.Message {
-	mi := &file_history_proto_msgTypes[2]
+	mi := &file_history_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -157,7 +353,7 @@ func (x *Action) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Action.ProtoReflect.Descriptor instead.
 func (*Action) Descriptor() ([]byte, []int) {
-	return file_history_proto_rawDescGZIP(), []int{2}
+	return file_history_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *Action) GetActionNumber() int32 {
@@ -219,7 +415,7 @@ type Hand struct {
 
 func (x *Hand) Reset() {
 	*x = Hand{}
-	mi := &file_history_proto_msgTypes[3]
+	mi := &file_history_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -231,7 +427,7 @@ func (x *Hand) String() string {
 func (*Hand) ProtoMessage() {}
 
 func (x *Hand) ProtoReflect() protoreflect.Message {
-	mi := &file_history_proto_msgTypes[3]
+	mi := &file_history_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -244,7 +440,7 @@ func (x *Hand) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Hand.ProtoReflect.Descriptor instead.
 func (*Hand) Descriptor() ([]byte, []int) {
-	return file_history_proto_rawDescGZIP(), []int{3}
+	return file_history_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *Hand) GetPlayerId() string {
@@ -261,102 +457,6 @@ func (x *Hand) GetTiles() []*Tile {
 	return nil
 }
 
-type GetRoundActionsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Actions       []*Action              `protobuf:"bytes,1,rep,name=actions,proto3" json:"actions,omitempty"`
-	Hands         []*Hand                `protobuf:"bytes,2,rep,name=hands,proto3" json:"hands,omitempty"` // initial dealt hands, enough (with actions) to replay the round
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetRoundActionsResponse) Reset() {
-	*x = GetRoundActionsResponse{}
-	mi := &file_history_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetRoundActionsResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetRoundActionsResponse) ProtoMessage() {}
-
-func (x *GetRoundActionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_history_proto_msgTypes[4]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetRoundActionsResponse.ProtoReflect.Descriptor instead.
-func (*GetRoundActionsResponse) Descriptor() ([]byte, []int) {
-	return file_history_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *GetRoundActionsResponse) GetActions() []*Action {
-	if x != nil {
-		return x.Actions
-	}
-	return nil
-}
-
-func (x *GetRoundActionsResponse) GetHands() []*Hand {
-	if x != nil {
-		return x.Hands
-	}
-	return nil
-}
-
-type GetGameHistoryRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	GameId        string                 `protobuf:"bytes,1,opt,name=gameId,proto3" json:"gameId,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetGameHistoryRequest) Reset() {
-	*x = GetGameHistoryRequest{}
-	mi := &file_history_proto_msgTypes[5]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetGameHistoryRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetGameHistoryRequest) ProtoMessage() {}
-
-func (x *GetGameHistoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_history_proto_msgTypes[5]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetGameHistoryRequest.ProtoReflect.Descriptor instead.
-func (*GetGameHistoryRequest) Descriptor() ([]byte, []int) {
-	return file_history_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *GetGameHistoryRequest) GetGameId() string {
-	if x != nil {
-		return x.GameId
-	}
-	return ""
-}
-
 type RoundSummary struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
 	RoundId          string                 `protobuf:"bytes,1,opt,name=roundId,proto3" json:"roundId,omitempty"`
@@ -371,7 +471,7 @@ type RoundSummary struct {
 
 func (x *RoundSummary) Reset() {
 	*x = RoundSummary{}
-	mi := &file_history_proto_msgTypes[6]
+	mi := &file_history_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -383,7 +483,7 @@ func (x *RoundSummary) String() string {
 func (*RoundSummary) ProtoMessage() {}
 
 func (x *RoundSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_history_proto_msgTypes[6]
+	mi := &file_history_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -396,7 +496,7 @@ func (x *RoundSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RoundSummary.ProtoReflect.Descriptor instead.
 func (*RoundSummary) Descriptor() ([]byte, []int) {
-	return file_history_proto_rawDescGZIP(), []int{6}
+	return file_history_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *RoundSummary) GetRoundId() string {
@@ -439,110 +539,6 @@ func (x *RoundSummary) GetScores() map[string]int32 {
 		return x.Scores
 	}
 	return nil
-}
-
-type GetGameHistoryResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Rounds        []*RoundSummary        `protobuf:"bytes,1,rep,name=rounds,proto3" json:"rounds,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetGameHistoryResponse) Reset() {
-	*x = GetGameHistoryResponse{}
-	mi := &file_history_proto_msgTypes[7]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetGameHistoryResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetGameHistoryResponse) ProtoMessage() {}
-
-func (x *GetGameHistoryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_history_proto_msgTypes[7]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetGameHistoryResponse.ProtoReflect.Descriptor instead.
-func (*GetGameHistoryResponse) Descriptor() ([]byte, []int) {
-	return file_history_proto_rawDescGZIP(), []int{7}
-}
-
-func (x *GetGameHistoryResponse) GetRounds() []*RoundSummary {
-	if x != nil {
-		return x.Rounds
-	}
-	return nil
-}
-
-type GetPlayerGamesRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	PlayerId      string                 `protobuf:"bytes,1,opt,name=playerId,proto3" json:"playerId,omitempty"`
-	Limit         int32                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
-	Offset        int32                  `protobuf:"varint,3,opt,name=offset,proto3" json:"offset,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetPlayerGamesRequest) Reset() {
-	*x = GetPlayerGamesRequest{}
-	mi := &file_history_proto_msgTypes[8]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetPlayerGamesRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetPlayerGamesRequest) ProtoMessage() {}
-
-func (x *GetPlayerGamesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_history_proto_msgTypes[8]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetPlayerGamesRequest.ProtoReflect.Descriptor instead.
-func (*GetPlayerGamesRequest) Descriptor() ([]byte, []int) {
-	return file_history_proto_rawDescGZIP(), []int{8}
-}
-
-func (x *GetPlayerGamesRequest) GetPlayerId() string {
-	if x != nil {
-		return x.PlayerId
-	}
-	return ""
-}
-
-func (x *GetPlayerGamesRequest) GetLimit() int32 {
-	if x != nil {
-		return x.Limit
-	}
-	return 0
-}
-
-func (x *GetPlayerGamesRequest) GetOffset() int32 {
-	if x != nil {
-		return x.Offset
-	}
-	return 0
 }
 
 type GameSummary struct {
@@ -629,27 +625,28 @@ func (x *GameSummary) GetCreatedAt() string {
 	return ""
 }
 
-type GetPlayerGamesResponse struct {
+type Tile struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Games         []*GameSummary         `protobuf:"bytes,1,rep,name=games,proto3" json:"games,omitempty"`
+	Left          int32                  `protobuf:"varint,1,opt,name=left,proto3" json:"left,omitempty"`
+	Right         int32                  `protobuf:"varint,2,opt,name=right,proto3" json:"right,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GetPlayerGamesResponse) Reset() {
-	*x = GetPlayerGamesResponse{}
+func (x *Tile) Reset() {
+	*x = Tile{}
 	mi := &file_history_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GetPlayerGamesResponse) String() string {
+func (x *Tile) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetPlayerGamesResponse) ProtoMessage() {}
+func (*Tile) ProtoMessage() {}
 
-func (x *GetPlayerGamesResponse) ProtoReflect() protoreflect.Message {
+func (x *Tile) ProtoReflect() protoreflect.Message {
 	mi := &file_history_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -661,28 +658,45 @@ func (x *GetPlayerGamesResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetPlayerGamesResponse.ProtoReflect.Descriptor instead.
-func (*GetPlayerGamesResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use Tile.ProtoReflect.Descriptor instead.
+func (*Tile) Descriptor() ([]byte, []int) {
 	return file_history_proto_rawDescGZIP(), []int{10}
 }
 
-func (x *GetPlayerGamesResponse) GetGames() []*GameSummary {
+func (x *Tile) GetLeft() int32 {
 	if x != nil {
-		return x.Games
+		return x.Left
 	}
-	return nil
+	return 0
+}
+
+func (x *Tile) GetRight() int32 {
+	if x != nil {
+		return x.Right
+	}
+	return 0
 }
 
 var File_history_proto protoreflect.FileDescriptor
 
 const file_history_proto_rawDesc = "" +
 	"\n" +
-	"\rhistory.proto\x12\ahistory\"0\n" +
-	"\x04Tile\x12\x12\n" +
-	"\x04left\x18\x01 \x01(\x05R\x04left\x12\x14\n" +
-	"\x05right\x18\x02 \x01(\x05R\x05right\"2\n" +
+	"\rhistory.proto\x12\ahistory\"2\n" +
 	"\x16GetRoundActionsRequest\x12\x18\n" +
-	"\aroundId\x18\x01 \x01(\tR\aroundId\"\xf9\x01\n" +
+	"\aroundId\x18\x01 \x01(\tR\aroundId\"i\n" +
+	"\x17GetRoundActionsResponse\x12)\n" +
+	"\aactions\x18\x01 \x03(\v2\x0f.history.ActionR\aactions\x12#\n" +
+	"\x05hands\x18\x02 \x03(\v2\r.history.HandR\x05hands\"/\n" +
+	"\x15GetGameHistoryRequest\x12\x16\n" +
+	"\x06gameId\x18\x01 \x01(\tR\x06gameId\"G\n" +
+	"\x16GetGameHistoryResponse\x12-\n" +
+	"\x06rounds\x18\x01 \x03(\v2\x15.history.RoundSummaryR\x06rounds\"a\n" +
+	"\x15GetPlayerGamesRequest\x12\x1a\n" +
+	"\bplayerId\x18\x01 \x01(\tR\bplayerId\x12\x14\n" +
+	"\x05limit\x18\x02 \x01(\x05R\x05limit\x12\x16\n" +
+	"\x06offset\x18\x03 \x01(\x05R\x06offset\"D\n" +
+	"\x16GetPlayerGamesResponse\x12*\n" +
+	"\x05games\x18\x01 \x03(\v2\x14.history.GameSummaryR\x05games\"\xf9\x01\n" +
 	"\x06Action\x12\"\n" +
 	"\factionNumber\x18\x01 \x01(\x05R\factionNumber\x12\x1a\n" +
 	"\bplayerId\x18\x02 \x01(\tR\bplayerId\x12\x1e\n" +
@@ -695,12 +709,7 @@ const file_history_proto_rawDesc = "" +
 	"\x11resultingRightEnd\x18\a \x01(\x05R\x11resultingRightEnd\"G\n" +
 	"\x04Hand\x12\x1a\n" +
 	"\bplayerId\x18\x01 \x01(\tR\bplayerId\x12#\n" +
-	"\x05tiles\x18\x02 \x03(\v2\r.history.TileR\x05tiles\"i\n" +
-	"\x17GetRoundActionsResponse\x12)\n" +
-	"\aactions\x18\x01 \x03(\v2\x0f.history.ActionR\aactions\x12#\n" +
-	"\x05hands\x18\x02 \x03(\v2\r.history.HandR\x05hands\"/\n" +
-	"\x15GetGameHistoryRequest\x12\x16\n" +
-	"\x06gameId\x18\x01 \x01(\tR\x06gameId\"\xa8\x02\n" +
+	"\x05tiles\x18\x02 \x03(\v2\r.history.TileR\x05tiles\"\xa8\x02\n" +
 	"\fRoundSummary\x12\x18\n" +
 	"\aroundId\x18\x01 \x01(\tR\aroundId\x12 \n" +
 	"\vroundNumber\x18\x02 \x01(\x05R\vroundNumber\x12*\n" +
@@ -710,13 +719,7 @@ const file_history_proto_rawDesc = "" +
 	"\x06scores\x18\x06 \x03(\v2!.history.RoundSummary.ScoresEntryR\x06scores\x1a9\n" +
 	"\vScoresEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\x05R\x05value:\x028\x01\"G\n" +
-	"\x16GetGameHistoryResponse\x12-\n" +
-	"\x06rounds\x18\x01 \x03(\v2\x15.history.RoundSummaryR\x06rounds\"a\n" +
-	"\x15GetPlayerGamesRequest\x12\x1a\n" +
-	"\bplayerId\x18\x01 \x01(\tR\bplayerId\x12\x14\n" +
-	"\x05limit\x18\x02 \x01(\x05R\x05limit\x12\x16\n" +
-	"\x06offset\x18\x03 \x01(\x05R\x06offset\"\xa4\x02\n" +
+	"\x05value\x18\x02 \x01(\x05R\x05value:\x028\x01\"\xa4\x02\n" +
 	"\vGameSummary\x12\x16\n" +
 	"\x06gameId\x18\x01 \x01(\tR\x06gameId\x12\x18\n" +
 	"\alobbyId\x18\x02 \x01(\tR\alobbyId\x12G\n" +
@@ -728,9 +731,10 @@ const file_history_proto_rawDesc = "" +
 	"\tcreatedAt\x18\x06 \x01(\tR\tcreatedAt\x1a>\n" +
 	"\x10FinalScoresEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\x05R\x05value:\x028\x01\"D\n" +
-	"\x16GetPlayerGamesResponse\x12*\n" +
-	"\x05games\x18\x01 \x03(\v2\x14.history.GameSummaryR\x05games2\x8c\x02\n" +
+	"\x05value\x18\x02 \x01(\x05R\x05value:\x028\x01\"0\n" +
+	"\x04Tile\x12\x12\n" +
+	"\x04left\x18\x01 \x01(\x05R\x04left\x12\x14\n" +
+	"\x05right\x18\x02 \x01(\x05R\x05right2\x8c\x02\n" +
 	"\x0eHistoryService\x12T\n" +
 	"\x0fGetRoundActions\x12\x1f.history.GetRoundActionsRequest\x1a .history.GetRoundActionsResponse\x12Q\n" +
 	"\x0eGetGameHistory\x12\x1e.history.GetGameHistoryRequest\x1a\x1f.history.GetGameHistoryResponse\x12Q\n" +
@@ -750,35 +754,35 @@ func file_history_proto_rawDescGZIP() []byte {
 
 var file_history_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_history_proto_goTypes = []any{
-	(*Tile)(nil),                    // 0: history.Tile
-	(*GetRoundActionsRequest)(nil),  // 1: history.GetRoundActionsRequest
-	(*Action)(nil),                  // 2: history.Action
-	(*Hand)(nil),                    // 3: history.Hand
-	(*GetRoundActionsResponse)(nil), // 4: history.GetRoundActionsResponse
-	(*GetGameHistoryRequest)(nil),   // 5: history.GetGameHistoryRequest
-	(*RoundSummary)(nil),            // 6: history.RoundSummary
-	(*GetGameHistoryResponse)(nil),  // 7: history.GetGameHistoryResponse
-	(*GetPlayerGamesRequest)(nil),   // 8: history.GetPlayerGamesRequest
+	(*GetRoundActionsRequest)(nil),  // 0: history.GetRoundActionsRequest
+	(*GetRoundActionsResponse)(nil), // 1: history.GetRoundActionsResponse
+	(*GetGameHistoryRequest)(nil),   // 2: history.GetGameHistoryRequest
+	(*GetGameHistoryResponse)(nil),  // 3: history.GetGameHistoryResponse
+	(*GetPlayerGamesRequest)(nil),   // 4: history.GetPlayerGamesRequest
+	(*GetPlayerGamesResponse)(nil),  // 5: history.GetPlayerGamesResponse
+	(*Action)(nil),                  // 6: history.Action
+	(*Hand)(nil),                    // 7: history.Hand
+	(*RoundSummary)(nil),            // 8: history.RoundSummary
 	(*GameSummary)(nil),             // 9: history.GameSummary
-	(*GetPlayerGamesResponse)(nil),  // 10: history.GetPlayerGamesResponse
+	(*Tile)(nil),                    // 10: history.Tile
 	nil,                             // 11: history.RoundSummary.ScoresEntry
 	nil,                             // 12: history.GameSummary.FinalScoresEntry
 }
 var file_history_proto_depIdxs = []int32{
-	0,  // 0: history.Action.tile:type_name -> history.Tile
-	0,  // 1: history.Hand.tiles:type_name -> history.Tile
-	2,  // 2: history.GetRoundActionsResponse.actions:type_name -> history.Action
-	3,  // 3: history.GetRoundActionsResponse.hands:type_name -> history.Hand
-	11, // 4: history.RoundSummary.scores:type_name -> history.RoundSummary.ScoresEntry
-	6,  // 5: history.GetGameHistoryResponse.rounds:type_name -> history.RoundSummary
-	12, // 6: history.GameSummary.finalScores:type_name -> history.GameSummary.FinalScoresEntry
-	9,  // 7: history.GetPlayerGamesResponse.games:type_name -> history.GameSummary
-	1,  // 8: history.HistoryService.GetRoundActions:input_type -> history.GetRoundActionsRequest
-	5,  // 9: history.HistoryService.GetGameHistory:input_type -> history.GetGameHistoryRequest
-	8,  // 10: history.HistoryService.GetPlayerGames:input_type -> history.GetPlayerGamesRequest
-	4,  // 11: history.HistoryService.GetRoundActions:output_type -> history.GetRoundActionsResponse
-	7,  // 12: history.HistoryService.GetGameHistory:output_type -> history.GetGameHistoryResponse
-	10, // 13: history.HistoryService.GetPlayerGames:output_type -> history.GetPlayerGamesResponse
+	6,  // 0: history.GetRoundActionsResponse.actions:type_name -> history.Action
+	7,  // 1: history.GetRoundActionsResponse.hands:type_name -> history.Hand
+	8,  // 2: history.GetGameHistoryResponse.rounds:type_name -> history.RoundSummary
+	9,  // 3: history.GetPlayerGamesResponse.games:type_name -> history.GameSummary
+	10, // 4: history.Action.tile:type_name -> history.Tile
+	10, // 5: history.Hand.tiles:type_name -> history.Tile
+	11, // 6: history.RoundSummary.scores:type_name -> history.RoundSummary.ScoresEntry
+	12, // 7: history.GameSummary.finalScores:type_name -> history.GameSummary.FinalScoresEntry
+	0,  // 8: history.HistoryService.GetRoundActions:input_type -> history.GetRoundActionsRequest
+	2,  // 9: history.HistoryService.GetGameHistory:input_type -> history.GetGameHistoryRequest
+	4,  // 10: history.HistoryService.GetPlayerGames:input_type -> history.GetPlayerGamesRequest
+	1,  // 11: history.HistoryService.GetRoundActions:output_type -> history.GetRoundActionsResponse
+	3,  // 12: history.HistoryService.GetGameHistory:output_type -> history.GetGameHistoryResponse
+	5,  // 13: history.HistoryService.GetPlayerGames:output_type -> history.GetPlayerGamesResponse
 	11, // [11:14] is the sub-list for method output_type
 	8,  // [8:11] is the sub-list for method input_type
 	8,  // [8:8] is the sub-list for extension type_name

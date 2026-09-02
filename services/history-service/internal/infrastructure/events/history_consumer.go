@@ -150,7 +150,7 @@ func (c *historyConsumer) handleRoundOver(ctx context.Context, payload messaging
 		PlayerOrder:      payload.PlayerOrder,
 		WinnerTeamID:     payload.RoundResult.WinnerTeamID,
 		Reason:           payload.RoundResult.Reason,
-		Scores:           teamScoresToStringMap(payload.RoundResult.Scores),
+		Scores:           teamScoresToStringMap(payload.RoundResult.PipCounts),
 		ActionCount:      payload.ActionCount,
 	}); err != nil {
 		return err

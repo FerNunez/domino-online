@@ -51,6 +51,29 @@ func (rdb *redisRepository) GetGameByID(ctx context.Context, gameID string) (*do
 	return &game, nil
 }
 
+func (rdb *redisRepository) GetCurrentGame(ctx context.Context, lobbyID string) (*domain.GameModel, error) {
+	gameID, err := rdb.client.Get(ctx, generateCurrentGameKey(lobbyID)).Result()
+	if errors.Is(err, redis.Nil) {
+		return nil, domain.ErrNoCurrentGame
+	}
+	if err != nil {
+		return nil, fmt.Errorf("couldn't resolve current game for lobby %s: %w", lobbyID, err)
+	}
+
+	val, err := rdb.client.Get(ctx, generateGameKey(gameID)).Result()
+	if errors.Is(err, redis.Nil) {
+		return nil, domain.ErrNoCurrentGame
+	}
+	if err != nil {
+		return nil, err
+	}
+	var game domain.GameModel
+	if err := json.Unmarshal([]byte(val), &game); err != nil {
+		return nil, err
+	}
+	return &game, nil
+}
+
 // UpdateCurrentGame resolves lobbyID's current game and atomically applies mutate to it using Redis's WATCH/MULTI/EXEC
 func (rdb *redisRepository) UpdateCurrentGame(ctx context.Context, lobbyID string, mutate func(*domain.GameModel) error) (*domain.GameModel, error) {
 	gameID, err := rdb.client.Get(ctx, generateCurrentGameKey(lobbyID)).Result()

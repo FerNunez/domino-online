@@ -10,15 +10,20 @@ const (
 type Reason string
 
 const (
-	ReasonDomino  Reason = "REASON_DOMINO"
-	ReasonBlocked Reason = "REASON_BLOCKED"
+	ReasonDomino  Reason = "REASON_DOMINO"  // a player played last tile
+	ReasonBlocked Reason = "REASON_BLOCKED" // round blocked
+	ReasonForfeit Reason = "REASON_FORFEIT" // a player forfaited
 )
 
-// RoundResult is the outcome of a finished round (hand emptied or blocked board).
+// RoundResult is the outcome of a finished round or a finished game
 type RoundResult struct {
 	WinnerTeamID TeamID         `json:"winnerTeamID"`
-	Reason       Reason         `json:"reason"` // ReasonDomino | ReasonBlocked
-	Scores       map[TeamID]int `json:"scores"`
+	Reason       Reason         `json:"reason"`
+	PipCounts    map[TeamID]int `json:"pipCounts"` // this is summmed pip by team
+}
+
+type GameResult struct {
+	WinnerTeamID TeamID `json:"winnerTeamID"`
 }
 
 // Tile is a domino tile identified by its two values.

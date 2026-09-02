@@ -396,8 +396,8 @@ func (x *NextRoundResponse) GetRoundNumber() int32 {
 type RoundResult struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	WinnerId      string                 `protobuf:"bytes,1,opt,name=winner_id,json=winnerId,proto3" json:"winner_id,omitempty"`
-	Reason        string                 `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`                                                                            // ReasonDomino | ReasonBlocked
-	Scores        map[string]int32       `protobuf:"bytes,3,rep,name=scores,proto3" json:"scores,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"` // map[TeamID] -> points
+	Reason        string                 `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`                                                                                                   // ReasonDomino | ReasonBlocked
+	PipCounts     map[string]int32       `protobuf:"bytes,4,rep,name=pip_counts,json=pipCounts,proto3" json:"pip_counts,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"` // map[TeamID] -> points
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -446,9 +446,322 @@ func (x *RoundResult) GetReason() string {
 	return ""
 }
 
-func (x *RoundResult) GetScores() map[string]int32 {
+func (x *RoundResult) GetPipCounts() map[string]int32 {
 	if x != nil {
-		return x.Scores
+		return x.PipCounts
+	}
+	return nil
+}
+
+type Board struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Tiles         []*Tile                `protobuf:"bytes,1,rep,name=tiles,proto3" json:"tiles,omitempty"` // already-oriented tiles, in play order
+	LeftEnd       int32                  `protobuf:"varint,2,opt,name=left_end,json=leftEnd,proto3" json:"left_end,omitempty"`
+	RightEnd      int32                  `protobuf:"varint,3,opt,name=right_end,json=rightEnd,proto3" json:"right_end,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Board) Reset() {
+	*x = Board{}
+	mi := &file_game_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Board) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Board) ProtoMessage() {}
+
+func (x *Board) ProtoReflect() protoreflect.Message {
+	mi := &file_game_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Board.ProtoReflect.Descriptor instead.
+func (*Board) Descriptor() ([]byte, []int) {
+	return file_game_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *Board) GetTiles() []*Tile {
+	if x != nil {
+		return x.Tiles
+	}
+	return nil
+}
+
+func (x *Board) GetLeftEnd() int32 {
+	if x != nil {
+		return x.LeftEnd
+	}
+	return 0
+}
+
+func (x *Board) GetRightEnd() int32 {
+	if x != nil {
+		return x.RightEnd
+	}
+	return 0
+}
+
+type RemainingPips struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Tiles         []*Tile                `protobuf:"bytes,1,rep,name=tiles,proto3" json:"tiles,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RemainingPips) Reset() {
+	*x = RemainingPips{}
+	mi := &file_game_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RemainingPips) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RemainingPips) ProtoMessage() {}
+
+func (x *RemainingPips) ProtoReflect() protoreflect.Message {
+	mi := &file_game_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RemainingPips.ProtoReflect.Descriptor instead.
+func (*RemainingPips) Descriptor() ([]byte, []int) {
+	return file_game_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *RemainingPips) GetTiles() []*Tile {
+	if x != nil {
+		return x.Tiles
+	}
+	return nil
+}
+
+type GetGameStateRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	LobbyId       string                 `protobuf:"bytes,1,opt,name=lobby_id,json=lobbyId,proto3" json:"lobby_id,omitempty"`
+	UserId        string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"` // caller — scopes which hand is visible
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetGameStateRequest) Reset() {
+	*x = GetGameStateRequest{}
+	mi := &file_game_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetGameStateRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetGameStateRequest) ProtoMessage() {}
+
+func (x *GetGameStateRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_game_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetGameStateRequest.ProtoReflect.Descriptor instead.
+func (*GetGameStateRequest) Descriptor() ([]byte, []int) {
+	return file_game_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *GetGameStateRequest) GetLobbyId() string {
+	if x != nil {
+		return x.LobbyId
+	}
+	return ""
+}
+
+func (x *GetGameStateRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+// NOTE: Should we send game like this? what happen when a spectator is added. What Tile hand?
+type GetGameStateResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	GameId        string                 `protobuf:"bytes,1,opt,name=game_id,json=gameId,proto3" json:"game_id,omitempty"`
+	GameNumber    int32                  `protobuf:"varint,2,opt,name=game_number,json=gameNumber,proto3" json:"game_number,omitempty"`
+	Status        string                 `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"` // GameStatus
+	TeamScores    map[string]int32       `protobuf:"bytes,4,rep,name=team_scores,json=teamScores,proto3" json:"team_scores,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
+	TeamWinner    string                 `protobuf:"bytes,5,opt,name=team_winner,json=teamWinner,proto3" json:"team_winner,omitempty"`
+	GoalScore     int32                  `protobuf:"varint,6,opt,name=goal_score,json=goalScore,proto3" json:"goal_score,omitempty"`
+	RoundId       string                 `protobuf:"bytes,7,opt,name=round_id,json=roundId,proto3" json:"round_id,omitempty"`
+	RoundNumber   int32                  `protobuf:"varint,8,opt,name=round_number,json=roundNumber,proto3" json:"round_number,omitempty"`
+	RoundStatus   string                 `protobuf:"bytes,9,opt,name=round_status,json=roundStatus,proto3" json:"round_status,omitempty"` // RoundStatus
+	PlayerOrder   []string               `protobuf:"bytes,10,rep,name=player_order,json=playerOrder,proto3" json:"player_order,omitempty"`
+	CurrentTurn   string                 `protobuf:"bytes,11,opt,name=current_turn,json=currentTurn,proto3" json:"current_turn,omitempty"`
+	Board         *Board                 `protobuf:"bytes,12,opt,name=board,proto3" json:"board,omitempty"`
+	Hand          []*Tile                `protobuf:"bytes,13,rep,name=hand,proto3" json:"hand,omitempty"`                                                                                                       // caller's own hand only
+	HandSizes     map[string]int32       `protobuf:"bytes,14,rep,name=hand_sizes,json=handSizes,proto3" json:"hand_sizes,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"` // every seat's remaining tile count
+	RoundResult   *RoundResult           `protobuf:"bytes,15,opt,name=round_result,json=roundResult,proto3" json:"round_result,omitempty"`                                                                      // set only once round_status is ROUND_STATUS_OVER
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetGameStateResponse) Reset() {
+	*x = GetGameStateResponse{}
+	mi := &file_game_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetGameStateResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetGameStateResponse) ProtoMessage() {}
+
+func (x *GetGameStateResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_game_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetGameStateResponse.ProtoReflect.Descriptor instead.
+func (*GetGameStateResponse) Descriptor() ([]byte, []int) {
+	return file_game_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *GetGameStateResponse) GetGameId() string {
+	if x != nil {
+		return x.GameId
+	}
+	return ""
+}
+
+func (x *GetGameStateResponse) GetGameNumber() int32 {
+	if x != nil {
+		return x.GameNumber
+	}
+	return 0
+}
+
+func (x *GetGameStateResponse) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *GetGameStateResponse) GetTeamScores() map[string]int32 {
+	if x != nil {
+		return x.TeamScores
+	}
+	return nil
+}
+
+func (x *GetGameStateResponse) GetTeamWinner() string {
+	if x != nil {
+		return x.TeamWinner
+	}
+	return ""
+}
+
+func (x *GetGameStateResponse) GetGoalScore() int32 {
+	if x != nil {
+		return x.GoalScore
+	}
+	return 0
+}
+
+func (x *GetGameStateResponse) GetRoundId() string {
+	if x != nil {
+		return x.RoundId
+	}
+	return ""
+}
+
+func (x *GetGameStateResponse) GetRoundNumber() int32 {
+	if x != nil {
+		return x.RoundNumber
+	}
+	return 0
+}
+
+func (x *GetGameStateResponse) GetRoundStatus() string {
+	if x != nil {
+		return x.RoundStatus
+	}
+	return ""
+}
+
+func (x *GetGameStateResponse) GetPlayerOrder() []string {
+	if x != nil {
+		return x.PlayerOrder
+	}
+	return nil
+}
+
+func (x *GetGameStateResponse) GetCurrentTurn() string {
+	if x != nil {
+		return x.CurrentTurn
+	}
+	return ""
+}
+
+func (x *GetGameStateResponse) GetBoard() *Board {
+	if x != nil {
+		return x.Board
+	}
+	return nil
+}
+
+func (x *GetGameStateResponse) GetHand() []*Tile {
+	if x != nil {
+		return x.Hand
+	}
+	return nil
+}
+
+func (x *GetGameStateResponse) GetHandSizes() map[string]int32 {
+	if x != nil {
+		return x.HandSizes
+	}
+	return nil
+}
+
+func (x *GetGameStateResponse) GetRoundResult() *RoundResult {
+	if x != nil {
+		return x.RoundResult
 	}
 	return nil
 }
@@ -483,18 +796,60 @@ const file_game_proto_rawDesc = "" +
 	"\blobby_id\x18\x01 \x01(\tR\alobbyId\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\"6\n" +
 	"\x11NextRoundResponse\x12!\n" +
-	"\fround_number\x18\x01 \x01(\x05R\vroundNumber\"\xb4\x01\n" +
+	"\fround_number\x18\x01 \x01(\x05R\vroundNumber\"\xc1\x01\n" +
 	"\vRoundResult\x12\x1b\n" +
 	"\twinner_id\x18\x01 \x01(\tR\bwinnerId\x12\x16\n" +
-	"\x06reason\x18\x02 \x01(\tR\x06reason\x125\n" +
-	"\x06scores\x18\x03 \x03(\v2\x1d.game.RoundResult.ScoresEntryR\x06scores\x1a9\n" +
-	"\vScoresEntry\x12\x10\n" +
+	"\x06reason\x18\x02 \x01(\tR\x06reason\x12?\n" +
+	"\n" +
+	"pip_counts\x18\x04 \x03(\v2 .game.RoundResult.PipCountsEntryR\tpipCounts\x1a<\n" +
+	"\x0ePipCountsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\x05R\x05value:\x028\x012\xc1\x01\n" +
+	"\x05value\x18\x02 \x01(\x05R\x05value:\x028\x01\"a\n" +
+	"\x05Board\x12 \n" +
+	"\x05tiles\x18\x01 \x03(\v2\n" +
+	".game.TileR\x05tiles\x12\x19\n" +
+	"\bleft_end\x18\x02 \x01(\x05R\aleftEnd\x12\x1b\n" +
+	"\tright_end\x18\x03 \x01(\x05R\brightEnd\"1\n" +
+	"\rRemainingPips\x12 \n" +
+	"\x05tiles\x18\x01 \x03(\v2\n" +
+	".game.TileR\x05tiles\"I\n" +
+	"\x13GetGameStateRequest\x12\x19\n" +
+	"\blobby_id\x18\x01 \x01(\tR\alobbyId\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\tR\x06userId\"\xdc\x05\n" +
+	"\x14GetGameStateResponse\x12\x17\n" +
+	"\agame_id\x18\x01 \x01(\tR\x06gameId\x12\x1f\n" +
+	"\vgame_number\x18\x02 \x01(\x05R\n" +
+	"gameNumber\x12\x16\n" +
+	"\x06status\x18\x03 \x01(\tR\x06status\x12K\n" +
+	"\vteam_scores\x18\x04 \x03(\v2*.game.GetGameStateResponse.TeamScoresEntryR\n" +
+	"teamScores\x12\x1f\n" +
+	"\vteam_winner\x18\x05 \x01(\tR\n" +
+	"teamWinner\x12\x1d\n" +
+	"\n" +
+	"goal_score\x18\x06 \x01(\x05R\tgoalScore\x12\x19\n" +
+	"\bround_id\x18\a \x01(\tR\aroundId\x12!\n" +
+	"\fround_number\x18\b \x01(\x05R\vroundNumber\x12!\n" +
+	"\fround_status\x18\t \x01(\tR\vroundStatus\x12!\n" +
+	"\fplayer_order\x18\n" +
+	" \x03(\tR\vplayerOrder\x12!\n" +
+	"\fcurrent_turn\x18\v \x01(\tR\vcurrentTurn\x12!\n" +
+	"\x05board\x18\f \x01(\v2\v.game.BoardR\x05board\x12\x1e\n" +
+	"\x04hand\x18\r \x03(\v2\n" +
+	".game.TileR\x04hand\x12H\n" +
+	"\n" +
+	"hand_sizes\x18\x0e \x03(\v2).game.GetGameStateResponse.HandSizesEntryR\thandSizes\x124\n" +
+	"\fround_result\x18\x0f \x01(\v2\x11.game.RoundResultR\vroundResult\x1a=\n" +
+	"\x0fTeamScoresEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\x05R\x05value:\x028\x01\x1a<\n" +
+	"\x0eHandSizesEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\x05R\x05value:\x028\x012\x88\x02\n" +
 	"\vGameService\x129\n" +
 	"\bPlayTile\x12\x15.game.PlayTileRequest\x1a\x16.game.PlayTileResponse\x129\n" +
 	"\bPassTurn\x12\x15.game.PassTurnRequest\x1a\x16.game.PassTurnResponse\x12<\n" +
-	"\tNextRound\x12\x16.game.NextRoundRequest\x1a\x17.game.NextRoundResponseB\x18Z\x16shared/proto/game;gameb\x06proto3"
+	"\tNextRound\x12\x16.game.NextRoundRequest\x1a\x17.game.NextRoundResponse\x12E\n" +
+	"\fGetGameState\x12\x19.game.GetGameStateRequest\x1a\x1a.game.GetGameStateResponseB\x18Z\x16shared/proto/game;gameb\x06proto3"
 
 var (
 	file_game_proto_rawDescOnce sync.Once
@@ -508,36 +863,51 @@ func file_game_proto_rawDescGZIP() []byte {
 	return file_game_proto_rawDescData
 }
 
-var file_game_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_game_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
 var file_game_proto_goTypes = []any{
-	(*Tile)(nil),              // 0: game.Tile
-	(*PlayTileRequest)(nil),   // 1: game.PlayTileRequest
-	(*PlayTileResponse)(nil),  // 2: game.PlayTileResponse
-	(*PassTurnRequest)(nil),   // 3: game.PassTurnRequest
-	(*PassTurnResponse)(nil),  // 4: game.PassTurnResponse
-	(*NextRoundRequest)(nil),  // 5: game.NextRoundRequest
-	(*NextRoundResponse)(nil), // 6: game.NextRoundResponse
-	(*RoundResult)(nil),       // 7: game.RoundResult
-	nil,                       // 8: game.RoundResult.ScoresEntry
+	(*Tile)(nil),                 // 0: game.Tile
+	(*PlayTileRequest)(nil),      // 1: game.PlayTileRequest
+	(*PlayTileResponse)(nil),     // 2: game.PlayTileResponse
+	(*PassTurnRequest)(nil),      // 3: game.PassTurnRequest
+	(*PassTurnResponse)(nil),     // 4: game.PassTurnResponse
+	(*NextRoundRequest)(nil),     // 5: game.NextRoundRequest
+	(*NextRoundResponse)(nil),    // 6: game.NextRoundResponse
+	(*RoundResult)(nil),          // 7: game.RoundResult
+	(*Board)(nil),                // 8: game.Board
+	(*RemainingPips)(nil),        // 9: game.RemainingPips
+	(*GetGameStateRequest)(nil),  // 10: game.GetGameStateRequest
+	(*GetGameStateResponse)(nil), // 11: game.GetGameStateResponse
+	nil,                          // 12: game.RoundResult.PipCountsEntry
+	nil,                          // 13: game.GetGameStateResponse.TeamScoresEntry
+	nil,                          // 14: game.GetGameStateResponse.HandSizesEntry
 }
 var file_game_proto_depIdxs = []int32{
-	0, // 0: game.PlayTileRequest.tile:type_name -> game.Tile
-	0, // 1: game.PlayTileResponse.board:type_name -> game.Tile
-	0, // 2: game.PlayTileResponse.hand:type_name -> game.Tile
-	7, // 3: game.PlayTileResponse.round_result:type_name -> game.RoundResult
-	7, // 4: game.PassTurnResponse.round_result:type_name -> game.RoundResult
-	8, // 5: game.RoundResult.scores:type_name -> game.RoundResult.ScoresEntry
-	1, // 6: game.GameService.PlayTile:input_type -> game.PlayTileRequest
-	3, // 7: game.GameService.PassTurn:input_type -> game.PassTurnRequest
-	5, // 8: game.GameService.NextRound:input_type -> game.NextRoundRequest
-	2, // 9: game.GameService.PlayTile:output_type -> game.PlayTileResponse
-	4, // 10: game.GameService.PassTurn:output_type -> game.PassTurnResponse
-	6, // 11: game.GameService.NextRound:output_type -> game.NextRoundResponse
-	9, // [9:12] is the sub-list for method output_type
-	6, // [6:9] is the sub-list for method input_type
-	6, // [6:6] is the sub-list for extension type_name
-	6, // [6:6] is the sub-list for extension extendee
-	0, // [0:6] is the sub-list for field type_name
+	0,  // 0: game.PlayTileRequest.tile:type_name -> game.Tile
+	0,  // 1: game.PlayTileResponse.board:type_name -> game.Tile
+	0,  // 2: game.PlayTileResponse.hand:type_name -> game.Tile
+	7,  // 3: game.PlayTileResponse.round_result:type_name -> game.RoundResult
+	7,  // 4: game.PassTurnResponse.round_result:type_name -> game.RoundResult
+	12, // 5: game.RoundResult.pip_counts:type_name -> game.RoundResult.PipCountsEntry
+	0,  // 6: game.Board.tiles:type_name -> game.Tile
+	0,  // 7: game.RemainingPips.tiles:type_name -> game.Tile
+	13, // 8: game.GetGameStateResponse.team_scores:type_name -> game.GetGameStateResponse.TeamScoresEntry
+	8,  // 9: game.GetGameStateResponse.board:type_name -> game.Board
+	0,  // 10: game.GetGameStateResponse.hand:type_name -> game.Tile
+	14, // 11: game.GetGameStateResponse.hand_sizes:type_name -> game.GetGameStateResponse.HandSizesEntry
+	7,  // 12: game.GetGameStateResponse.round_result:type_name -> game.RoundResult
+	1,  // 13: game.GameService.PlayTile:input_type -> game.PlayTileRequest
+	3,  // 14: game.GameService.PassTurn:input_type -> game.PassTurnRequest
+	5,  // 15: game.GameService.NextRound:input_type -> game.NextRoundRequest
+	10, // 16: game.GameService.GetGameState:input_type -> game.GetGameStateRequest
+	2,  // 17: game.GameService.PlayTile:output_type -> game.PlayTileResponse
+	4,  // 18: game.GameService.PassTurn:output_type -> game.PassTurnResponse
+	6,  // 19: game.GameService.NextRound:output_type -> game.NextRoundResponse
+	11, // 20: game.GameService.GetGameState:output_type -> game.GetGameStateResponse
+	17, // [17:21] is the sub-list for method output_type
+	13, // [13:17] is the sub-list for method input_type
+	13, // [13:13] is the sub-list for extension type_name
+	13, // [13:13] is the sub-list for extension extendee
+	0,  // [0:13] is the sub-list for field type_name
 }
 
 func init() { file_game_proto_init() }
@@ -551,7 +921,7 @@ func file_game_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_game_proto_rawDesc), len(file_game_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   15,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

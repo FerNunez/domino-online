@@ -21,13 +21,13 @@ func NewGameEventPublisher(rmq *messaging.RabbitMQ) *GameEventPublisher {
 	}
 }
 
-func (p *GameEventPublisher) PublishMoveMade(ctx context.Context, req *pbg.PlayTileRequest, round *domain.RoundModel, roundResult *types.RoundResult) error {
+func (p *GameEventPublisher) PublishMoveMade(ctx context.Context, req *pbg.PlayTileRequest, round *domain.RoundModel) error {
 	payload := messaging.MoveMadeData{
 		UserID:            req.UserId,
 		Tile:              toTile(req.Tile),
 		Side:              types.Side(req.Side),
 		NextTurn:          round.CurrentTurn,
-		RoundResult:       roundResult,
+		RoundResult:       round.Result,
 		RoundID:           round.ID,
 		ActionNumber:      round.ActionCount,
 		ResultingLeftEnd:  round.Board.LeftEnd,
@@ -46,30 +46,28 @@ func (p *GameEventPublisher) PublishMoveMade(ctx context.Context, req *pbg.PlayT
 	})
 }
 
-func (p *GameEventPublisher) PublishTurnPassed(ctx context.Context, req *pbg.PassTurnRequest, game *domain.RoundModel, roundResult *types.RoundResult) error {
+func (p *GameEventPublisher) PublishTurnPassed(ctx context.Context, req *pbg.PassTurnRequest, round *domain.RoundModel) error {
 	payload := messaging.PlayerPassedData{
 		UserID:       req.UserId,
-		NextTurn:     game.CurrentTurn,
-		RoundResult:  roundResult,
-		RoundID:      game.ID,
-		ActionNumber: game.ActionCount,
+		NextTurn:     round.CurrentTurn,
+		RoundResult:  round.Result,
+		RoundID:      round.ID,
+		ActionNumber: round.ActionCount,
 	}
 	data, err := json.Marshal(payload)
 	if err != nil {
 		return err
 	}
-
 	// Publish to MoveMade
 	return p.rabbitmq.PublishMessage(ctx, contracts.PlayerPassed, &contracts.DominoEvent{
-		LobbyID:  game.LobbyID,
+		LobbyID:  round.LobbyID,
 		TargetID: "",
 		Data:     data,
 	})
 }
 
-func (p *GameEventPublisher) PublishRoundOver(ctx context.Context, game *domain.GameModel, roundResult *types.RoundResult) error {
+func (p *GameEventPublisher) PublishRoundOver(ctx context.Context, game *domain.GameModel) error {
 	round := game.CurrentRound
-	// create event
 	payload := messaging.RoundOverData{
 		LobbyID:        round.LobbyID,
 		GameID:         game.ID,
@@ -77,17 +75,16 @@ func (p *GameEventPublisher) PublishRoundOver(ctx context.Context, game *domain.
 		RoundNumber:    round.RoundNumber,
 		StartingPlayer: round.StartingPlayer,
 		PlayerOrder:    round.PlayerOrder,
-		RoundResult:    *roundResult,
+		RoundResult:    round.Result,
 		ActionCount:    round.ActionCount,
 		GameScore:      game.TeamScores,
 		GameState:      string(game.Status),
-		TeamWinner:     game.TeamWinner,
+		RoundWinner:    game.WinnerTeamID(),
 	}
 	data, err := json.Marshal(payload)
 	if err != nil {
 		return err
 	}
-
 	// Publish to MoveMade
 	return p.rabbitmq.PublishMessage(ctx, contracts.RoundOver, &contracts.DominoEvent{
 		LobbyID:  round.LobbyID,
@@ -102,7 +99,7 @@ func (p *GameEventPublisher) PublishGameOver(ctx context.Context, game *domain.G
 		GameID:     game.ID,
 		GameState:  string(game.Status),
 		GameScore:  game.TeamScores,
-		TeamWinner: game.TeamWinner,
+		TeamWinner: game.WinnerTeamID(),
 	}
 	data, err := json.Marshal(payload)
 	if err != nil {

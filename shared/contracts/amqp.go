@@ -45,5 +45,5 @@ const (
 	PlayTileResponse  = "game.play_tile_response"  // {Board, Hand, RoundResult} // uses grpc response btw
 	PassTurnResponse  = "game.pass_turn_response"  // {RoundResult}
 	NextRoundResponse = "game.next_round_response" // {RoundNumber}
-
+	GameStateSync     = "game.state_sync"          // {game state}
 )

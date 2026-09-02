@@ -88,21 +88,17 @@ type RoundStartedData struct {
 }
 
 type RoundOverData struct {
-	LobbyID        string            `json:"lobbyID"`
-	GameID         string            `json:"gameID"`
-	RoundID        string            `json:"roundID"`
-	RoundNumber    int               `json:"roundNumber"`
-	StartingPlayer string            `json:"startingPlayer"`
-	PlayerOrder    []string          `json:"playerOrder"`
-	RoundResult    types.RoundResult `json:"roundResult"`
-	// Total accepted plays/passes this round produced — lets history-service
-	// verify its `actions` rows for this round are fully persisted before
-	// serving them, instead of assuming completeness from delivery order
-	// (which doesn't hold once history-service runs more than one replica).
-	ActionCount int                  `json:"actionCount"`
-	GameScore   map[types.TeamID]int `json:"gameScores"`
-	GameState   string               `json:"gameState"`
-	TeamWinner  types.TeamID         `json:"teamWinner"`
+	LobbyID        string               `json:"lobbyID"`
+	GameID         string               `json:"gameID"`
+	RoundID        string               `json:"roundID"`
+	RoundNumber    int                  `json:"roundNumber"`
+	StartingPlayer string               `json:"startingPlayer"`
+	PlayerOrder    []string             `json:"playerOrder"`
+	RoundResult    *types.RoundResult   `json:"roundResult"`
+	ActionCount    int                  `json:"actionCount"`
+	RoundWinner    types.TeamID         `json:"roundWinner"`
+	GameScore      map[types.TeamID]int `json:"gameScores"`
+	GameState      string               `json:"gameState"`
 }
 
 type PlayTileResponseData struct {
@@ -117,4 +113,30 @@ type PassTurnResponseData struct {
 
 type NextRoundResponseData struct {
 	RoundNumber int `json:"roundNumber"`
+}
+
+// BoardData mirrors protos Board
+type BoardData struct {
+	Tiles    []types.Tile `json:"tiles"`
+	LeftEnd  int          `json:"leftEnd"`
+	RightEnd int          `json:"rightEnd"`
+}
+
+// GameStateSnapshotData mirrors protos GetGameStateResponse
+type GameStateSnapshotData struct {
+	GameID      string               `json:"gameID"`
+	GameNumber  int                  `json:"gameNumber"`
+	Status      string               `json:"status"`
+	TeamScores  map[types.TeamID]int `json:"teamScores"`
+	TeamWinner  types.TeamID         `json:"teamWinner"`
+	GoalScore   int                  `json:"goalScore"`
+	RoundID     string               `json:"roundID"`
+	RoundNumber int                  `json:"roundNumber"`
+	RoundStatus string               `json:"roundStatus"`
+	PlayerOrder []string             `json:"playerOrder"`
+	CurrentTurn string               `json:"currentTurn"`
+	Board       BoardData            `json:"board"`
+	Hand        []types.Tile         `json:"hand"`
+	HandSizes   map[string]int       `json:"handSizes"`
+	RoundResult *types.RoundResult   `json:"roundResult,omitempty"`
 }

@@ -12,6 +12,9 @@ import (
 	"domino/shared/messaging"
 	pbg "domino/shared/proto/game"
 	"domino/shared/types"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // NOTE: connManager is a package-level singleton shared by all WebSocket handlers
@@ -43,10 +46,6 @@ func handleLobbyWebsocket(w http.ResponseWriter, r *http.Request, rmq *messaging
 	}
 	defer conn.Close()
 
-	// Add in Manager
-	connManager.AddToLobby(claims.LobbyID, claims.UserID)
-	connManager.Add(claims.UserID, conn)
-
 	// NOTE: broadcast/target events (lobby.*, game.*) reach connManager via the
 	// single gateway-wide consumer started once in main.go, not per connection here.
 	// Create Game GRPC Client
@@ -55,6 +54,37 @@ func handleLobbyWebsocket(w http.ResponseWriter, r *http.Request, rmq *messaging
 		fmt.Printf("couldnt reach game service: %v\n", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
+	}
+
+	// check if there is a game running
+	var stateSnapshot *pbg.GetGameStateResponse
+	snapshotResp, err := gameSvc.Client.GetGameState(r.Context(), &pbg.GetGameStateRequest{
+		LobbyId: lobbyID,
+		UserId:  claims.UserID,
+	})
+	if err != nil {
+		if status.Code(err) != codes.NotFound {
+			log.Printf("couldn't fetch game state for %s: %v", claims.UserID, err)
+		}
+		// codes.NotFound just means no game has started yet — expected while
+		// still in the lobby. Either way, connect without a snapshot.
+	} else {
+		stateSnapshot = snapshotResp
+	}
+
+	// Add in Connection Manager
+	connManager.AddToLobby(claims.LobbyID, claims.UserID)
+	connManager.Add(claims.UserID, conn)
+
+	// Send the snapshot as the first thing this connection receives
+	if stateSnapshot != nil {
+		WSMsg := contracts.WSMessage{
+			Type: contracts.GameStateSync,
+			Data: toGameStateSnapshot(stateSnapshot),
+		}
+		if err := connManager.SendMessage(claims.UserID, WSMsg); err != nil {
+			log.Printf("couldn't send game state snapshot to %s: %v", claims.UserID, err)
+		}
 	}
 
 	// Prepare msg to publish PlayerConnected
@@ -216,6 +246,39 @@ func handleLobbyWebsocket(w http.ResponseWriter, r *http.Request, rmq *messaging
 	}
 }
 
+func toGameStateSnapshot(resp *pbg.GetGameStateResponse) messaging.GameStateSnapshotData {
+	teamScores := make(map[types.TeamID]int, len(resp.TeamScores))
+	for team, score := range resp.TeamScores {
+		teamScores[types.TeamID(team)] = int(score)
+	}
+	handSizes := make(map[string]int, len(resp.HandSizes))
+	for playerID, size := range resp.HandSizes {
+		handSizes[playerID] = int(size)
+	}
+
+	return messaging.GameStateSnapshotData{
+		GameID:      resp.GameId,
+		GameNumber:  int(resp.GameNumber),
+		Status:      resp.Status,
+		TeamScores:  teamScores,
+		TeamWinner:  types.TeamID(resp.TeamWinner),
+		GoalScore:   int(resp.GoalScore),
+		RoundID:     resp.RoundId,
+		RoundNumber: int(resp.RoundNumber),
+		RoundStatus: resp.RoundStatus,
+		PlayerOrder: resp.PlayerOrder,
+		CurrentTurn: resp.CurrentTurn,
+		Board: messaging.BoardData{
+			Tiles:    toTiles(resp.Board.Tiles),
+			LeftEnd:  int(resp.Board.LeftEnd),
+			RightEnd: int(resp.Board.RightEnd),
+		},
+		Hand:        toTiles(resp.Hand),
+		HandSizes:   handSizes,
+		RoundResult: toRoundResult(resp.RoundResult),
+	}
+}
+
 func toTiles(tiles []*pbg.Tile) []types.Tile {
 	out := make([]types.Tile, len(tiles))
 	for idx, t := range tiles {
@@ -233,14 +296,14 @@ func toRoundResult(roundResult *pbg.RoundResult) *types.RoundResult {
 		return nil
 	}
 
-	scores := make(map[types.TeamID]int, len(roundResult.Scores))
-	for key, val := range roundResult.Scores {
-		scores[types.TeamID(key)] = int(val)
+	pipCounts := make(map[types.TeamID]int, len(roundResult.PipCounts))
+	for key, val := range roundResult.PipCounts {
+		pipCounts[types.TeamID(key)] = int(val)
 	}
 
 	return &types.RoundResult{
 		WinnerTeamID: types.TeamID(roundResult.WinnerId),
 		Reason:       types.Reason(roundResult.Reason),
-		Scores:       scores,
+		PipCounts:    pipCounts,
 	}
 }

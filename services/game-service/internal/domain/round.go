@@ -45,11 +45,8 @@ type RoundModel struct {
 	StartingPlayer string
 	CurrentTurn    string
 	PassStreak     uint
-	ActionCount    int // count of accepted plays/passes this round, used for history ordering
-
-	// roundOverReason is set internally by PlayTile/PassTurn when they conclude
-	// the round, so ResolveResult knows which outcome to compute.
-	roundOverReason types.Reason
+	ActionCount    int                // count of accepted plays/passes this round, used for history ordering
+	Result         *types.RoundResult // nil while round in progress then set when gam efinished
 }
 
 // Move describes a candidate legal play: a tile from hand and which open end it matches.
@@ -85,18 +82,17 @@ func NewRound(lobbyID, gameID string, roundNumber int, playerIDs []string, previ
 	}
 
 	return &RoundModel{
-		LobbyID:         lobbyID,
-		GameID:          gameID,
-		ID:              uuid.NewString(),
-		Status:          RoundStatusDealt,
-		PlayerOrder:     playerIDs,
-		Hands:           hands,
-		Board:           emptyBoard(),
-		StartingPlayer:  startingPlayer,
-		CurrentTurn:     startingPlayer,
-		PassStreak:      0,
-		roundOverReason: "",
-		RoundNumber:     roundNumber,
+		LobbyID:        lobbyID,
+		GameID:         gameID,
+		ID:             uuid.NewString(),
+		Status:         RoundStatusDealt,
+		PlayerOrder:    playerIDs,
+		Hands:          hands,
+		Board:          emptyBoard(),
+		StartingPlayer: startingPlayer,
+		CurrentTurn:    startingPlayer,
+		PassStreak:     0,
+		RoundNumber:    roundNumber,
 	}, nil
 }
 
@@ -176,7 +172,8 @@ func (r *RoundModel) PlayTile(userID string, tile types.Tile, side types.Side) e
 	// Check if current player won by placing
 	if len(r.Hands[userID]) == 0 {
 		r.Status = RoundStatusRoundOver
-		r.roundOverReason = types.ReasonDomino
+		result := r.resolveRound(types.ReasonDomino)
+		r.Result = &result
 		return nil
 	}
 
@@ -204,7 +201,8 @@ func (r *RoundModel) PassTurn(userID string) error {
 	r.PassStreak++
 	if int(r.PassStreak) >= len(r.PlayerOrder) {
 		r.Status = RoundStatusRoundOver
-		r.roundOverReason = types.ReasonBlocked
+		result := r.resolveRound(types.ReasonBlocked)
+		r.Result = &result
 		return nil
 	}
 
@@ -213,22 +211,21 @@ func (r *RoundModel) PassTurn(userID string) error {
 	return nil
 }
 
-// TODO: Change to proper 2 v 2 scoring system
-// ResolveRoundResult computes the winner and score once the round has ended.
-// It must only be called when Status == GameStatusRoundOver.
-func (r *RoundModel) ResolveResult() types.RoundResult {
-	pipSum := func(hand []types.Tile) int {
-		total := 0
-		for _, t := range hand {
-			total += t.Pips()
-		}
-		return total
+// resolveRound computes the result of round: winner, score and sets reason
+func (r *RoundModel) resolveRound(reason types.Reason) types.RoundResult {
+	// Compute pip count by team
+	pipCountByTeam := make(map[types.TeamID]int)
+	for idx, playerID := range r.PlayerOrder {
+		hand := r.Hands[playerID]
+		slot := idx + 1 // slot goes from 1
+		teamID := types.SlotToTeamID(slot)
+		pipCountByTeam[teamID] += sumTiles(hand)
 	}
 
-	switch r.roundOverReason {
+	switch reason {
 	case types.ReasonDomino:
+		// find winner = user with hand len = 0
 		var winnerTeamID types.TeamID
-
 		for idx, playerID := range r.PlayerOrder {
 			hand := r.Hands[playerID]
 			slot := idx + 1 // slot goes from 1
@@ -237,42 +234,37 @@ func (r *RoundModel) ResolveResult() types.RoundResult {
 				break
 			}
 		}
-		scores := make(map[types.TeamID]int)
-
-		for idx, playerID := range r.PlayerOrder {
-			hand := r.Hands[playerID]
-			slot := idx + 1 // slot goes from 1
-			teamID := types.SlotToTeamID(slot)
-			if teamID == winnerTeamID {
-				continue
-			}
-			scores[teamID] += pipSum(hand)
+		return types.RoundResult{
+			WinnerTeamID: winnerTeamID,
+			Reason:       types.ReasonDomino,
+			PipCounts:    pipCountByTeam,
 		}
-
-		return types.RoundResult{WinnerTeamID: winnerTeamID, Reason: types.ReasonDomino, Scores: scores}
 
 	case types.ReasonBlocked:
-		scores := make(map[types.TeamID]int)
-		for idx, playerID := range r.PlayerOrder {
-			hand := r.Hands[playerID]
-			slot := idx + 1 // slot goes from 1
-			teamID := types.SlotToTeamID(slot)
-			scores[teamID] += pipSum(hand)
+		// add score by team
+		// Draw:
+		if pipCountByTeam[types.TeamA] == pipCountByTeam[types.TeamB] {
+			return types.RoundResult{
+				Reason:       types.ReasonBlocked,
+				WinnerTeamID: "",
+				PipCounts:    pipCountByTeam,
+			}
 		}
-		if scores[types.TeamA] == scores[types.TeamB] {
-			return types.RoundResult{Reason: types.ReasonBlocked, Scores: scores}
-		}
+
 		// Lowest pip count wins a blocked round.
 		var winnerID types.TeamID
-		if scores[types.TeamA] < scores[types.TeamB] {
+		if pipCountByTeam[types.TeamA] < pipCountByTeam[types.TeamB] {
 			winnerID = types.TeamA
 		} else {
 			winnerID = types.TeamB
 		}
-		return types.RoundResult{WinnerTeamID: winnerID, Reason: types.ReasonBlocked, Scores: scores}
-
+		return types.RoundResult{
+			WinnerTeamID: winnerID,
+			Reason:       types.ReasonBlocked,
+			PipCounts:    pipCountByTeam,
+		}
 	default:
-		panic("ResolveResult called before the round ended")
+		panic("resolveResult called before the round ended")
 	}
 }
 
@@ -296,4 +288,13 @@ func ValidMoves(hand []types.Tile, b Board) []Move {
 		}
 	}
 	return moves
+}
+
+// SumTiles adds all pipes of a hand
+func sumTiles(hand []Tile) int {
+	total := 0
+	for _, t := range hand {
+		total += t.Pips()
+	}
+	return total
 }

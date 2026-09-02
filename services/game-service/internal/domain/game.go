@@ -30,6 +30,7 @@ var (
 	ErrRoundOver      = errors.New("round is already over")
 	ErrHasLegalMove   = errors.New("cannot pass: a legal move exists")
 	ErrWrongPlayerCnt = errors.New("standard block domino requires exactly 4 players")
+	ErrNoCurrentGame  = errors.New("no current game for lobby")
 )
 
 type GameModel struct {
@@ -38,16 +39,16 @@ type GameModel struct {
 	GameNumber   int    // 1, 2, 3... sequential within LobbyID, for ordering/display
 	Status       GameStatus
 	TeamScores   map[types.TeamID]int
-	TeamWinner   types.TeamID
 	CurrentRound *RoundModel
-	GoalScore    int // MaxGame
+	GoalScore    int               // MaxGame
+	Result       *types.GameResult // Result is nil while the match is in progress
 }
 
 // TODO: Add this as config sent from LobbyService
 // GoalScore is the default team score a match plays to.
 const GoalScore = 100
 
-// NewGame: creates game with a first round, and 0 scores
+// NewGame creates game with a first round, and 0 scores
 func NewGame(lobbyID, gameID string, gameNumber int, playerIDs []string) (*GameModel, error) {
 	if len(playerIDs) != 4 {
 		return nil, ErrWrongPlayerCnt
@@ -71,34 +72,54 @@ func NewGame(lobbyID, gameID string, gameNumber int, playerIDs []string) (*GameM
 }
 
 func (g *GameModel) UpdateScore(roundResult *types.RoundResult) error {
+	// Add opposites team pips into winners
 	switch roundResult.WinnerTeamID {
 	case types.TeamA:
-		g.TeamScores[types.TeamA] += roundResult.Scores[types.TeamB]
+		g.TeamScores[types.TeamA] += roundResult.PipCounts[types.TeamB]
 	case types.TeamB:
-		g.TeamScores[types.TeamB] += roundResult.Scores[types.TeamA]
+		g.TeamScores[types.TeamB] += roundResult.PipCounts[types.TeamA]
 	default:
 		// Draw - Return gmae unchanged
 		return nil
 	}
 
+	// Check if any team over goal
+	var teamWinner types.TeamID
 	if g.GoalScore <= g.TeamScores[types.TeamA] {
 		g.Status = GameStatusGameOver
-		g.TeamWinner = types.TeamA
+		teamWinner = types.TeamA
 	} else if g.GoalScore <= g.TeamScores[types.TeamB] {
 		g.Status = GameStatusGameOver
-		g.TeamWinner = types.TeamB
+		teamWinner = types.TeamB
+	}
+
+	if g.Status == GameStatusGameOver {
+		// set game result
+		g.Result = &types.GameResult{
+			WinnerTeamID: teamWinner,
+		}
 	}
 
 	return nil
 }
 
+// WinnerTeamID returns the winning team once the match has ended or "" if still in progress
+func (g *GameModel) WinnerTeamID() types.TeamID {
+	if g.Result == nil {
+		return ""
+	}
+	return g.Result.WinnerTeamID
+}
+
 type GameService interface {
 	CreateGameWithID(ctx context.Context, gameID, lobbyID string, playerIDs []string) (*GameModel, error)
-	PlayTile(ctx context.Context, lobbyID, userID string, tile types.Tile, side types.Side) (*GameModel, *types.RoundResult, error)
-	PassTurn(ctx context.Context, lobbyID, userID string) (*GameModel, *types.RoundResult, error)
+	PlayTile(ctx context.Context, lobbyID, userID string, tile types.Tile, side types.Side) (*GameModel, error)
+	PassTurn(ctx context.Context, lobbyID, userID string) (*GameModel, error)
 	// NextRound resolves the finished current round, applies its score to the
 	// match, and deals the next round (or ends the match if GoalScore was reached).
 	NextRound(ctx context.Context, lobbyID, userID string) (*GameModel, error)
+	// GetCurrentGame returns lobbyID's in-progress game
+	GetCurrentGame(ctx context.Context, lobbyID string) (*GameModel, error)
 }
 
 type GameRepository interface {
@@ -109,4 +130,6 @@ type GameRepository interface {
 	UpdateCurrentGame(ctx context.Context, lobbyID string, mutate func(*GameModel) error) (*GameModel, error)
 	// NextGameNumber atomically reserves the next sequential game number for lobbyID.
 	NextGameNumber(ctx context.Context, lobbyID string) (int, error)
+	// GetCurrentGame  read of lobbyID's in-progress game
+	GetCurrentGame(ctx context.Context, lobbyID string) (*GameModel, error)
 }

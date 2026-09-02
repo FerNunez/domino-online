@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"errors"
 
 	"domino/services/game-service/internal/domain"
 	"domino/services/game-service/internal/infrastructure/events"
@@ -39,7 +40,7 @@ func (h *gRPCHandler) PlayTile(ctx context.Context, req *pbg.PlayTileRequest) (*
 	tile := types.Tile{Left: int(req.Tile.Left), Right: int(req.Tile.Right)}
 
 	// Play tile
-	game, roundResult, err := h.service.PlayTile(ctx, req.LobbyId, req.UserId, tile, side)
+	game, err := h.service.PlayTile(ctx, req.LobbyId, req.UserId, tile, side)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to play tile: %v", err)
 	}
@@ -47,12 +48,12 @@ func (h *gRPCHandler) PlayTile(ctx context.Context, req *pbg.PlayTileRequest) (*
 	round := game.CurrentRound
 
 	// publish move made
-	if err := h.publisher.PublishMoveMade(ctx, req, round, roundResult); err != nil {
+	if err := h.publisher.PublishMoveMade(ctx, req, round); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to publish move made: %v", err)
 	}
 
-	if round.Status == domain.RoundStatusRoundOver && roundResult != nil {
-		if err := h.publisher.PublishRoundOver(ctx, game, roundResult); err != nil {
+	if round.Status == domain.RoundStatusRoundOver {
+		if err := h.publisher.PublishRoundOver(ctx, game); err != nil {
 			return nil, status.Errorf(codes.Internal, "failed to publish GameStarted: %v", err)
 		}
 		if game.Status == domain.GameStatusGameOver {
@@ -66,25 +67,25 @@ func (h *gRPCHandler) PlayTile(ctx context.Context, req *pbg.PlayTileRequest) (*
 	return &pbg.PlayTileResponse{
 		Board:       toProtoTiles(round.Board.Tiles),
 		Hand:        toProtoTiles(round.Hands[req.UserId]),
-		RoundResult: toProtoRoundResult(roundResult),
+		RoundResult: toProtoRoundResult(round.Result),
 	}, nil
 }
 
 func (h *gRPCHandler) PassTurn(ctx context.Context, req *pbg.PassTurnRequest) (*pbg.PassTurnResponse, error) {
 	// Pass turn
-	game, roundResult, err := h.service.PassTurn(ctx, req.LobbyId, req.UserId)
+	game, err := h.service.PassTurn(ctx, req.LobbyId, req.UserId)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to pass turn: %v", err)
 	}
 
 	round := game.CurrentRound
 	// publish turn passed
-	if err := h.publisher.PublishTurnPassed(ctx, req, round, roundResult); err != nil {
+	if err := h.publisher.PublishTurnPassed(ctx, req, round); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to publish GameStarted: %v", err)
 	}
 
-	if round.Status == domain.RoundStatusRoundOver && roundResult != nil {
-		if err := h.publisher.PublishRoundOver(ctx, game, roundResult); err != nil {
+	if round.Status == domain.RoundStatusRoundOver {
+		if err := h.publisher.PublishRoundOver(ctx, game); err != nil {
 			return nil, status.Errorf(codes.Internal, "failed to publish GameStarted: %v", err)
 		}
 		if game.Status == domain.GameStatusGameOver {
@@ -95,7 +96,48 @@ func (h *gRPCHandler) PassTurn(ctx context.Context, req *pbg.PassTurnRequest) (*
 	}
 
 	return &pbg.PassTurnResponse{
-		RoundResult: toProtoRoundResult(roundResult),
+		RoundResult: toProtoRoundResult(round.Result),
+	}, nil
+}
+
+func (h *gRPCHandler) GetGameState(ctx context.Context, req *pbg.GetGameStateRequest) (*pbg.GetGameStateResponse, error) {
+	game, err := h.service.GetCurrentGame(ctx, req.LobbyId)
+	if err != nil {
+		if errors.Is(err, domain.ErrNoCurrentGame) {
+			return nil, status.Error(codes.NotFound, "no current game for lobby")
+		}
+		return nil, status.Errorf(codes.Internal, "failed to get game state: %v", err)
+	}
+
+	round := game.CurrentRound
+	if round == nil {
+		return nil, status.Error(codes.Internal, "game has no current round")
+	}
+	handSizes := make(map[string]int32, len(round.PlayerOrder))
+	for _, playerID := range round.PlayerOrder {
+		handSizes[playerID] = int32(len(round.Hands[playerID]))
+	}
+
+	return &pbg.GetGameStateResponse{
+		GameId:      game.ID,
+		GameNumber:  int32(game.GameNumber),
+		Status:      string(game.Status),
+		TeamScores:  toProtoScores(game.TeamScores),
+		TeamWinner:  string(game.WinnerTeamID()),
+		GoalScore:   int32(game.GoalScore),
+		RoundId:     round.ID,
+		RoundNumber: int32(round.RoundNumber),
+		RoundStatus: string(round.Status),
+		PlayerOrder: round.PlayerOrder,
+		CurrentTurn: round.CurrentTurn,
+		Board: &pbg.Board{
+			Tiles:    toProtoTiles(round.Board.Tiles),
+			LeftEnd:  int32(round.Board.LeftEnd),
+			RightEnd: int32(round.Board.RightEnd),
+		},
+		Hand:        toProtoTiles(round.Hands[req.UserId]), // if UserId not in hands, then it returns empty
+		HandSizes:   handSizes,
+		RoundResult: toProtoRoundResult(round.Result),
 	}, nil
 }
 
@@ -122,10 +164,15 @@ func toProtoRoundResult(rr *types.RoundResult) *pbg.RoundResult {
 	if rr == nil {
 		return nil
 	}
+
+	pipCounts := make(map[string]int32)
+	for teamID, count := range rr.PipCounts {
+		pipCounts[string(teamID)] = int32(count)
+	}
 	return &pbg.RoundResult{
-		WinnerId: string(rr.WinnerTeamID),
-		Reason:   string(rr.Reason),
-		Scores:   toProtoScores(rr.Scores),
+		WinnerId:  string(rr.WinnerTeamID),
+		Reason:    string(rr.Reason),
+		PipCounts: pipCounts,
 	}
 }
 

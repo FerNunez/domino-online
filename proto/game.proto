@@ -8,6 +8,7 @@ service GameService{
   rpc PlayTile(PlayTileRequest) returns (PlayTileResponse);
   rpc PassTurn(PassTurnRequest) returns (PassTurnResponse);
   rpc NextRound(NextRoundRequest) returns (NextRoundResponse);
+  rpc GetGameState(GetGameStateRequest) returns (GetGameStateResponse);
 }
 
 message Tile{
@@ -49,7 +50,42 @@ message NextRoundResponse{
 message RoundResult {
   string winner_id  = 1;
   string reason  = 2;// ReasonDomino | ReasonBlocked
-  map<string, int32 > scores = 3; // map[TeamID] -> points 
+  map<string, int32 > pip_counts = 4; // map[TeamID] -> points
+}
+
+message Board {
+  repeated Tile tiles = 1; // already-oriented tiles, in play order
+  int32 left_end = 2;
+  int32 right_end = 3;
+}
+
+message RemainingPips{
+  repeated Tile tiles=1;
+}
+
+message GetGameStateRequest {
+  string lobby_id = 1;
+  string user_id = 2; // caller — scopes which hand is visible
+}
+
+// NOTE: Should we send game like this? what happen when a spectator is added. What Tile hand?
+message GetGameStateResponse {
+  string game_id = 1;
+  int32 game_number = 2;
+  string status = 3; // GameStatus
+  map<string, int32> team_scores = 4;
+  string team_winner = 5;
+  int32 goal_score = 6;
+
+  string round_id = 7;
+  int32 round_number = 8;
+  string round_status = 9; // RoundStatus
+  repeated string player_order = 10;
+  string current_turn = 11;
+  Board board = 12;
+  repeated Tile hand = 13; // caller's own hand only
+  map<string, int32> hand_sizes = 14; // every seat's remaining tile count
+  RoundResult round_result = 15; // set only once round_status is ROUND_STATUS_OVER
 }
 
 

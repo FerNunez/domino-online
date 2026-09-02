@@ -19,9 +19,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	GameService_PlayTile_FullMethodName  = "/game.GameService/PlayTile"
-	GameService_PassTurn_FullMethodName  = "/game.GameService/PassTurn"
-	GameService_NextRound_FullMethodName = "/game.GameService/NextRound"
+	GameService_PlayTile_FullMethodName     = "/game.GameService/PlayTile"
+	GameService_PassTurn_FullMethodName     = "/game.GameService/PassTurn"
+	GameService_NextRound_FullMethodName    = "/game.GameService/NextRound"
+	GameService_GetGameState_FullMethodName = "/game.GameService/GetGameState"
 )
 
 // GameServiceClient is the client API for GameService service.
@@ -31,6 +32,7 @@ type GameServiceClient interface {
 	PlayTile(ctx context.Context, in *PlayTileRequest, opts ...grpc.CallOption) (*PlayTileResponse, error)
 	PassTurn(ctx context.Context, in *PassTurnRequest, opts ...grpc.CallOption) (*PassTurnResponse, error)
 	NextRound(ctx context.Context, in *NextRoundRequest, opts ...grpc.CallOption) (*NextRoundResponse, error)
+	GetGameState(ctx context.Context, in *GetGameStateRequest, opts ...grpc.CallOption) (*GetGameStateResponse, error)
 }
 
 type gameServiceClient struct {
@@ -71,6 +73,16 @@ func (c *gameServiceClient) NextRound(ctx context.Context, in *NextRoundRequest,
 	return out, nil
 }
 
+func (c *gameServiceClient) GetGameState(ctx context.Context, in *GetGameStateRequest, opts ...grpc.CallOption) (*GetGameStateResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetGameStateResponse)
+	err := c.cc.Invoke(ctx, GameService_GetGameState_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // GameServiceServer is the server API for GameService service.
 // All implementations must embed UnimplementedGameServiceServer
 // for forward compatibility.
@@ -78,6 +90,7 @@ type GameServiceServer interface {
 	PlayTile(context.Context, *PlayTileRequest) (*PlayTileResponse, error)
 	PassTurn(context.Context, *PassTurnRequest) (*PassTurnResponse, error)
 	NextRound(context.Context, *NextRoundRequest) (*NextRoundResponse, error)
+	GetGameState(context.Context, *GetGameStateRequest) (*GetGameStateResponse, error)
 	mustEmbedUnimplementedGameServiceServer()
 }
 
@@ -96,6 +109,9 @@ func (UnimplementedGameServiceServer) PassTurn(context.Context, *PassTurnRequest
 }
 func (UnimplementedGameServiceServer) NextRound(context.Context, *NextRoundRequest) (*NextRoundResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method NextRound not implemented")
+}
+func (UnimplementedGameServiceServer) GetGameState(context.Context, *GetGameStateRequest) (*GetGameStateResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetGameState not implemented")
 }
 func (UnimplementedGameServiceServer) mustEmbedUnimplementedGameServiceServer() {}
 func (UnimplementedGameServiceServer) testEmbeddedByValue()                     {}
@@ -172,6 +188,24 @@ func _GameService_NextRound_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _GameService_GetGameState_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetGameStateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GameServiceServer).GetGameState(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GameService_GetGameState_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GameServiceServer).GetGameState(ctx, req.(*GetGameStateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // GameService_ServiceDesc is the grpc.ServiceDesc for GameService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -190,6 +224,10 @@ var GameService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "NextRound",
 			Handler:    _GameService_NextRound_Handler,
+		},
+		{
+			MethodName: "GetGameState",
+			Handler:    _GameService_GetGameState_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
