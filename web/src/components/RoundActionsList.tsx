@@ -33,8 +33,8 @@ function ActionRow({ action, playerName }: { action: HistoryAction; playerName: 
   );
 }
 
-// Shared by GameRoundRow (post-game history browsing) and RoundActionsPanel
-// (the live game screen, right after a round ends) — both render the same
+// Shared by GameRoundRow (post-game history browsing) and RoundHistoryModal
+// (the live game screen's round-history popup) — both render the same
 // move-by-move log and starting hands from GET /rounds/{id}/actions. The
 // actions list caps its own height and scrolls internally (lichess/chess.com-
 // style) rather than growing the page — a blocked round can run 25+ actions.

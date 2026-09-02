@@ -4,12 +4,12 @@ import { useState } from "react";
 import { Board } from "./Board";
 import { Hand } from "./Hand";
 import { PlayersPanel } from "./PlayersPanel";
-import { RoundActionsPanel } from "./RoundActionsPanel";
+import { RoundHistoryModal } from "./RoundHistoryModal";
 import { RoundSummary } from "./RoundSummary";
 import { Scoreboard } from "./Scoreboard";
 import { TurnIndicator } from "./TurnIndicator";
 import { BoardState, legalSides } from "@/lib/board";
-import { LobbyModel, RoundOverData, Side, Tile, slotToTeamID } from "@/lib/types";
+import { LobbyModel, RoundHistoryEntry, RoundOverData, Side, Tile, slotToTeamID } from "@/lib/types";
 
 interface GameScreenProps {
   userID: string | undefined;
@@ -24,6 +24,7 @@ interface GameScreenProps {
   hand: Tile[];
   currentTurn: string | null;
   roundOver: RoundOverData | null;
+  roundHistory: RoundHistoryEntry[];
   gameScores: Record<string, number>;
   roundNumber: number;
   latestRoundOverPoints: Record<string, number> | null;
@@ -44,6 +45,7 @@ export function GameScreen({
   hand,
   currentTurn,
   roundOver,
+  roundHistory,
   gameScores,
   roundNumber,
   latestRoundOverPoints,
@@ -87,19 +89,14 @@ export function GameScreen({
     <div className="flex w-full max-w-5xl flex-col gap-4 p-4">
       <Scoreboard gameScores={gameScores} goalScore={lobby.settings.maxScore} roundNumber={roundNumber} yourTeamID={yourTeamID} />
       {roundOver ? (
-        <>
-          <RoundSummary
-            roundOver={roundOver}
-            yourTeamID={yourTeamID}
-            canStartNextRound={isHost}
-            nextRoundRequested={nextRoundRequested}
-            pointsThisRound={latestRoundOverPoints}
-            onNextRound={nextRound}
-          />
-          <div className="rounded-lg border bg-card p-3">
-            <RoundActionsPanel roundID={roundOver.roundID} players={lobby.players} />
-          </div>
-        </>
+        <RoundSummary
+          roundOver={roundOver}
+          yourTeamID={yourTeamID}
+          canStartNextRound={isHost}
+          nextRoundRequested={nextRoundRequested}
+          pointsThisRound={latestRoundOverPoints}
+          onNextRound={nextRound}
+        />
       ) : (
         <TurnIndicator
           currentTurn={currentTurn}
@@ -111,16 +108,19 @@ export function GameScreen({
         />
       )}
       <PlayersPanel players={lobby.players} playerOrder={playerOrder} handCounts={handCounts} currentTurn={currentTurn} userID={userID} yourTeamID={yourTeamID}>
-        <Board
-          board={board}
-          canPlayLeft={dropSides.includes("left")}
-          canPlayRight={dropSides.includes("right")}
-          onDropEnd={(side) => {
-            if (!selectedTile) return;
-            playTile(selectedTile, side);
-            setSelectedTile(null);
-          }}
-        />
+        <div className="flex flex-col items-center gap-2">
+          <Board
+            board={board}
+            canPlayLeft={dropSides.includes("left")}
+            canPlayRight={dropSides.includes("right")}
+            onDropEnd={(side) => {
+              if (!selectedTile) return;
+              playTile(selectedTile, side);
+              setSelectedTile(null);
+            }}
+          />
+          <RoundHistoryModal roundHistory={roundHistory} players={lobby.players} yourTeamID={yourTeamID} />
+        </div>
       </PlayersPanel>
       <Hand tiles={hand} selectedTile={selectedTile} isYourTurn={isYourTurn} onSelect={handleSelect} />
     </div>

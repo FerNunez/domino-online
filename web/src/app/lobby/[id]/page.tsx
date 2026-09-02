@@ -70,6 +70,7 @@ export default function LobbyPage({ params }: { params: Promise<{ id: string }> 
             hand={conn.hand}
             currentTurn={conn.currentTurn}
             roundOver={conn.roundOver}
+            roundHistory={conn.roundHistory}
             gameScores={conn.gameScores}
             roundNumber={conn.roundNumber}
             latestRoundOverPoints={conn.latestRoundOverPoints}
