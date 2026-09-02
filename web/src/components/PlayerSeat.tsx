@@ -1,3 +1,4 @@
+import { PlayerChip } from "./PlayerChip";
 import { cn } from "@/lib/utils";
 import { PlayerModel } from "@/lib/types";
 
@@ -23,14 +24,7 @@ export function PlayerSeat({ player, handCount, isCurrentTurn, isSelf, isYourTea
         isYourTeam === false && "border-l-amber-500"
       )}
     >
-      <div
-        className={cn(
-          "flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold",
-          isCurrentTurn ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-        )}
-      >
-        {player ? player.name.slice(0, 2).toUpperCase() : "?"}
-      </div>
+      <PlayerChip name={player?.name ?? "?"} active={isCurrentTurn} />
       <p className="max-w-20 truncate text-xs font-medium">
         {name}
         {isSelf && <span className="text-muted-foreground"> (you)</span>}

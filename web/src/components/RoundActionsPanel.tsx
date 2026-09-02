@@ -79,5 +79,24 @@ export function RoundActionsPanel({ roundID, players }: RoundActionsPanelProps) 
     );
   }
 
-  return <RoundActionsList actions={state.actions} hands={state.hands} playerName={playerName} />;
+  const playCount = state.actions.filter((a) => a.actionType === "play").length;
+  const passCount = state.actions.length - playCount;
+
+  // Collapsed by default: the result is already shown by RoundSummary above
+  // this panel, so the move-by-move detail is optional reading, not the
+  // headline — it shouldn't push the board down the page for every round.
+  return (
+    <details className="group">
+      <summary className="flex cursor-pointer items-center justify-between text-sm font-medium text-muted-foreground marker:hidden [&::-webkit-details-marker]:hidden">
+        <span>
+          {playCount} move{playCount === 1 ? "" : "s"}
+          {passCount > 0 ? `, ${passCount} pass${passCount === 1 ? "" : "es"}` : ""}
+        </span>
+        <span className="transition-transform group-open:rotate-180">▾</span>
+      </summary>
+      <div className="mt-3">
+        <RoundActionsList actions={state.actions} hands={state.hands} playerName={playerName} />
+      </div>
+    </details>
+  );
 }
