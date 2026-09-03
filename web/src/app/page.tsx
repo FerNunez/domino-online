@@ -10,6 +10,8 @@ import { createLobby, ensureGuestToken, joinLobby } from "@/lib/api";
 export default function Home() {
   const router = useRouter();
   const [joinID, setJoinID] = useState("");
+  const [createDisplayName, setCreateDisplayName] = useState("");
+  const [displayName, setDisplayName] = useState("");
   const [loading, setLoading] = useState<"create" | "join" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -18,7 +20,7 @@ export default function Home() {
     setError(null);
     try {
       await ensureGuestToken();
-      const { lobbyID } = await createLobby(4);
+      const { lobbyID } = await createLobby(4, createDisplayName.trim());
       router.push(`/lobby/${lobbyID}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "failed to create lobby");
@@ -32,7 +34,7 @@ export default function Home() {
     setError(null);
     try {
       await ensureGuestToken();
-      const { lobbyID } = await joinLobby(joinID.trim());
+      const { lobbyID } = await joinLobby(joinID.trim(), displayName.trim());
       router.push(`/lobby/${lobbyID}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "failed to join lobby");
@@ -48,7 +50,13 @@ export default function Home() {
         <CardHeader>
           <CardTitle>Create a lobby</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex flex-col gap-2">
+          <input
+            className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+            placeholder="Your name (optional)"
+            value={createDisplayName}
+            onChange={(e) => setCreateDisplayName(e.target.value)}
+          />
           <Button className="w-full" onClick={handleCreate} disabled={loading !== null}>
             {loading === "create" ? "Creating…" : "New 4-player lobby"}
           </Button>
@@ -65,6 +73,12 @@ export default function Home() {
             placeholder="Lobby ID"
             value={joinID}
             onChange={(e) => setJoinID(e.target.value)}
+          />
+          <input
+            className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+            placeholder="Your name (optional)"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
           />
           <Button className="w-full" variant="secondary" onClick={handleJoin} disabled={loading !== null}>
             {loading === "join" ? "Joining…" : "Join"}

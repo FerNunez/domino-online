@@ -34,6 +34,7 @@ export function PlayersPanel({ players, playerOrder, handCounts, currentTurn, us
             isCurrentTurn={seat.id === currentTurn}
             isSelf={seat.id === userID}
             isYourTeam={yourTeamID && seatTeamID ? seatTeamID === yourTeamID : undefined}
+            edge={edge}
           />
         );
       })}

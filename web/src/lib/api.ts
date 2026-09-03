@@ -3,6 +3,11 @@ import { GameRoundSummary, GameSummary, HistoryAction, HistoryHand, LobbyModel, 
 
 const GUEST_TOKEN_KEY = "domino_guest_token";
 
+// sessionStorage (not localStorage): keeps each tab its own guest identity,
+// which is what lets multiple seats be tested from one browser via separate
+// tabs. Means /reconnect only recovers a userID within the same tab (a
+// closed-and-reopened tab starts fresh) — see TODO.md for the httpOnly-cookie
+// follow-up that would remove the need for client-side storage entirely.
 export function getStoredToken(): string | null {
   if (typeof window === "undefined") return null;
   return sessionStorage.getItem(GUEST_TOKEN_KEY);
@@ -69,17 +74,39 @@ export async function ensureGuestToken(): Promise<string> {
   return data.token;
 }
 
-export async function createLobby(maxPlayers: number): Promise<{ lobbyID: string; wsToken: string }> {
+export async function createLobby(
+  maxPlayers: number,
+  displayName?: string
+): Promise<{ lobbyID: string; wsToken: string }> {
   const res = await request<{ lobbyID: string; wsToken: string }>("/lobbies", {
     method: "POST",
-    body: JSON.stringify({ maxPlayers }),
+    body: JSON.stringify({ maxPlayers, displayName: displayName ?? "" }),
   });
   storeWsToken(res.lobbyID, res.wsToken);
   return res;
 }
 
-export async function joinLobby(lobbyID: string): Promise<{ lobbyID: string; wsToken: string }> {
-  const res = await request<{ lobbyID: string; wsToken: string }>(`/lobbies/${lobbyID}/join`, { method: "POST" });
+export async function joinLobby(
+  lobbyID: string,
+  displayName?: string
+): Promise<{ lobbyID: string; wsToken: string }> {
+  const res = await request<{ lobbyID: string; wsToken: string }>(`/lobbies/${lobbyID}/join`, {
+    method: "POST",
+    body: JSON.stringify({ displayName: displayName ?? "" }),
+  });
+  storeWsToken(res.lobbyID, res.wsToken);
+  return res;
+}
+
+// Reissues a ws ticket for a lobby the caller is already a member of —
+// unlike joinLobby, this never adds a new player. Call on mount instead of
+// trusting a stored ws token, which is short-lived (75s) and likely stale by
+// the time a page reload happens. A 404 ApiError means the caller isn't a
+// member of this lobby (never joined, or joined in a since-cleared session).
+export async function reconnectLobby(lobbyID: string): Promise<{ lobbyID: string; wsToken: string }> {
+  const res = await request<{ lobbyID: string; wsToken: string }>(`/lobbies/${lobbyID}/reconnect`, {
+    method: "POST",
+  });
   storeWsToken(res.lobbyID, res.wsToken);
   return res;
 }

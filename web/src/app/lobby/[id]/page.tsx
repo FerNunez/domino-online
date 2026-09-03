@@ -1,12 +1,13 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { LobbyRoster } from "@/components/LobbyRoster";
 import { GameScreen } from "@/components/GameScreen";
 import { useLobbySnapshot } from "@/hooks/useLobbySnapshot";
 import { useGameConnection } from "@/hooks/useGameConnection";
-import { getStoredToken, getStoredWsToken, startLobby } from "@/lib/api";
+import { ApiError, ensureGuestToken, reconnectLobby, startLobby } from "@/lib/api";
 import { decodeJwtUserId } from "@/lib/jwt";
 
 // The WebSocket connection is opened here (not in a separate /game/[id] route)
@@ -19,11 +20,34 @@ export default function LobbyPage({ params }: { params: Promise<{ id: string }> 
   const [wsToken, setWsToken] = useState<string | undefined>(undefined);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notMember, setNotMember] = useState(false);
 
+  // Always asks for a fresh ws ticket on mount rather than trusting a stored
+  // one — the ticket is short-lived (75s), so by the time a refresh or a
+  // reopened tab gets here it's almost certainly already expired. A 404
+  // means this identity was never a player in this lobby.
   useEffect(() => {
-    const token = getStoredToken();
-    if (token) setUserID(decodeJwtUserId(token) ?? undefined);
-    setWsToken(getStoredWsToken(lobbyID) ?? undefined);
+    let cancelled = false;
+    (async () => {
+      try {
+        const token = await ensureGuestToken();
+        const uid = decodeJwtUserId(token) ?? undefined;
+        const { wsToken: freshToken } = await reconnectLobby(lobbyID);
+        if (cancelled) return;
+        setUserID(uid);
+        setWsToken(freshToken);
+      } catch (err) {
+        if (cancelled) return;
+        if (err instanceof ApiError && err.status === 404) {
+          setNotMember(true);
+        } else {
+          setError(err instanceof Error ? err.message : "failed to reconnect to lobby");
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [lobbyID]);
 
   const { lobby: lobbySnapshot, error: lobbyError } = useLobbySnapshot(lobbyID);
@@ -55,6 +79,20 @@ export default function LobbyPage({ params }: { params: Promise<{ id: string }> 
       setStarting(false);
     }
   };
+
+  if (notMember) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center gap-4 p-6 text-center">
+        <h1 className="text-2xl font-bold">You&apos;re not in this lobby</h1>
+        <p className="text-sm text-muted-foreground">
+          Either you never joined lobby {lobbyID}, or your session here has expired.
+        </p>
+        <Button asChild>
+          <Link href="/">Back home</Link>
+        </Button>
+      </main>
+    );
+  }
 
   if (conn.gameStarted) {
     return (

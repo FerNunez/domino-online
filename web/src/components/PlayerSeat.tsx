@@ -1,6 +1,7 @@
 import { PlayerChip } from "./PlayerChip";
 import { cn } from "@/lib/utils";
 import { PlayerModel } from "@/lib/types";
+import { SeatEdge } from "@/lib/seatLayout";
 
 interface PlayerSeatProps {
   player: PlayerModel | undefined;
@@ -8,6 +9,7 @@ interface PlayerSeatProps {
   isCurrentTurn: boolean;
   isSelf: boolean;
   isYourTeam?: boolean;
+  edge: SeatEdge;
 }
 
 // A full starting hand is 7 — showing every one of them (rather than a
@@ -15,8 +17,9 @@ interface PlayerSeatProps {
 // close an opponent is to going out.
 const MAX_TILE_BACKS = 7;
 
-export function PlayerSeat({ player, handCount, isCurrentTurn, isSelf, isYourTeam }: PlayerSeatProps) {
+export function PlayerSeat({ player, handCount, isCurrentTurn, isSelf, isYourTeam, edge }: PlayerSeatProps) {
   const name = player?.name ?? "…";
+  const vertical = edge === "left" || edge === "right";
 
   return (
     <div
@@ -32,7 +35,7 @@ export function PlayerSeat({ player, handCount, isCurrentTurn, isSelf, isYourTea
         {name}
         {isSelf && <span className="text-muted-foreground"> (you)</span>}
       </p>
-      <TileBacks count={handCount} />
+      <TileBacks count={handCount} vertical={vertical} />
     </div>
   );
 }
@@ -42,14 +45,34 @@ export function PlayerSeat({ player, handCount, isCurrentTurn, isSelf, isYourTea
 // (we never learn an opponent's tiles until they're played). Count alone
 // (as digits) is harder to read at a glance than a rack shrinking tile by
 // tile, which is the whole point of showing it this way.
-function TileBacks({ count }: { count: number }) {
+//
+// Left/right seats spread the rack vertically (like a real tile rack held
+// side-on) instead of horizontally. The gap between tiles is computed so a
+// full 7-tile hand fills RACK_SPAN_PX with tight overlap, and the rack
+// stays visually "full" (rather than shrinking to a tiny cluster) as tiles
+// are played, capped at one tile's thickness so a near-empty hand doesn't
+// spread into an oddly huge gap.
+const RACK_SPAN_PX = 112;
+const TILE_SPAN_PX = 16;
+const OVERLAP_MIN_PX = -10;
+
+function TileBacks({ count, vertical = false }: { count: number; vertical?: boolean }) {
   const shown = Math.min(count, MAX_TILE_BACKS);
+  const spacing =
+    shown > 1
+      ? Math.min(TILE_SPAN_PX, Math.max(OVERLAP_MIN_PX, (RACK_SPAN_PX - TILE_SPAN_PX) / (shown - 1)))
+      : 0;
+
   return (
-    <div className="flex h-8 items-center">
+    <div className={cn("flex items-center", vertical ? "h-28 w-8 flex-col justify-center" : "h-8")}>
       {Array.from({ length: shown }).map((_, i) => (
         <div
           key={i}
-          className="-ml-2.5 flex h-8 w-4 shrink-0 items-center justify-center rounded-sm border-2 border-border bg-muted shadow-sm first:ml-0"
+          style={i === 0 ? undefined : vertical ? { marginTop: spacing } : { marginLeft: spacing }}
+          className={cn(
+            "flex shrink-0 items-center justify-center rounded-sm border-2 border-border bg-muted shadow-sm",
+            vertical ? "h-4 w-8" : "h-8 w-4"
+          )}
         >
           <div className="h-1.5 w-1.5 rotate-45 rounded-[1px] bg-border" />
         </div>
