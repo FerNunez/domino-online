@@ -7,6 +7,7 @@ option go_package = "shared/proto/lobby;lobby";
 service LobbyService{
   rpc CreateLobby(CreateLobbyRequest) returns (CreateLobbyResponse);
   rpc JoinLobby(JoinLobbyRequest) returns (JoinLobbyResponse);
+  rpc ReconnectLobby(ReconnectLobbyRequest) returns (ReconnectLobbyResponse);
   rpc StartLobby(StartLobbyRequest) returns (StartLobbyResponse);
   rpc GetLobby(GetLobbyRequest) returns (GetLobbyResponse);
 }
@@ -14,6 +15,7 @@ service LobbyService{
 message CreateLobbyRequest{
   string userID = 1;
   int32 maxPlayers = 2;
+  string displayName = 3;
 }
 
 message CreateLobbyResponse{
@@ -24,9 +26,19 @@ message JoinLobbyRequest{
   string userID = 1;
   string lobbyID = 2;
   string secretCode = 3;
+  string displayName = 4;
 }
 
 message JoinLobbyResponse{
+  Lobby lobby = 1;
+}
+
+message ReconnectLobbyRequest{
+  string userID = 1;
+  string lobbyID = 2;
+}
+
+message ReconnectLobbyResponse{
   Lobby lobby = 1;
 }
 

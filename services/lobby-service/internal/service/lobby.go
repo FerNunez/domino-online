@@ -2,8 +2,9 @@ package service
 
 import (
 	"context"
-	"domino/services/lobby-service/internal/domain"
 	"fmt"
+
+	"domino/services/lobby-service/internal/domain"
 
 	"github.com/google/uuid"
 )
@@ -21,10 +22,22 @@ func NewService(repo domain.LobbyRepository, publisher domain.LobbyEventPublishe
 	}
 }
 
-func (s *service) CreateLobby(ctx context.Context, hostID string, maxPlayers int) (*domain.LobbyModel, error) {
+// defaultPlayerName is used when the caller doesn't supply a display name.
+func defaultPlayerName(userID string) string {
+	if len(userID) < 2 {
+		return "Guest-" + userID
+	}
+	return "Guest-" + userID[:2]
+}
+
+func (s *service) CreateLobby(ctx context.Context, hostID, hostName string, maxPlayers int) (*domain.LobbyModel, error) {
+	if hostName == "" {
+		hostName = defaultPlayerName(hostID)
+	}
+
 	host := &domain.PlayerModel{
 		ID:          hostID,
-		Name:        hostID, // FIX:
+		Name:        hostName,
 		Slot:        1,
 		IsConnected: false,
 	}
@@ -42,24 +55,28 @@ func (s *service) CreateLobby(ctx context.Context, hostID string, maxPlayers int
 	return s.repo.CreateLobby(ctx, &lobby)
 }
 
-func (s *service) JoinLobby(ctx context.Context, lobbyID string, userID string) (*domain.LobbyModel, error) {
+func (s *service) JoinLobby(ctx context.Context, lobbyID string, userID string, displayName string) (*domain.LobbyModel, error) {
 	lobby, err := s.repo.GetLobbyByID(ctx, lobbyID)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't get lobby: %w", err)
 	}
 
 	if _, ok := lobby.Players[userID]; ok {
-		return lobby, nil
+		return nil, domain.ErrAlreadyMember
 	}
 
 	if len(lobby.Players) >= lobby.MaxPlayers {
 		return nil, fmt.Errorf("full lobby")
 	}
 
+	if displayName == "" {
+		displayName = defaultPlayerName(userID)
+	}
+
 	// Add player to lobby
 	player := &domain.PlayerModel{
 		ID:          userID,
-		Name:        userID, // FIX:
+		Name:        displayName,
 		Slot:        len(lobby.Players) + 1,
 		IsConnected: false,
 	}
@@ -71,6 +88,19 @@ func (s *service) JoinLobby(ctx context.Context, lobbyID string, userID string) 
 	// Publish that a player joined lobby
 	if err := s.publisher.PublishPlayerJoined(ctx, lobby, player); err != nil {
 		return nil, fmt.Errorf("couldn't notify player joined: %w", err)
+	}
+
+	return lobby, nil
+}
+
+func (s *service) ReconnectLobby(ctx context.Context, lobbyID string, userID string) (*domain.LobbyModel, error) {
+	lobby, err := s.repo.GetLobbyByID(ctx, lobbyID)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't get lobby: %w", err)
+	}
+
+	if _, ok := lobby.Players[userID]; !ok {
+		return nil, domain.ErrNotMember
 	}
 
 	return lobby, nil

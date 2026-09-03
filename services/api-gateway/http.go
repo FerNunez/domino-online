@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 
@@ -109,14 +110,26 @@ func handleJoinLobby(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Body is optional, name falls back to a default when omitted.
+	var req joinLobbyRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil && err != io.EOF { // err = io.EOF when empty body
+		http.Error(w, "failed to parse JSON", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
 	lobbySvc, err := grpc_clients.NewLobbyServiceClient()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	protoReq := newProtoJoinLobbyRequest(userID, lobbyID)
+	protoReq := newProtoJoinLobbyRequest(userID, lobbyID, req.DisplayName)
 	lobby, err := lobbySvc.Client.JoinLobby(ctx, protoReq)
 	if err != nil {
+		if status.Code(err) == codes.AlreadyExists {
+			http.Error(w, "already a member of this lobby. Use reconnect instead", http.StatusConflict)
+			return
+		}
 		http.Error(w, "failed to join lobby", http.StatusInternalServerError)
 		return
 	}
@@ -129,6 +142,49 @@ func handleJoinLobby(w http.ResponseWriter, r *http.Request) {
 	}
 	response := newProtoCreateLobbyResponse(lobby.Lobby.Id, tokenWs)
 	writeJSON(w, http.StatusCreated, contracts.APIResponse{Data: response})
+}
+
+// handleReconnectLobby looks if user is memeber of lobby and returns a ws ticket to recoonnect
+func handleReconnectLobby(w http.ResponseWriter, r *http.Request) {
+	ctx, span := tracer.Start(r.Context(), "handleReconnectLobby")
+	defer span.End()
+
+	userID, ok := ctx.Value("userID").(string)
+	if !ok {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	lobbyID := r.PathValue("id")
+	if lobbyID == "" {
+		http.Error(w, "lobby id is required", http.StatusBadRequest)
+		return
+	}
+
+	lobbySvc, err := grpc_clients.NewLobbyServiceClient()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	protoReq := newProtoReconnectLobbyRequest(userID, lobbyID)
+	lobby, err := lobbySvc.Client.ReconnectLobby(ctx, protoReq)
+	if err != nil {
+		if status.Code(err) == codes.NotFound {
+			http.Error(w, "not a member of this lobby", http.StatusNotFound)
+			return
+		}
+		http.Error(w, "failed to reconnect to lobby", http.StatusInternalServerError)
+		return
+	}
+
+	tokenWs, err := jwt.NewLobbyTicket(lobby.Lobby.Id, userID)
+	if err != nil {
+		log.Printf("couldn't create jwt lobby ticket for user: %v and lobbyId: %v, err: %s\n", userID, lobby.Lobby.Id, err)
+		http.Error(w, "couldn't reconnect to lobby", http.StatusInternalServerError)
+		return
+	}
+	response := newProtoCreateLobbyResponse(lobby.Lobby.Id, tokenWs)
+	writeJSON(w, http.StatusOK, contracts.APIResponse{Data: response})
 }
 
 func handleStartGame(w http.ResponseWriter, r *http.Request) {

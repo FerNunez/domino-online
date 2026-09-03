@@ -2,8 +2,15 @@ package domain
 
 import (
 	"context"
-	pbl "domino/shared/proto/lobby"
+	"errors"
 	"sort"
+
+	pbl "domino/shared/proto/lobby"
+)
+
+var (
+	ErrAlreadyMember = errors.New("user is already a member of this lobby")
+	ErrNotMember     = errors.New("user is not a member of this lobby")
 )
 
 type LobbyStatus string
@@ -101,8 +108,9 @@ type LobbyRepository interface {
 }
 
 type LobbyService interface {
-	CreateLobby(ctx context.Context, hostID string, maxPlayers int) (*LobbyModel, error)
-	JoinLobby(ctx context.Context, lobbyID string, userID string) (*LobbyModel, error)
+	CreateLobby(ctx context.Context, hostID, hostName string, maxPlayers int) (*LobbyModel, error)
+	JoinLobby(ctx context.Context, lobbyID string, userID string, name string) (*LobbyModel, error)
+	ReconnectLobby(ctx context.Context, lobbyID string, userID string) (*LobbyModel, error)
 	StartLobby(ctx context.Context, lobbyID string, userID string) (*LobbyModel, error)
 	GetLobby(ctx context.Context, lobbyID string) (*LobbyModel, error)
 

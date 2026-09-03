@@ -2,6 +2,8 @@ package grpc
 
 import (
 	"context"
+	"errors"
+
 	"domino/services/lobby-service/internal/domain"
 	"domino/services/lobby-service/internal/infrastructure/events"
 
@@ -29,7 +31,7 @@ func NewGRPCHandler(server *grpc.Server, service domain.LobbyService, publisher 
 }
 
 func (h *gRPCHandler) CreateLobby(ctx context.Context, req *pbl.CreateLobbyRequest) (*pbl.CreateLobbyResponse, error) {
-	lobby, err := h.service.CreateLobby(ctx, req.UserID, int(req.MaxPlayers))
+	lobby, err := h.service.CreateLobby(ctx, req.UserID, req.DisplayName, int(req.MaxPlayers))
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to create lobby : %v", err)
 	}
@@ -40,12 +42,29 @@ func (h *gRPCHandler) CreateLobby(ctx context.Context, req *pbl.CreateLobbyReque
 }
 
 func (h *gRPCHandler) JoinLobby(ctx context.Context, req *pbl.JoinLobbyRequest) (*pbl.JoinLobbyResponse, error) {
-	lobby, err := h.service.JoinLobby(ctx, req.LobbyID, req.UserID)
+	lobby, err := h.service.JoinLobby(ctx, req.LobbyID, req.UserID, req.DisplayName)
 	if err != nil {
+		if errors.Is(err, domain.ErrAlreadyMember) {
+			return nil, status.Errorf(codes.AlreadyExists, "already a member of this lobby")
+		}
 		return nil, status.Errorf(codes.Internal, "failed to create lobby : %v", err)
 	}
 
 	return &pbl.JoinLobbyResponse{
+		Lobby: lobby.ToProto(),
+	}, nil
+}
+
+func (h *gRPCHandler) ReconnectLobby(ctx context.Context, req *pbl.ReconnectLobbyRequest) (*pbl.ReconnectLobbyResponse, error) {
+	lobby, err := h.service.ReconnectLobby(ctx, req.LobbyID, req.UserID)
+	if err != nil {
+		if errors.Is(err, domain.ErrNotMember) {
+			return nil, status.Errorf(codes.NotFound, "not a member of this lobby")
+		}
+		return nil, status.Errorf(codes.Internal, "failed to reconnect to lobby : %v", err)
+	}
+
+	return &pbl.ReconnectLobbyResponse{
 		Lobby: lobby.ToProto(),
 	}, nil
 }

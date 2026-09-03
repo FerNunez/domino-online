@@ -50,6 +50,7 @@ func main() {
 	mux.Handle("POST /lobbies", tracing.WrapHandlerFunc(enableCORS(authMiddleware(handleCreateLobby)), "/lobby"))
 	mux.Handle("GET /lobbies/{id}", tracing.WrapHandlerFunc(enableCORS(authMiddleware(handleGetLobby)), "/lobby/get"))
 	mux.Handle("POST /lobbies/{id}/join", tracing.WrapHandlerFunc(enableCORS(authMiddleware(handleJoinLobby)), "/lobby/join"))
+	mux.Handle("POST /lobbies/{id}/reconnect", tracing.WrapHandlerFunc(enableCORS(authMiddleware(handleReconnectLobby)), "/lobby/reconnect"))
 	mux.Handle("POST /lobbies/{id}/start", tracing.WrapHandlerFunc(enableCORS(authMiddleware(handleStartGame)), "/lobby/start"))
 	mux.Handle("GET /rounds/{id}/actions", tracing.WrapHandlerFunc(enableCORS(authMiddleware(handleGetRoundActions)), "/rounds/actions"))
 	mux.Handle("GET /games/{id}/history", tracing.WrapHandlerFunc(enableCORS(authMiddleware(handleGetGameHistory)), "/games/history"))
@@ -57,7 +58,7 @@ func main() {
 
 	// enables OPTIONS 'path' for each /path that does preflight: those using authMiddleware
 	corsPreflight := enableCORS(func(w http.ResponseWriter, r *http.Request) {})
-	for _, path := range []string{"/auth/guest", "/auth/register", "/users/{id}", "/lobbies", "/lobbies/{id}", "/lobbies/{id}/join", "/lobbies/{id}/start", "/rounds/{id}/actions", "/games/{id}/history", "/players/me/games"} {
+	for _, path := range []string{"/auth/guest", "/auth/register", "/users/{id}", "/lobbies", "/lobbies/{id}", "/lobbies/{id}/join", "/lobbies/{id}/reconnect", "/lobbies/{id}/start", "/rounds/{id}/actions", "/games/{id}/history", "/players/me/games"} {
 		mux.Handle("OPTIONS "+path, corsPreflight)
 	}
 
