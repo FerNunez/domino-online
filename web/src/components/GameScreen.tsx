@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { Board } from "./Board";
+import { Button } from "@/components/ui/button";
 import { Hand } from "./Hand";
 import { PlayersPanel } from "./PlayersPanel";
 import { RoundHistoryModal } from "./RoundHistoryModal";
 import { RoundSummary } from "./RoundSummary";
-import { Scoreboard } from "./Scoreboard";
-import { TurnIndicator } from "./TurnIndicator";
+import { RoundBadge, Scoreboard } from "./Scoreboard";
+import { TurnStatus } from "./TurnIndicator";
 import { BoardState, legalSides } from "@/lib/board";
 import { LobbyModel, RoundHistoryEntry, RoundOverData, Side, Tile, slotToTeamID } from "@/lib/types";
 
@@ -87,8 +88,7 @@ export function GameScreen({
 
   return (
     <div className="flex w-full max-w-5xl flex-col gap-4 p-4">
-      <Scoreboard gameScores={gameScores} goalScore={lobby.settings.maxScore} roundNumber={roundNumber} yourTeamID={yourTeamID} />
-      {roundOver ? (
+      {roundOver && (
         <RoundSummary
           roundOver={roundOver}
           yourTeamID={yourTeamID}
@@ -96,15 +96,6 @@ export function GameScreen({
           nextRoundRequested={nextRoundRequested}
           pointsThisRound={latestRoundOverPoints}
           onNextRound={nextRound}
-        />
-      ) : (
-        <TurnIndicator
-          currentTurn={currentTurn}
-          currentTurnName={currentTurnPlayer?.name}
-          currentTurnConnected={currentTurnConnected}
-          userID={userID}
-          hasLegalMove={hasLegalMove}
-          onPass={pass}
         />
       )}
       <PlayersPanel players={lobby.players} playerOrder={playerOrder} handCounts={handCounts} currentTurn={currentTurn} userID={userID} yourTeamID={yourTeamID}>
@@ -118,6 +109,25 @@ export function GameScreen({
               playTile(selectedTile, side);
               setSelectedTile(null);
             }}
+            scoreboard={<Scoreboard gameScores={gameScores} goalScore={lobby.settings.maxScore} yourTeamID={yourTeamID} />}
+            roundBadge={<RoundBadge roundNumber={roundNumber} />}
+            turnStatus={
+              !roundOver && (
+                <TurnStatus
+                  currentTurn={currentTurn}
+                  currentTurnName={currentTurnPlayer?.name}
+                  currentTurnConnected={currentTurnConnected}
+                  userID={userID}
+                />
+              )
+            }
+            passButton={
+              !roundOver && (
+                <Button size="sm" variant="secondary" className="shadow-sm" disabled={!isYourTurn || hasLegalMove} onClick={pass}>
+                  Pass
+                </Button>
+              )
+            }
           />
           <RoundHistoryModal roundHistory={roundHistory} players={lobby.players} yourTeamID={yourTeamID} />
         </div>

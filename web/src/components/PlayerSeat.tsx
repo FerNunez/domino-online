@@ -58,17 +58,24 @@ const OVERLAP_MIN_PX = -10;
 
 function TileBacks({ count, vertical = false }: { count: number; vertical?: boolean }) {
   const shown = Math.min(count, MAX_TILE_BACKS);
-  const spacing =
+  // Step between consecutive tile origins (not the margin itself — see
+  // below) so a full 7-tile hand's last tile ends exactly at RACK_SPAN_PX.
+  const step =
     shown > 1
       ? Math.min(TILE_SPAN_PX, Math.max(OVERLAP_MIN_PX, (RACK_SPAN_PX - TILE_SPAN_PX) / (shown - 1)))
       : 0;
+  // marginTop/Left sits *on top of* the tile's own footprint, so it must be
+  // the step minus that footprint (negative once step < TILE_SPAN_PX, i.e.
+  // genuine overlap) — applying `step` directly here would double-count
+  // each tile's footprint and overflow the rack's declared span.
+  const margin = step - TILE_SPAN_PX;
 
   return (
     <div className={cn("flex items-center", vertical ? "h-28 w-8 flex-col justify-center" : "h-8")}>
       {Array.from({ length: shown }).map((_, i) => (
         <div
           key={i}
-          style={i === 0 ? undefined : vertical ? { marginTop: spacing } : { marginLeft: spacing }}
+          style={i === 0 ? undefined : vertical ? { marginTop: margin } : { marginLeft: margin }}
           className={cn(
             "flex shrink-0 items-center justify-center rounded-sm border-2 border-border bg-muted shadow-sm",
             vertical ? "h-4 w-8" : "h-8 w-4"

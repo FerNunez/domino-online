@@ -43,11 +43,13 @@ export function PlayersPanel({ players, playerOrder, handCounts, currentTurn, us
 
   return (
     <div
-      className="grid w-full gap-3"
+      className="grid w-full"
       style={{
         gridTemplateAreas: '"left top right" "left center right" "left bottom right"',
         gridTemplateColumns: "auto 1fr auto",
         gridTemplateRows: "auto 1fr auto",
+        rowGap: "0.5rem",
+        columnGap: "0.75rem",
       }}
     >
       {renderEdge("left", "col")}

@@ -228,7 +228,7 @@ function seed(state: LayoutState, board: BoardState, half: number, keys: string[
   state.order = keys;
 }
 
-export function useBoardLayout(board: BoardState, opts: { canvas: number }): BoardLayout | null {
+export function useBoardLayout(board: BoardState, opts: { canvas: number }): BoardLayout {
   // `canvasHalf` sizes the rendered surface (buildLayout); `half` is the
   // smaller boundary tiles are actually placed within, so the outermost
   // tile stops MARGIN short of the felt edge instead of touching/crossing
@@ -237,9 +237,12 @@ export function useBoardLayout(board: BoardState, opts: { canvas: number }): Boa
   const half = canvasHalf - MARGIN;
   const stateRef = useRef<LayoutState | null>(null);
 
+  // An empty board still renders at the full fixed canvas size (see
+  // buildLayout's comment) rather than a small placeholder box, so the felt
+  // doesn't visibly resize the instant the opening tile is played.
   if (board.tiles.length === 0) {
     stateRef.current = null;
-    return null;
+    return buildLayout(board, emptyState(), canvasHalf);
   }
 
   const state = stateRef.current ?? (stateRef.current = emptyState());

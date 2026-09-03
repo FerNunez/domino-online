@@ -1,7 +1,6 @@
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 
-interface TurnIndicatorProps {
+interface TurnStatusProps {
   currentTurn: string | null;
   // Display name of the current-turn player, when known — falls back to the
   // raw id if the roster lookup misses (shouldn't normally happen).
@@ -10,29 +9,30 @@ interface TurnIndicatorProps {
   // disconnected — see GameScreen's fallback chain.
   currentTurnConnected: boolean;
   userID: string | undefined;
-  hasLegalMove: boolean;
-  onPass: () => void;
 }
 
-export function TurnIndicator({ currentTurn, currentTurnName, currentTurnConnected, userID, hasLegalMove, onPass }: TurnIndicatorProps) {
+// Text-only turn status, overlaid on the board (see Board's hud slots). The
+// Pass button is rendered separately by GameScreen so it can sit in its own
+// corner rather than sharing a row with this text.
+export function TurnStatus({ currentTurn, currentTurnName, currentTurnConnected, userID }: TurnStatusProps) {
   const isYourTurn = !!currentTurn && currentTurn === userID;
   const waitingOnDisconnected = !isYourTurn && !!currentTurn && !currentTurnConnected;
   const displayName = currentTurnName ?? currentTurn;
 
   return (
-    <div className={cn("flex items-center justify-between gap-4 rounded-lg border bg-card p-3", waitingOnDisconnected && "border-amber-500 bg-amber-500/10")}>
-      <p className="text-sm font-medium">
-        {isYourTurn
-          ? "Your turn"
-          : currentTurn
-            ? waitingOnDisconnected
-              ? `Waiting for ${displayName} to reconnect…`
-              : `Waiting on ${displayName}`
-            : "Waiting for game to start…"}
-      </p>
-      <Button size="sm" variant="secondary" disabled={!isYourTurn || hasLegalMove} onClick={onPass}>
-        Pass
-      </Button>
-    </div>
+    <p
+      className={cn(
+        "rounded-md bg-card/90 px-3 py-1.5 text-xs font-medium shadow-sm",
+        waitingOnDisconnected && "border border-amber-500 bg-amber-500/10"
+      )}
+    >
+      {isYourTurn
+        ? "Your turn"
+        : currentTurn
+          ? waitingOnDisconnected
+            ? `Waiting for ${displayName} to reconnect…`
+            : `Waiting on ${displayName}`
+          : "Waiting for game to start…"}
+    </p>
   );
 }

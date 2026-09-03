@@ -1,3 +1,4 @@
+import { ReactNode } from "react";
 import { DominoTile } from "./DominoTile";
 import { BoardState } from "@/lib/board";
 import { useBoardLayout } from "@/lib/boardLayout";
@@ -18,45 +19,61 @@ interface BoardProps {
   canPlayLeft: boolean;
   canPlayRight: boolean;
   onDropEnd: (side: Side) => void;
+  // HUD overlays pinned to the four corners/top-center of the board itself
+  // (score, round counter, turn status, pass button) — kept as generic slots
+  // so Board doesn't need to know what's inside them.
+  scoreboard?: ReactNode;
+  roundBadge?: ReactNode;
+  turnStatus?: ReactNode;
+  passButton?: ReactNode;
 }
 
-export function Board({ board, canPlayLeft, canPlayRight, onDropEnd }: BoardProps) {
+export function Board({ board, canPlayLeft, canPlayRight, onDropEnd, scoreboard, roundBadge, turnStatus, passButton }: BoardProps) {
   const layout = useBoardLayout(board, { canvas: CANVAS });
+
+  const hud = (
+    <>
+      {scoreboard && <div className="absolute left-3 top-3">{scoreboard}</div>}
+      {roundBadge && <div className="absolute right-3 top-3">{roundBadge}</div>}
+      {turnStatus && <div className="absolute left-1/2 top-3 -translate-x-1/2">{turnStatus}</div>}
+      {passButton && <div className="absolute bottom-3 right-3">{passButton}</div>}
+    </>
+  );
 
   return (
     <div className="flex w-full items-center justify-center overflow-auto rounded-lg p-6">
-      {!layout ? (
-        <div className="flex min-h-32 w-full max-w-3xl items-center justify-center rounded-2xl border-4 border-amber-900/20 bg-emerald-800/10 p-6 dark:border-amber-100/10 dark:bg-emerald-900/20">
-          <p className="text-sm text-muted-foreground">Board is empty — play any tile to start</p>
-        </div>
-      ) : (
-        <div
-          className="relative shrink-0 rounded-2xl border-4 border-amber-900/20 bg-emerald-800/10 shadow-inner dark:border-amber-100/10 dark:bg-emerald-900/20"
-          style={{ width: layout.width, height: layout.height }}
-        >
-          {layout.tiles.map((lt) => (
-            <div key={lt.key} className="absolute" style={{ left: lt.left, top: lt.top }}>
-              <DominoTile tile={lt.tile} size="sm" rotation={lt.rotation} />
-            </div>
-          ))}
-          {canPlayLeft && (
-            <EndSlot
-              left={layout.leftEndSlot.left}
-              top={layout.leftEndSlot.top}
-              onClick={() => onDropEnd("left")}
-              label={String(board.leftEnd)}
-            />
-          )}
-          {canPlayRight && (
-            <EndSlot
-              left={layout.rightEndSlot.left}
-              top={layout.rightEndSlot.top}
-              onClick={() => onDropEnd("right")}
-              label={String(board.rightEnd)}
-            />
-          )}
-        </div>
-      )}
+      <div
+        className="relative shrink-0 rounded-2xl border-4 border-amber-900/20 bg-emerald-800/10 shadow-inner dark:border-amber-100/10 dark:bg-emerald-900/20"
+        style={{ width: layout.width, height: layout.height }}
+      >
+        {board.tiles.length === 0 && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <p className="text-sm text-muted-foreground">Board is empty — play any tile to start</p>
+          </div>
+        )}
+        {layout.tiles.map((lt) => (
+          <div key={lt.key} className="absolute" style={{ left: lt.left, top: lt.top }}>
+            <DominoTile tile={lt.tile} size="sm" rotation={lt.rotation} />
+          </div>
+        ))}
+        {canPlayLeft && (
+          <EndSlot
+            left={layout.leftEndSlot.left}
+            top={layout.leftEndSlot.top}
+            onClick={() => onDropEnd("left")}
+            label={String(board.leftEnd)}
+          />
+        )}
+        {canPlayRight && (
+          <EndSlot
+            left={layout.rightEndSlot.left}
+            top={layout.rightEndSlot.top}
+            onClick={() => onDropEnd("right")}
+            label={String(board.rightEnd)}
+          />
+        )}
+        {hud}
+      </div>
     </div>
   );
 }
