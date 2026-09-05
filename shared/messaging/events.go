@@ -88,17 +88,18 @@ type RoundStartedData struct {
 }
 
 type RoundOverData struct {
-	LobbyID        string               `json:"lobbyID"`
-	GameID         string               `json:"gameID"`
-	RoundID        string               `json:"roundID"`
-	RoundNumber    int                  `json:"roundNumber"`
-	StartingPlayer string               `json:"startingPlayer"`
-	PlayerOrder    []string             `json:"playerOrder"`
-	RoundResult    *types.RoundResult   `json:"roundResult"`
-	ActionCount    int                  `json:"actionCount"`
-	RoundWinner    types.TeamID         `json:"roundWinner"`
-	GameScore      map[types.TeamID]int `json:"gameScores"`
-	GameState      string               `json:"gameState"`
+	LobbyID        string                  `json:"lobbyID"`
+	GameID         string                  `json:"gameID"`
+	RoundID        string                  `json:"roundID"`
+	RoundNumber    int                     `json:"roundNumber"`
+	StartingPlayer string                  `json:"startingPlayer"`
+	PlayerOrder    []string                `json:"playerOrder"`
+	RoundResult    *types.RoundResult      `json:"roundResult"`
+	ActionCount    int                     `json:"actionCount"`
+	RoundWinner    types.TeamID            `json:"roundWinner"`
+	GameScore      map[types.TeamID]int    `json:"gameScores"`
+	GameState      string                  `json:"gameState"`
+	PlayerHands    map[string][]types.Tile `json:"playerHands"`
 }
 
 type PlayTileResponseData struct {

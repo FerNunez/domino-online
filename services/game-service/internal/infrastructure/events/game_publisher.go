@@ -80,6 +80,7 @@ func (p *GameEventPublisher) PublishRoundOver(ctx context.Context, game *domain.
 		GameScore:      game.TeamScores,
 		GameState:      string(game.Status),
 		RoundWinner:    game.WinnerTeamID(),
+		PlayerHands:    round.Hands,
 	}
 	data, err := json.Marshal(payload)
 	if err != nil {

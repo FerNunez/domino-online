@@ -20,15 +20,18 @@ interface BoardProps {
   canPlayRight: boolean;
   onDropEnd: (side: Side) => void;
   // HUD overlays pinned to the four corners/top-center of the board itself
-  // (score, round counter, turn status, pass button) — kept as generic slots
-  // so Board doesn't need to know what's inside them.
+  // (score, round counter, turn status, pass/history actions) — kept as
+  // generic slots so Board doesn't need to know what's inside them.
   scoreboard?: ReactNode;
   roundBadge?: ReactNode;
+  // Text/status pill in the top-center slot — the live turn indicator while
+  // a round is in progress, or the round/match result banner once it ends
+  // (see GameScreen). Kept as one slot since the two never show together.
   turnStatus?: ReactNode;
-  passButton?: ReactNode;
+  actions?: ReactNode;
 }
 
-export function Board({ board, canPlayLeft, canPlayRight, onDropEnd, scoreboard, roundBadge, turnStatus, passButton }: BoardProps) {
+export function Board({ board, canPlayLeft, canPlayRight, onDropEnd, scoreboard, roundBadge, turnStatus, actions }: BoardProps) {
   const layout = useBoardLayout(board, { canvas: CANVAS });
 
   const hud = (
@@ -36,7 +39,7 @@ export function Board({ board, canPlayLeft, canPlayRight, onDropEnd, scoreboard,
       {scoreboard && <div className="absolute left-3 top-3">{scoreboard}</div>}
       {roundBadge && <div className="absolute right-3 top-3">{roundBadge}</div>}
       {turnStatus && <div className="absolute left-1/2 top-3 -translate-x-1/2">{turnStatus}</div>}
-      {passButton && <div className="absolute bottom-3 right-3">{passButton}</div>}
+      {actions && <div className="absolute bottom-3 right-3 flex items-center gap-2">{actions}</div>}
     </>
   );
 

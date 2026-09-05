@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { History } from "lucide-react";
+import { NotebookPen } from "lucide-react";
 import { RoundActionsList } from "./RoundActionsList";
+import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
 import { ApiError, getRoundActions } from "@/lib/api";
 import { HistoryAction, HistoryHand, PlayerModel, RoundHistoryEntry } from "@/lib/types";
@@ -19,11 +20,11 @@ const REASON_COPY: Record<string, string> = {
   REASON_BLOCKED: "board blocked, lowest pips wins",
 };
 
-// The icon lives just outside the board itself (see GameScreen) so it reads
-// as part of the table furniture, not as another in-round action — clicking
-// it never affects the live game, only opens a read-only look back at rounds
-// already played this game (client-accumulated in useGameConnection's
-// roundHistory; see that type for why it's session-local, not durable).
+// Sits in the board's corner action cluster next to the pass/knock button
+// (see GameScreen) — clicking it never affects the live game, only opens a
+// read-only look back at rounds already played this game (client-accumulated
+// in useGameConnection's roundHistory; see that type for why it's
+// session-local, not durable).
 export function RoundHistoryModal({ roundHistory, players, yourTeamID }: RoundHistoryModalProps) {
   const playerName = (id: string) => players.find((p) => p.id === id)?.name ?? `${id.slice(0, 8)}…`;
   const roundsNewestFirst = [...roundHistory].reverse();
@@ -31,16 +32,17 @@ export function RoundHistoryModal({ roundHistory, players, yourTeamID }: RoundHi
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <button
+        <Button
           type="button"
+          size="icon"
+          variant="secondary"
+          className="rounded-full shadow-sm"
           title="Round history"
           aria-label="Round history"
           disabled={roundHistory.length === 0}
-          className="flex items-center gap-1.5 rounded-full border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
         >
-          <History className="h-3.5 w-3.5" />
-          History
-        </button>
+          <NotebookPen className="h-4 w-4" />
+        </Button>
       </DialogTrigger>
       <DialogContent className="max-h-[80vh] overflow-y-auto">
         <DialogHeader>

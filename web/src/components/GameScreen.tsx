@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Volume2, VolumeX } from "lucide-react";
 import { Board } from "./Board";
 import { Button } from "@/components/ui/button";
+import { KnockIcon } from "./icons/KnockIcon";
 import { Hand } from "./Hand";
 import { PlayersPanel } from "./PlayersPanel";
 import { RoundHistoryModal } from "./RoundHistoryModal";
@@ -101,16 +102,6 @@ export function GameScreen({
       >
         {muted ? <VolumeX /> : <Volume2 />}
       </Button>
-      {roundOver && (
-        <RoundSummary
-          roundOver={roundOver}
-          yourTeamID={yourTeamID}
-          canStartNextRound={isHost}
-          nextRoundRequested={nextRoundRequested}
-          pointsThisRound={latestRoundOverPoints}
-          onNextRound={nextRound}
-        />
-      )}
       <PlayersPanel players={lobby.players} playerOrder={playerOrder} handCounts={handCounts} currentTurn={currentTurn} userID={userID} yourTeamID={yourTeamID}>
         <div className="flex flex-col items-center gap-2">
           <Board
@@ -125,7 +116,17 @@ export function GameScreen({
             scoreboard={<Scoreboard gameScores={gameScores} goalScore={lobby.settings.maxScore} yourTeamID={yourTeamID} />}
             roundBadge={<RoundBadge roundNumber={roundNumber} />}
             turnStatus={
-              !roundOver && (
+              roundOver ? (
+                <RoundSummary
+                  roundOver={roundOver}
+                  yourTeamID={yourTeamID}
+                  players={lobby.players}
+                  canStartNextRound={isHost}
+                  nextRoundRequested={nextRoundRequested}
+                  pointsThisRound={latestRoundOverPoints}
+                  onNextRound={nextRound}
+                />
+              ) : (
                 <TurnStatus
                   currentTurn={currentTurn}
                   currentTurnName={currentTurnPlayer?.name}
@@ -134,15 +135,25 @@ export function GameScreen({
                 />
               )
             }
-            passButton={
-              !roundOver && (
-                <Button size="sm" variant="secondary" className="shadow-sm" disabled={!isYourTurn || hasLegalMove} onClick={pass}>
-                  Pass
-                </Button>
-              )
+            actions={
+              <>
+                <RoundHistoryModal roundHistory={roundHistory} players={lobby.players} yourTeamID={yourTeamID} />
+                {!roundOver && (
+                  <Button
+                    size="icon"
+                    variant="secondary"
+                    className="rounded-full shadow-sm"
+                    disabled={!isYourTurn || hasLegalMove}
+                    onClick={pass}
+                    aria-label="Knock to pass"
+                    title="Knock to pass"
+                  >
+                    <KnockIcon className="h-6 w-6" />
+                  </Button>
+                )}
+              </>
             }
           />
-          <RoundHistoryModal roundHistory={roundHistory} players={lobby.players} yourTeamID={yourTeamID} />
         </div>
       </PlayersPanel>
       <Hand tiles={hand} selectedTile={selectedTile} isYourTurn={isYourTurn} onSelect={handleSelect} />
