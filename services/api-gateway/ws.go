@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 
-	"domino/services/api-gateway/grpc_clients"
 	"domino/shared/contracts"
 	"domino/shared/jwt"
 	"domino/shared/messaging"
@@ -48,17 +47,10 @@ func handleLobbyWebsocket(w http.ResponseWriter, r *http.Request, rmq *messaging
 
 	// NOTE: broadcast/target events (lobby.*, game.*) reach connManager via the
 	// single gateway-wide consumer started once in main.go, not per connection here.
-	// Create Game GRPC Client
-	gameSvc, err := grpc_clients.NewGameServiceClient()
-	if err != nil {
-		fmt.Printf("couldnt reach game service: %v\n", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
 
 	// check if there is a game running
 	var stateSnapshot *pbg.GetGameStateResponse
-	snapshotResp, err := gameSvc.Client.GetGameState(r.Context(), &pbg.GetGameStateRequest{
+	snapshotResp, err := gameClient.Client.GetGameState(r.Context(), &pbg.GetGameStateRequest{
 		LobbyId: lobbyID,
 		UserId:  claims.UserID,
 	})
@@ -172,7 +164,7 @@ func handleLobbyWebsocket(w http.ResponseWriter, r *http.Request, rmq *messaging
 				Tile:    &pbg.Tile{Left: cmd.Tile.Left, Right: cmd.Tile.Right},
 				Side:    cmd.Side,
 			}
-			responseGrpc, err := gameSvc.Client.PlayTile(r.Context(), req)
+			responseGrpc, err := gameClient.Client.PlayTile(r.Context(), req)
 			if err != nil {
 				log.Printf("couldn't play tile to server: %v", err)
 				continue
@@ -199,7 +191,7 @@ func handleLobbyWebsocket(w http.ResponseWriter, r *http.Request, rmq *messaging
 				LobbyId: lobbyID,
 				UserId:  claims.UserID,
 			}
-			responseGrpc, err := gameSvc.Client.PassTurn(r.Context(), req)
+			responseGrpc, err := gameClient.Client.PassTurn(r.Context(), req)
 			if err != nil {
 				log.Printf("couldn't pass turn to server: %v", err)
 				continue
@@ -223,7 +215,7 @@ func handleLobbyWebsocket(w http.ResponseWriter, r *http.Request, rmq *messaging
 				LobbyId: lobbyID,
 				UserId:  claims.UserID,
 			}
-			responseGrpc, err := gameSvc.Client.NextRound(r.Context(), req)
+			responseGrpc, err := gameClient.Client.NextRound(r.Context(), req)
 			if err != nil {
 				log.Printf("couldn't request next round to server: %v", err)
 				continue

@@ -21,8 +21,13 @@ import (
 
 var tracer = tracing.GetTracer("api-gateway")
 
-// historySvc is a single long-lived connection shared across requests
-var historySvc, historySvcErr = grpc_clients.NewHistoryServiceClient()
+// Each of these is a single long-lived connection shared across requests.
+var (
+	historyClient, historyClientErr = grpc_clients.NewHistoryServiceClient()
+	gameClient, gameClientErr       = grpc_clients.NewGameServiceClient()
+	lobbyClient, lobbyClientErr     = grpc_clients.NewLobbyServiceClient()
+	userClient, userClientErr       = grpc_clients.NewUserServiceClient()
+)
 
 func handleCreateLobby(w http.ResponseWriter, r *http.Request) {
 	ctx, span := tracer.Start(r.Context(), "handleCreateLobby")
@@ -41,13 +46,8 @@ func handleCreateLobby(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	lobbySvc, err := grpc_clients.NewLobbyServiceClient()
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	protoReq := newProtoCreateLobbyRequest(&req, userID)
-	lobby, err := lobbySvc.Client.CreateLobby(ctx, protoReq)
+	lobby, err := lobbyClient.Client.CreateLobby(ctx, protoReq)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("failed to create lobby: %v", err), http.StatusInternalServerError)
 		return
@@ -72,18 +72,13 @@ func handleGetUser(w http.ResponseWriter, r *http.Request) {
 	ctx, span := tracer.Start(r.Context(), "handleGetUser")
 	defer span.End()
 
-	userSvc, err := grpc_clients.NewUserServiceClient()
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	userID := r.PathValue("id")
 	if userID == "" {
 		http.Error(w, "user id is required", http.StatusBadRequest)
 		return
 	}
 
-	user, err := userSvc.Client.GetUser(ctx, &pbu.GetUserRequest{
+	user, err := userClient.Client.GetUser(ctx, &pbu.GetUserRequest{
 		UserID: userID,
 	})
 	if err != nil {
@@ -118,13 +113,8 @@ func handleJoinLobby(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	lobbySvc, err := grpc_clients.NewLobbyServiceClient()
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	protoReq := newProtoJoinLobbyRequest(userID, lobbyID, req.DisplayName)
-	lobby, err := lobbySvc.Client.JoinLobby(ctx, protoReq)
+	lobby, err := lobbyClient.Client.JoinLobby(ctx, protoReq)
 	if err != nil {
 		if status.Code(err) == codes.AlreadyExists {
 			http.Error(w, "already a member of this lobby. Use reconnect instead", http.StatusConflict)
@@ -161,13 +151,8 @@ func handleReconnectLobby(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	lobbySvc, err := grpc_clients.NewLobbyServiceClient()
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	protoReq := newProtoReconnectLobbyRequest(userID, lobbyID)
-	lobby, err := lobbySvc.Client.ReconnectLobby(ctx, protoReq)
+	lobby, err := lobbyClient.Client.ReconnectLobby(ctx, protoReq)
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
 			http.Error(w, "not a member of this lobby", http.StatusNotFound)
@@ -208,12 +193,7 @@ func handleStartGame(w http.ResponseWriter, r *http.Request) {
 		UserID:  userID,
 	}
 
-	lobbySvc, err := grpc_clients.NewLobbyServiceClient()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	game, err := lobbySvc.Client.StartLobby(ctx, req.toProto())
+	game, err := lobbyClient.Client.StartLobby(ctx, req.toProto())
 	if err != nil {
 		fmt.Printf("error: %v\n", err)
 		http.Error(w, "failed to start game in server", http.StatusInternalServerError)
@@ -233,12 +213,7 @@ func handleGetLobby(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	lobbySvc, err := grpc_clients.NewLobbyServiceClient()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	lobby, err := lobbySvc.Client.GetLobby(ctx, &pbl.GetLobbyRequest{LobbyID: lobbyID})
+	lobby, err := lobbyClient.Client.GetLobby(ctx, &pbl.GetLobbyRequest{LobbyID: lobbyID})
 	if err != nil {
 		http.Error(w, fmt.Sprintf("failed to get lobby: %v", err), http.StatusInternalServerError)
 		return
@@ -258,7 +233,7 @@ func handleGetRoundActions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	actions, err := historySvc.Client.GetRoundActions(ctx, &pbh.GetRoundActionsRequest{RoundId: roundID})
+	actions, err := historyClient.Client.GetRoundActions(ctx, &pbh.GetRoundActionsRequest{RoundId: roundID})
 	if err != nil {
 		// NotFound means the round hasn't been fully persisted by history-service yet
 		if status.Code(err) == codes.NotFound {
@@ -286,7 +261,7 @@ func handleGetPlayerGames(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	games, err := historySvc.Client.GetPlayerGames(ctx, &pbh.GetPlayerGamesRequest{PlayerId: userID})
+	games, err := historyClient.Client.GetPlayerGames(ctx, &pbh.GetPlayerGamesRequest{PlayerId: userID})
 	if err != nil {
 		http.Error(w, fmt.Sprintf("failed to get player games: %v", err), http.StatusInternalServerError)
 		return
@@ -306,7 +281,7 @@ func handleGetGameHistory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	history, err := historySvc.Client.GetGameHistory(ctx, &pbh.GetGameHistoryRequest{GameId: gameID})
+	history, err := historyClient.Client.GetGameHistory(ctx, &pbh.GetGameHistoryRequest{GameId: gameID})
 	if err != nil {
 		http.Error(w, fmt.Sprintf("failed to get game history: %v", err), http.StatusInternalServerError)
 		return
@@ -349,14 +324,7 @@ func handleAuthRegiter(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	userSvc, err := grpc_clients.NewUserServiceClient()
-	if err != nil {
-		fmt.Printf("couldnt reach user service: %v\n", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	auth, err := userSvc.Client.Register(ctx, &pbu.RegisterRequest{
+	auth, err := userClient.Client.Register(ctx, &pbu.RegisterRequest{
 		UserID:      userID,
 		Password:    req.Password,
 		DisplayName: req.DisplayName,

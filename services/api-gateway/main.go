@@ -21,10 +21,35 @@ var (
 var connManager = NewConnectionManager()
 
 func main() {
-	if historySvcErr != nil {
-		log.Fatal(historySvcErr)
+	if historyClientErr != nil {
+		log.Fatal(historyClientErr)
 	}
-	defer historySvc.Close()
+	defer historyClient.Close()
+	if gameClientErr != nil {
+		log.Fatal(gameClientErr)
+	}
+	defer gameClient.Close()
+	if lobbyClientErr != nil {
+		log.Fatal(lobbyClientErr)
+	}
+	defer lobbyClient.Close()
+	if userClientErr != nil {
+		log.Fatal(userClientErr)
+	}
+	defer userClient.Close()
+
+	// Init Tracer
+	sh, err := tracing.InitTracer(tracing.Config{
+		ServiceName:    "lobby-service",
+		Environment:    env.GetString("ENVIRONMENT", "development"),
+		JaegerEndpoint: env.GetString("JAEGER_ENDPOINT", "http://jaeger:14268/api/traces"),
+	})
+	if err != nil {
+		log.Fatalf("Failed to init tracer: %v", err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	defer sh(ctx)
 
 	// RabbitMQ connection
 	rabbitmq, err := messaging.NewRabbitMQ(rabbitMqURI)
