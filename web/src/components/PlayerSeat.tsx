@@ -1,11 +1,15 @@
+import { DominoTile } from "./DominoTile";
 import { PlayerChip } from "./PlayerChip";
 import { cn } from "@/lib/utils";
-import { PlayerModel } from "@/lib/types";
+import { PlayerModel, Tile, tileToString } from "@/lib/types";
 import { SeatEdge } from "@/lib/seatLayout";
 
 interface PlayerSeatProps {
   player: PlayerModel | undefined;
   handCount: number;
+  // This player's revealed tiles once the round is over (RoundOverData.playerHands).
+  // Undefined mid-round — the rack stays face-down via handCount as before.
+  revealedTiles?: Tile[];
   isCurrentTurn: boolean;
   isSelf: boolean;
   isYourTeam?: boolean;
@@ -17,7 +21,7 @@ interface PlayerSeatProps {
 // close an opponent is to going out.
 const MAX_TILE_BACKS = 7;
 
-export function PlayerSeat({ player, handCount, isCurrentTurn, isSelf, isYourTeam, edge }: PlayerSeatProps) {
+export function PlayerSeat({ player, handCount, revealedTiles, isCurrentTurn, isSelf, isYourTeam, edge }: PlayerSeatProps) {
   const name = player?.name ?? "…";
   const vertical = edge === "left" || edge === "right";
 
@@ -35,7 +39,7 @@ export function PlayerSeat({ player, handCount, isCurrentTurn, isSelf, isYourTea
         {name}
         {isSelf && <span className="text-muted-foreground"> (you)</span>}
       </p>
-      <TileBacks count={handCount} vertical={vertical} />
+      {revealedTiles ? <TileFaces tiles={revealedTiles} vertical={vertical} /> : <TileBacks count={handCount} vertical={vertical} />}
     </div>
   );
 }
@@ -85,6 +89,29 @@ function TileBacks({ count, vertical = false }: { count: number; vertical?: bool
         </div>
       ))}
       {count === 0 && <span className="text-xs text-muted-foreground">0 tiles</span>}
+    </div>
+  );
+}
+
+// The round-over reveal of this seat's actual tiles. Real pips (via
+// DominoTile) need real pixels — legible dots start at DominoTile's smallest
+// built-in size, well past the tile-back rack's tiny 16px footprint — so
+// this wraps onto multiple rows (or stacks into a column, for left/right
+// seats) instead of trying to fan/overlap like TileBacks does. The seat box
+// grows to fit at the moment of reveal, which is fine: it only happens once
+// the round has already ended. Tiles stay in their natural flat orientation
+// (same as Hand and RoundHandsReveal), no rotation needed now that nothing
+// has to fan tightly.
+function TileFaces({ tiles, vertical = false }: { tiles: Tile[]; vertical?: boolean }) {
+  if (tiles.length === 0) {
+    return <p className="text-xs font-medium">domino!</p>;
+  }
+
+  return (
+    <div className={cn("flex items-center justify-center gap-1", vertical ? "flex-col" : "max-w-[168px] flex-wrap")}>
+      {tiles.map((tile, i) => (
+        <DominoTile key={`${tileToString(tile)}-${i}`} tile={tile} size="sm" />
+      ))}
     </div>
   );
 }

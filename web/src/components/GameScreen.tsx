@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { KnockIcon } from "./icons/KnockIcon";
 import { Hand } from "./Hand";
 import { PlayersPanel } from "./PlayersPanel";
+import { RoundHandsReveal } from "./RoundHandsReveal";
 import { RoundHistoryModal } from "./RoundHistoryModal";
 import { RoundSummary } from "./RoundSummary";
 import { RoundBadge, Scoreboard } from "./Scoreboard";
@@ -102,7 +103,15 @@ export function GameScreen({
       >
         {muted ? <VolumeX /> : <Volume2 />}
       </Button>
-      <PlayersPanel players={lobby.players} playerOrder={playerOrder} handCounts={handCounts} currentTurn={currentTurn} userID={userID} yourTeamID={yourTeamID}>
+      <PlayersPanel
+        players={lobby.players}
+        playerOrder={playerOrder}
+        handCounts={handCounts}
+        playerHands={roundOver?.playerHands}
+        currentTurn={currentTurn}
+        userID={userID}
+        yourTeamID={yourTeamID}
+      >
         <div className="flex flex-col items-center gap-2">
           <Board
             board={board}
@@ -120,7 +129,6 @@ export function GameScreen({
                 <RoundSummary
                   roundOver={roundOver}
                   yourTeamID={yourTeamID}
-                  players={lobby.players}
                   canStartNextRound={isHost}
                   nextRoundRequested={nextRoundRequested}
                   pointsThisRound={latestRoundOverPoints}
@@ -148,10 +156,21 @@ export function GameScreen({
                     aria-label="Knock to pass"
                     title="Knock to pass"
                   >
-                    <KnockIcon className="h-6 w-6" />
+                    <KnockIcon />
                   </Button>
                 )}
               </>
+            }
+            reveal={
+              roundOver && (
+                <RoundHandsReveal
+                  playerHands={roundOver.playerHands}
+                  players={lobby.players}
+                  playerOrder={playerOrder}
+                  userID={userID}
+                  yourTeamID={yourTeamID}
+                />
+              )
             }
           />
         </div>

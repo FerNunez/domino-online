@@ -29,9 +29,13 @@ interface BoardProps {
   // (see GameScreen). Kept as one slot since the two never show together.
   turnStatus?: ReactNode;
   actions?: ReactNode;
+  // Round-over hand reveal (see RoundHandsReveal) — pinned to the felt's
+  // bottom edge rather than covering the board, so it reads as part of the
+  // table instead of an overlay on top of it.
+  reveal?: ReactNode;
 }
 
-export function Board({ board, canPlayLeft, canPlayRight, onDropEnd, scoreboard, roundBadge, turnStatus, actions }: BoardProps) {
+export function Board({ board, canPlayLeft, canPlayRight, onDropEnd, scoreboard, roundBadge, turnStatus, actions, reveal }: BoardProps) {
   const layout = useBoardLayout(board, { canvas: CANVAS });
 
   const hud = (
@@ -75,6 +79,7 @@ export function Board({ board, canPlayLeft, canPlayRight, onDropEnd, scoreboard,
             label={String(board.rightEnd)}
           />
         )}
+        {reveal}
         {hud}
       </div>
     </div>

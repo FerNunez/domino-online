@@ -1,12 +1,15 @@
 import { ReactNode } from "react";
 import { PlayerSeat } from "./PlayerSeat";
 import { assignSeats, SeatEdge } from "@/lib/seatLayout";
-import { PlayerModel, slotToTeamID } from "@/lib/types";
+import { PlayerModel, Tile, slotToTeamID } from "@/lib/types";
 
 interface PlayersPanelProps {
   players: PlayerModel[];
   playerOrder: string[];
   handCounts: Record<string, number>;
+  // Every player's revealed tiles once the round is over (RoundOverData.playerHands).
+  // Undefined mid-round — seats stay face-down via handCounts as before.
+  playerHands?: Record<string, Tile[]>;
   currentTurn: string | null;
   userID: string | undefined;
   yourTeamID?: string;
@@ -16,7 +19,7 @@ interface PlayersPanelProps {
 // Renders the seat ring as a CSS grid with the board (passed as `children`)
 // occupying the center cell — this component only knows about seats, never
 // about Board, keeping the two fully decoupled.
-export function PlayersPanel({ players, playerOrder, handCounts, currentTurn, userID, yourTeamID, children }: PlayersPanelProps) {
+export function PlayersPanel({ players, playerOrder, handCounts, playerHands, currentTurn, userID, yourTeamID, children }: PlayersPanelProps) {
   const seats = assignSeats(playerOrder, userID);
   const byEdge: Record<SeatEdge, typeof seats> = { bottom: [], left: [], top: [], right: [] };
   for (const seat of seats) byEdge[seat.edge].push(seat);
@@ -31,6 +34,7 @@ export function PlayersPanel({ players, playerOrder, handCounts, currentTurn, us
             key={seat.id}
             player={seatPlayer}
             handCount={handCounts[seat.id] ?? 0}
+            revealedTiles={playerHands?.[seat.id]}
             isCurrentTurn={seat.id === currentTurn}
             isSelf={seat.id === userID}
             isYourTeam={yourTeamID && seatTeamID ? seatTeamID === yourTeamID : undefined}

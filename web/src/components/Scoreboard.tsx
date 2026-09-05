@@ -8,13 +8,15 @@ interface ScoreboardProps {
 
 // Persistent cumulative score display, mounted for the whole game (not just
 // at round boundaries) — the only place a team's running total is visible.
-// Rendered as a compact badge overlaid on the board (see Board's hud slots),
-// so it stays a tight inline cluster rather than a full-width bar.
+// Plain text directly on the felt (see Board's hud slots) rather than a
+// card/pill — a filled background here reads as a clickable chip, and this
+// is pure readout, never interactive. The drop-shadow keeps it legible where
+// tiles or the board's own tint sit behind it.
 export function Scoreboard({ gameScores, goalScore, yourTeamID }: ScoreboardProps) {
   const teams = Object.keys(gameScores).sort();
 
   return (
-    <div className="flex gap-4 rounded-md bg-card/90 px-3 py-1.5 shadow-sm">
+    <div className="flex gap-4 [text-shadow:0_1px_2px_rgb(0_0_0/0.25)]">
       {teams.map((teamID) => {
         const isYourTeam = !!yourTeamID && teamID === yourTeamID;
         const score = gameScores[teamID] ?? 0;
@@ -36,8 +38,6 @@ export function Scoreboard({ gameScores, goalScore, yourTeamID }: ScoreboardProp
 
 export function RoundBadge({ roundNumber }: { roundNumber: number }) {
   return (
-    <p className="rounded-md bg-card/90 px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-sm">
-      Round {roundNumber}
-    </p>
+    <p className="text-xs font-medium text-muted-foreground [text-shadow:0_1px_2px_rgb(0_0_0/0.25)]">Round {roundNumber}</p>
   );
 }

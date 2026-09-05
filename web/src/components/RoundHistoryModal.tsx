@@ -41,7 +41,7 @@ export function RoundHistoryModal({ roundHistory, players, yourTeamID }: RoundHi
           aria-label="Round history"
           disabled={roundHistory.length === 0}
         >
-          <NotebookPen className="h-4 w-4" />
+          <NotebookPen />
         </Button>
       </DialogTrigger>
       <DialogContent className="max-h-[80vh] overflow-y-auto">

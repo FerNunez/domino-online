@@ -102,6 +102,12 @@ export interface RoundOverData {
   // Backend has no omitempty on this field — it arrives as "" (falsy) rather
   // than being omitted when the match hasn't ended. Use a falsy check.
   teamWinner?: string;
+  // Every player's remaining tiles at the moment the round ended (mirrors
+  // shared/messaging.RoundOverData.PlayerHands) — the round is already
+  // decided, so revealing everyone's hand is safe. Keyed by player id.
+  // Absent on the reconnect snapshot path (GameStateSnapshotData has no
+  // equivalent field) — treat missing the same as no reveal to animate.
+  playerHands?: Record<string, Tile[]>;
 }
 
 // Broadcast once, immediately after the RoundOver event that ends the
