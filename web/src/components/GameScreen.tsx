@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Volume2, VolumeX } from "lucide-react";
 import { Board } from "./Board";
 import { Button } from "@/components/ui/button";
 import { Hand } from "./Hand";
@@ -9,6 +10,7 @@ import { RoundHistoryModal } from "./RoundHistoryModal";
 import { RoundSummary } from "./RoundSummary";
 import { RoundBadge, Scoreboard } from "./Scoreboard";
 import { TurnStatus } from "./TurnIndicator";
+import { useSound } from "@/hooks/useSound";
 import { BoardState, legalSides } from "@/lib/board";
 import { LobbyModel, RoundHistoryEntry, RoundOverData, Side, Tile, slotToTeamID } from "@/lib/types";
 
@@ -57,6 +59,7 @@ export function GameScreen({
   nextRound,
 }: GameScreenProps) {
   const [selectedTile, setSelectedTile] = useState<Tile | null>(null);
+  const { muted, toggleMute } = useSound();
   const isYourTurn = !!currentTurn && currentTurn === userID;
   const yourSlot = lobby.players.find((p) => p.id === userID)?.slot;
   const yourTeamID = yourSlot !== undefined ? slotToTeamID(yourSlot) : undefined;
@@ -87,7 +90,17 @@ export function GameScreen({
   const dropSides = selectedTile ? legalSides(board, selectedTile) : [];
 
   return (
-    <div className="flex w-full max-w-5xl flex-col gap-4 p-4">
+    <div className="relative flex w-full max-w-5xl flex-col gap-4 p-4">
+      <Button
+        variant="ghost"
+        size="icon"
+        className="absolute right-4 top-4 z-10"
+        onClick={toggleMute}
+        aria-label={muted ? "Unmute sound effects" : "Mute sound effects"}
+        title={muted ? "Unmute sound effects" : "Mute sound effects"}
+      >
+        {muted ? <VolumeX /> : <Volume2 />}
+      </Button>
       {roundOver && (
         <RoundSummary
           roundOver={roundOver}

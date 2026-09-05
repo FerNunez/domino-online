@@ -7,6 +7,8 @@ import {
   ServerWsMessage,
 } from "@/lib/contracts";
 import { applyMove, BoardState, emptyBoard } from "@/lib/board";
+import { soundManager } from "@/lib/sound/soundManager";
+import { SoundName } from "@/lib/sound/sounds";
 import {
   PlayerModel,
   RoundHistoryEntry,
@@ -103,6 +105,23 @@ export function useGameConnection(
     );
     wsRef.current = ws;
 
+    // Tracks currentTurn synchronously (outside React state) so the
+    // "your turn" sound can be fired exactly on the transition into your
+    // turn, not on every message where it's still your turn. Reset per
+    // connection since it re-declares on every effect run.
+    let prevTurn: string | null = null;
+    const noteTurn = (nextTurn: string | null, playOnTransition: boolean) => {
+      if (
+        playOnTransition &&
+        nextTurn &&
+        nextTurn === userID &&
+        prevTurn !== userID
+      ) {
+        soundManager.play(SoundName.YourTurn);
+      }
+      prevTurn = nextTurn;
+    };
+
     ws.onopen = () => setState((s) => ({ ...s, connected: true }));
     ws.onclose = () => setState((s) => ({ ...s, connected: false }));
     ws.onerror = () =>
@@ -124,6 +143,9 @@ export function useGameConnection(
           // waiting on live events (which is all initialState otherwise
           // relies on). See services/api-gateway/ws.go.
           const snap = message.data;
+          // Just seeds the baseline — reconnecting mid-turn shouldn't replay
+          // the "your turn" sound.
+          noteTurn(snap.currentTurn, false);
           setState((s) => {
             let roundOver: RoundOverData | null = s.roundOver;
             if (snap.roundStatus === "ROUND_STATUS_OVER" && snap.roundResult) {
@@ -164,6 +186,8 @@ export function useGameConnection(
         case GameEvents.GameStarted: {
           const { gameID, playerOrder, currentTurn, handsSize, scores } =
             message.data;
+          soundManager.play(SoundName.GameStart);
+          noteTurn(currentTurn, true);
           setState((s) => ({
             ...s,
             gameStarted: true,
@@ -190,6 +214,10 @@ export function useGameConnection(
         }
         case GameEvents.PlayerMoveMade: {
           const { userID: actorID, tile, side, nextTurn } = message.data;
+          // Broadcast to every client including the actor — everyone hears
+          // the knock for every tile placed on the board.
+          soundManager.play(SoundName.TilePlayed);
+          noteTurn(nextTurn, true);
           // roundResult is no longer read here — RoundOver is now the sole
           // source of round-end state, so it can't go stale across rounds.
           setState((s) => ({
@@ -205,6 +233,8 @@ export function useGameConnection(
         }
         case GameEvents.PlayerPassed: {
           const { nextTurn } = message.data;
+          soundManager.play(SoundName.Pass);
+          noteTurn(nextTurn, true);
           setState((s) => ({ ...s, currentTurn: nextTurn }));
           break;
         }
@@ -221,6 +251,7 @@ export function useGameConnection(
         case GameEvents.RoundStarted: {
           const { nextStartingPlayer, roundNumber } = message.data;
           clearNextRoundTimeout();
+          noteTurn(nextStartingPlayer ?? prevTurn, true);
           setState((s) => ({
             ...s,
             currentTurn: nextStartingPlayer ?? s.currentTurn,
