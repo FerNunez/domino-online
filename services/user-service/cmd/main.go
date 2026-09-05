@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	grpchandler "domino/services/user-service/internal/infrastructure/grpc"
 	"domino/services/user-service/internal/infrastructure/repository"
@@ -25,14 +26,20 @@ func main() {
 	sh, err := tracing.InitTracer(tracing.Config{
 		ServiceName:    "user-service",
 		Environment:    env.GetString("ENVIRONMENT", "development"),
-		JaegerEndpoint: env.GetString("JAEGER_ENDPOINT", "http://jaeger:14268/api/traces"),
+		OTLPEndpoint: env.GetString("OTLP_ENDPOINT", "jaeger:4317"),
 	})
 	if err != nil {
 		log.Fatalf("Failed to init tracer: %v", err)
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	defer sh(ctx)
+	defer func() {
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer shutdownCancel()
+		if err := sh(shutdownCtx); err != nil {
+			log.Printf("tracer shutdown error: %v", err)
+		}
+	}()
 
 	// 2. Connect to MongoDB
 	sqlQueries, err := db.NewSQLQueries(ctx, db.NewSQLDefaultConfig())

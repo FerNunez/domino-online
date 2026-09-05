@@ -40,16 +40,20 @@ func main() {
 
 	// Init Tracer
 	sh, err := tracing.InitTracer(tracing.Config{
-		ServiceName:    "lobby-service",
-		Environment:    env.GetString("ENVIRONMENT", "development"),
-		JaegerEndpoint: env.GetString("JAEGER_ENDPOINT", "http://jaeger:14268/api/traces"),
+		ServiceName:  "api-gateway",
+		Environment:  env.GetString("ENVIRONMENT", "development"),
+		OTLPEndpoint: env.GetString("OTLP_ENDPOINT", "jaeger:4317"),
 	})
 	if err != nil {
 		log.Fatalf("Failed to init tracer: %v", err)
 	}
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	defer sh(ctx)
+	defer func() {
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer shutdownCancel()
+		if err := sh(shutdownCtx); err != nil {
+			log.Printf("tracer shutdown error: %v", err)
+		}
+	}()
 
 	// RabbitMQ connection
 	rabbitmq, err := messaging.NewRabbitMQ(rabbitMqURI)

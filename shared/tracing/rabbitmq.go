@@ -53,7 +53,7 @@ func TracedPublisher(ctx context.Context, exchange, routingKey string, msg amqp.
 	var msgBody contracts.DominoEvent
 	if err := json.Unmarshal(msg.Body, &msgBody); err == nil {
 		if msgBody.LobbyID != "" {
-			span.SetAttributes(attribute.String("messaging.lobby_id:", msgBody.LobbyID))
+			span.SetAttributes(attribute.String("messaging.lobby_id", msgBody.LobbyID))
 		}
 	}
 
@@ -93,7 +93,7 @@ func TracedConsumer(delivery amqp.Delivery, handler func(context.Context, amqp.D
 	var msgBody contracts.DominoEvent
 	if err := json.Unmarshal(delivery.Body, &msgBody); err == nil {
 		if msgBody.LobbyID != "" {
-			span.SetAttributes(attribute.String("messaging.owner_id", msgBody.LobbyID))
+			span.SetAttributes(attribute.String("messaging.lobby_id", msgBody.LobbyID))
 		}
 	}
 
